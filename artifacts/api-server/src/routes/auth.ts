@@ -4,7 +4,7 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { RegisterUserBody, LoginUserBody } from "@workspace/api-zod";
+import { RegisterUserBody, LoginUserBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -51,6 +51,42 @@ async function sendVerificationEmail(toEmail: string, name: string, token: strin
           </a>
           <p style="color:#666;font-size:13px;">Or copy this link: <a href="${verifyUrl}" style="color:#ff6b00;">${verifyUrl}</a></p>
           <p style="color:#555;font-size:12px;margin-top:24px;">If you didn't create an account, you can safely ignore this email.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+async function sendPasswordResetEmail(toEmail: string, name: string, token: string, origin: string) {
+  const resetUrl = `${origin}/reset-password?token=${token}`;
+  const transporter = createTransporter();
+
+  if (!transporter) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[DEV PASSWORD RESET] ${toEmail} → ${resetUrl}`);
+    }
+    return;
+  }
+
+  const senderEmail = process.env.GMAIL_USER || process.env.ADMIN_EMAIL;
+
+  await transporter.sendMail({
+    from: `"Quiz Bunker" <${senderEmail}>`,
+    to: toEmail,
+    subject: "🔑 Reset your Quiz Bunker password",
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#ff6b00,#e03000);padding:24px 32px;">
+          <h1 style="margin:0;font-size:24px;letter-spacing:1px;">🎮 QUIZ BUNKER</h1>
+        </div>
+        <div style="padding:32px;">
+          <h2 style="margin:0 0 12px;color:#ff6b00;">Hi ${name}!</h2>
+          <p style="color:#ccc;line-height:1.6;">We received a request to reset your password. Click the button below to choose a new one. This link expires in 1 hour.</p>
+          <a href="${resetUrl}" style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
+            RESET MY PASSWORD
+          </a>
+          <p style="color:#666;font-size:13px;">Or copy this link: <a href="${resetUrl}" style="color:#ff6b00;">${resetUrl}</a></p>
+          <p style="color:#555;font-size:12px;margin-top:24px;">If you didn't request this, you can safely ignore this email — your password will stay the same.</p>
         </div>
       </div>
     `,
@@ -188,6 +224,78 @@ router.post("/auth/login", async (req, res) => {
   }
 
   return res.json({ user: formatUser(user) });
+});
+
+// ── POST /auth/forgot-password ────────────────────────────────────────────────
+
+router.post("/auth/forgot-password", async (req, res) => {
+  const parsed = ForgotPasswordBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "A valid email is required" });
+  }
+
+  const { email } = parsed.data;
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, email.toLowerCase()))
+    .limit(1);
+
+  // Always return a generic success message so we don't leak which emails are registered
+  const genericMessage = { message: "If an account exists for that email, a password reset link has been sent." };
+
+  if (!user) {
+    return res.json(genericMessage);
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await db
+    .update(usersTable)
+    .set({ resetToken, resetTokenExpires })
+    .where(eq(usersTable.id, user.id));
+
+  const origin =
+    (req.headers.origin as string) ||
+    `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
+
+  sendPasswordResetEmail(user.email, user.name, resetToken, origin).catch((err) => {
+    console.error("[EMAIL ERROR]", err);
+  });
+
+  return res.json(genericMessage);
+});
+
+// ── POST /auth/reset-password ─────────────────────────────────────────────────
+
+router.post("/auth/reset-password", async (req, res) => {
+  const parsed = ResetPasswordBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "A valid token and password (min 6 chars) are required" });
+  }
+
+  const { token, password } = parsed.data;
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.resetToken, token))
+    .limit(1);
+
+  if (!user || !user.resetTokenExpires || user.resetTokenExpires.getTime() < Date.now()) {
+    return res.status(400).json({ error: "Invalid or expired reset link. Please request a new one." });
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  await db
+    .update(usersTable)
+    .set({ passwordHash, resetToken: null, resetTokenExpires: null })
+    .where(eq(usersTable.id, user.id));
+
+  return res.json({ message: "Password reset successfully! You can now log in with your new password." });
 });
 
 // ── POST /auth/logout ─────────────────────────────────────────────────────────

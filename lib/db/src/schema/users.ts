@@ -9,6 +9,8 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   emailVerified: boolean("email_verified").notNull().default(false),
   verificationToken: text("verification_token"),
+  resetToken: text("reset_token"),
+  resetTokenExpires: timestamp("reset_token_expires"),
   subscriptionPlan: text("subscription_plan").notNull().default("none"),
   subscriptionEnd: timestamp("subscription_end"),
   semesterStart: timestamp("semester_start"),

@@ -56,6 +56,16 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  /** @minLength 6 */
+  password: string;
+}
+
 export interface Question {
   id: number;
   year: string;
