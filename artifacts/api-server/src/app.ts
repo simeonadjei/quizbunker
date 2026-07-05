@@ -16,6 +16,10 @@ if (!process.env.SESSION_SECRET) {
 
 const app: Express = express();
 
+// Trust the first hop in Replit's reverse-proxy chain so express-rate-limit
+// reads the real client IP from X-Forwarded-For rather than the proxy address.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

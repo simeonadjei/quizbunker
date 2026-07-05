@@ -2,11 +2,59 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import rateLimit from "express-rate-limit";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { RegisterUserBody, LoginUserBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 
 const router = Router();
+
+// ── Rate limiters ─────────────────────────────────────────────────────────────
+
+/** Login: max 10 attempts per 15 minutes per IP */
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please try again in 15 minutes." },
+});
+
+/** Forgot-password: max 5 requests per hour per IP — prevents email flooding */
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many password reset requests. Please try again in an hour." },
+});
+
+/** Reset-password: max 10 attempts per hour per IP — token is already time-limited, but prevent token guessing */
+const resetPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many reset attempts. Please try again in an hour." },
+});
+
+/** Register: max 10 accounts per hour per IP — prevents account flood and email spam */
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many accounts created from this IP. Please try again in an hour." },
+});
+
+/** Verify-email: max 20 attempts per hour per IP — token is 32-byte random so guessing is impractical, light cap for basic abuse prevention */
+const verifyEmailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many verification attempts. Please try again in an hour." },
+});
 
 // ── Email sender ──────────────────────────────────────────────────────────────
 
@@ -108,7 +156,7 @@ function formatUser(user: typeof usersTable.$inferSelect) {
 
 // ── POST /auth/register ───────────────────────────────────────────────────────
 
-router.post("/auth/register", async (req, res) => {
+router.post("/auth/register", registerLimiter, async (req, res) => {
   const parsed = RegisterUserBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid input: email, password (min 6 chars), and name are required" });
@@ -153,7 +201,7 @@ router.post("/auth/register", async (req, res) => {
 
 // ── POST /auth/verify-email ───────────────────────────────────────────────────
 
-router.post("/auth/verify-email", async (req, res) => {
+router.post("/auth/verify-email", verifyEmailLimiter, async (req, res) => {
   const { token } = req.body as { token?: string };
 
   if (!token) {
@@ -184,7 +232,7 @@ router.post("/auth/verify-email", async (req, res) => {
 
 // ── POST /auth/login ──────────────────────────────────────────────────────────
 
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", loginLimiter, async (req, res) => {
   const parsed = LoginUserBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Email and password are required" });
@@ -228,7 +276,7 @@ router.post("/auth/login", async (req, res) => {
 
 // ── POST /auth/forgot-password ────────────────────────────────────────────────
 
-router.post("/auth/forgot-password", async (req, res) => {
+router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
   const parsed = ForgotPasswordBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "A valid email is required" });
@@ -270,7 +318,7 @@ router.post("/auth/forgot-password", async (req, res) => {
 
 // ── POST /auth/reset-password ─────────────────────────────────────────────────
 
-router.post("/auth/reset-password", async (req, res) => {
+router.post("/auth/reset-password", resetPasswordLimiter, async (req, res) => {
   const parsed = ResetPasswordBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "A valid token and password (min 6 chars) are required" });
