@@ -3,20 +3,32 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Exam Arena API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: questions
+    description: Question bank
+  - name: quiz
+    description: Quiz sessions
+  - name: songs
+    description: Background music
+  - name: payments
+    description: Paystack payments
+  - name: admin
+    description: Admin operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +36,834 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ──────────────────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Questions ─────────────────────────────────────────────────────────────
+  /questions:
+    get:
+      operationId: listQuestions
+      tags: [questions]
+      summary: List questions with filters
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: string
+        - name: subject
+          in: query
+          schema:
+            type: string
+        - name: week
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+
+  /questions/filters:
+    get:
+      operationId: getQuestionFilters
+      tags: [questions]
+      summary: Get available years, subjects and weeks
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionFilters"
+
+  # ── Quiz ──────────────────────────────────────────────────────────────────
+  /quiz/sessions:
+    post:
+      operationId: createQuizSession
+      tags: [quiz]
+      summary: Start a quiz session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizSessionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSession"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quiz/sessions/{sessionId}:
+    get:
+      operationId: getQuizSession
+      tags: [quiz]
+      summary: Get quiz session with results
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSessionDetail"
+
+  /quiz/sessions/{sessionId}/submit:
+    post:
+      operationId: submitQuizSession
+      tags: [quiz]
+      summary: Submit quiz answers
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizSubmitInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSessionDetail"
+
+  /quiz/history:
+    get:
+      operationId: getQuizHistory
+      tags: [quiz]
+      summary: Get user quiz history
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizSession"
+
+  # ── Songs ─────────────────────────────────────────────────────────────────
+  /songs:
+    get:
+      operationId: listSongs
+      tags: [songs]
+      summary: List all active songs
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Song"
+
+  # ── Payments ──────────────────────────────────────────────────────────────
+  /payments/initialize:
+    post:
+      operationId: initializePayment
+      tags: [payments]
+      summary: Initialize a Paystack payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInitInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentInitResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/verify/{reference}:
+    get:
+      operationId: verifyPayment
+      tags: [payments]
+      summary: Verify a Paystack payment
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentVerifyResponse"
+
+  /payments/status:
+    get:
+      operationId: getPaymentStatus
+      tags: [payments]
+      summary: Get current user subscription status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+
+  # ── Admin ─────────────────────────────────────────────────────────────────
+  /admin/auth:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/questions/upload:
+    post:
+      operationId: uploadQuestions
+      tags: [admin]
+      summary: Bulk upload questions from file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/QuestionUploadInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+
+  /admin/questions/{id}:
+    delete:
+      operationId: deleteQuestion
+      tags: [admin]
+      summary: Delete a question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/songs:
+    post:
+      operationId: uploadSong
+      tags: [admin]
+      summary: Upload a song
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/SongUploadInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+
+  /admin/songs/{id}:
+    put:
+      operationId: updateSong
+      tags: [admin]
+      summary: Update song metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SongUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+    delete:
+      operationId: deleteSong
+      tags: [admin]
+      summary: Delete a song
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/songs/reorder:
+    put:
+      operationId: reorderSongs
+      tags: [admin]
+      summary: Reorder songs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SongReorderInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserAdmin"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get admin dashboard stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    # ── Auth ────────────────────────────────────────────────────────────────
+    RegisterInput:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+          minLength: 1
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    User:
+      type: object
+      required: [id, email, name, subscriptionPlan]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        subscriptionPlan:
+          type: string
+          enum: [none, monthly, semester, yearly]
+        subscriptionEnd:
+          type: ["string", "null"]
+        semesterStart:
+          type: ["string", "null"]
+
+    AuthResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    # ── Questions ────────────────────────────────────────────────────────────
+    Question:
+      type: object
+      required: [id, year, subject, week, weekTopic, questionNumber, questionText, optionA, optionB, optionC, optionD, correctAnswer]
+      properties:
+        id:
+          type: integer
+        year:
+          type: string
+        subject:
+          type: string
+        week:
+          type: integer
+        weekTopic:
+          type: string
+        questionNumber:
+          type: integer
+        questionText:
+          type: string
+        optionA:
+          type: string
+        optionB:
+          type: string
+        optionC:
+          type: string
+        optionD:
+          type: string
+        correctAnswer:
+          type: string
+        dok:
+          type: ["string", "null"]
+        learningIndicator:
+          type: ["string", "null"]
+        feedback:
+          type: ["string", "null"]
+
+    QuestionFilters:
+      type: object
+      required: [years, subjects, weeks]
+      properties:
+        years:
+          type: array
+          items:
+            type: string
+        subjects:
+          type: array
+          items:
+            type: string
+        weeks:
+          type: array
+          items:
+            type: integer
+
+    # ── Quiz ─────────────────────────────────────────────────────────────────
+    QuizSessionInput:
+      type: object
+      required: [year, subject, week]
+      properties:
+        year:
+          type: string
+        subject:
+          type: string
+        week:
+          type: integer
+
+    QuizSession:
+      type: object
+      required: [id, year, subject, week, totalQuestions, completedAt]
+      properties:
+        id:
+          type: integer
+        year:
+          type: string
+        subject:
+          type: string
+        week:
+          type: integer
+        weekTopic:
+          type: ["string", "null"]
+        score:
+          type: ["integer", "null"]
+        totalQuestions:
+          type: integer
+        completedAt:
+          type: ["string", "null"]
+
+    QuizSessionDetail:
+      type: object
+      required: [id, year, subject, week, questions, answers]
+      properties:
+        id:
+          type: integer
+        year:
+          type: string
+        subject:
+          type: string
+        week:
+          type: integer
+        weekTopic:
+          type: ["string", "null"]
+        score:
+          type: ["integer", "null"]
+        totalQuestions:
+          type: integer
+        completedAt:
+          type: ["string", "null"]
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizAnswer"
+
+    QuizAnswer:
+      type: object
+      required: [questionId, isCorrect]
+      properties:
+        questionId:
+          type: integer
+        selectedAnswer:
+          type: ["string", "null"]
+        isCorrect:
+          type: boolean
+
+    QuizSubmitInput:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnswerInput"
+
+    AnswerInput:
+      type: object
+      required: [questionId, selectedAnswer]
+      properties:
+        questionId:
+          type: integer
+        selectedAnswer:
+          type: string
+
+    # ── Songs ─────────────────────────────────────────────────────────────────
+    Song:
+      type: object
+      required: [id, title, url, sortOrder, isActive]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        url:
+          type: string
+        sortOrder:
+          type: integer
+        isActive:
+          type: boolean
+
+    SongUploadInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+
+    SongUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        isActive:
+          type: boolean
+        sortOrder:
+          type: integer
+
+    SongReorderInput:
+      type: object
+      required: [songIds]
+      properties:
+        songIds:
+          type: array
+          items:
+            type: integer
+
+    # ── Payments ──────────────────────────────────────────────────────────────
+    PaymentInitInput:
+      type: object
+      required: [plan]
+      properties:
+        plan:
+          type: string
+          enum: [monthly, semester, yearly]
+        semesterStart:
+          type: ["string", "null"]
+
+    PaymentInitResponse:
+      type: object
+      required: [authorizationUrl, reference]
+      properties:
+        authorizationUrl:
+          type: string
+        reference:
+          type: string
+
+    PaymentVerifyResponse:
+      type: object
+      required: [success, plan]
+      properties:
+        success:
+          type: boolean
+        plan:
+          type: string
+        subscriptionEnd:
+          type: ["string", "null"]
+
+    SubscriptionStatus:
+      type: object
+      required: [plan, isActive]
+      properties:
+        plan:
+          type: string
+        isActive:
+          type: boolean
+        subscriptionEnd:
+          type: ["string", "null"]
+        daysRemaining:
+          type: ["integer", "null"]
+
+    # ── Admin ─────────────────────────────────────────────────────────────────
+    AdminLoginInput:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    QuestionUploadInput:
+      type: object
+      properties:
+        year:
+          type: string
+        subject:
+          type: string
+
+    UploadResult:
+      type: object
+      required: [inserted, skipped]
+      properties:
+        inserted:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+        preview:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+
+    UserAdmin:
+      type: object
+      required: [id, email, name, subscriptionPlan, createdAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        subscriptionPlan:
+          type: string
+        subscriptionEnd:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AdminStats:
+      type: object
+      required: [totalUsers, activeSubscribers, totalQuestions, totalSubjects, totalSongs, recentSessions]
+      properties:
+        totalUsers:
+          type: integer
+        activeSubscribers:
+          type: integer
+        totalQuestions:
+          type: integer
+        totalSubjects:
+          type: integer
+        totalSongs:
+          type: integer
+        recentSessions:
+          type: integer

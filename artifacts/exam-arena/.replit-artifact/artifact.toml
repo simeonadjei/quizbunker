@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Exam Arena"
+version = "1.0.0"
+id = "artifacts/exam-arena"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22591
+
+[services.development]
+run = "pnpm --filter @workspace/exam-arena run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/exam-arena", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/exam-arena/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22591"
+BASE_PATH = "/"
