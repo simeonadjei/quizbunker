@@ -8,11 +8,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2, LogIn } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(1, "Password is required")
+  password: z.string().min(1, 'Password is required'),
 });
 
 export default function Login() {
@@ -23,7 +23,7 @@ export default function Login() {
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' }
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
@@ -33,85 +33,85 @@ export default function Login() {
         setLocation('/dashboard');
       },
       onError: (err: any) => {
-        toast({
-          title: "Login Failed",
-          description: err.error || "Check your credentials.",
-          variant: "destructive"
-        });
-      }
+        toast({ title: 'Login failed', description: err.error || 'Invalid email or password.', variant: 'destructive' });
+      },
     });
   };
 
   return (
     <Layout>
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md card-game border-l-4 border-t-4 border-primary p-8 md:p-10 animate-in zoom-in-95 duration-300 relative overflow-hidden">
-          
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 blur-[50px] rounded-full pointer-events-none" />
-          
-          <div className="text-center mb-8 relative z-10">
-            <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-[0_6px_0_hsl(32,95%,35%)] border-2 border-white/50 transform -rotate-6">
-              <KeyRound className="w-8 h-8 text-white" strokeWidth={2.5} />
+      <div className="flex-1 flex items-center justify-center px-4 py-6">
+        <div className="w-full max-w-sm">
+
+          {/* Logo strip */}
+          <div className="text-center mb-6">
+            <div
+              className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-3 border-2 border-white/40"
+              style={{ boxShadow: '0 5px 0 hsl(22 90% 30%), 0 8px 16px rgba(0,0,0,0.4)' }}
+            >
+              <LogIn className="w-7 h-7 text-white" strokeWidth={2.5} />
             </div>
-            <h1 className="text-4xl font-display uppercase tracking-wider text-outline text-white">Player Login</h1>
-            <p className="text-white/80 mt-2 font-bold bg-black/30 inline-block px-4 py-1 rounded-full border border-white/10">ACCESS YOUR SAVE DATA</p>
+            <h1 className="text-game-title text-2xl leading-tight">WELCOME BACK</h1>
+            <p className="text-white/55 text-sm font-bold mt-1">Sign in to Quiz Bunker</p>
           </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 relative z-10">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-display text-sm uppercase tracking-wider drop-shadow-md">Email Address</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="player@example.com" 
-                        className="bg-black/40 border-2 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-primary focus-visible:border-primary font-bold h-12 rounded-xl text-lg" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage className="text-accent font-bold" />
-                  </FormItem>
-                )}
-              />
+          <div className="card-game p-5">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/70 font-bold text-xs uppercase tracking-wider">Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="you@example.com"
+                          className="bg-black/40 border-2 border-white/20 text-white placeholder:text-white/35 focus-visible:ring-primary focus-visible:border-primary font-bold h-11 rounded-xl"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-accent font-bold text-xs" />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-display text-sm uppercase tracking-wider drop-shadow-md">Password</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="password" 
-                        placeholder="••••••••" 
-                        className="bg-black/40 border-2 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-primary focus-visible:border-primary font-bold h-12 rounded-xl text-lg tracking-widest" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage className="text-accent font-bold" />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/70 font-bold text-xs uppercase tracking-wider">Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          className="bg-black/40 border-2 border-white/20 text-white placeholder:text-white/35 focus-visible:ring-primary focus-visible:border-primary font-bold h-11 rounded-xl tracking-widest"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-accent font-bold text-xs" />
+                    </FormItem>
+                  )}
+                />
 
-              <button 
-                type="submit" 
-                className="w-full btn-game py-4 text-xl mt-4 flex justify-center items-center"
-                disabled={login.isPending}
-              >
-                {login.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : "Initialize"}
-              </button>
-            </form>
-          </Form>
-
-          <div className="mt-8 text-center text-sm font-bold text-white/80 border-t-2 border-white/10 pt-6 relative z-10">
-            New challenger?{' '}
-            <Link href="/register" className="text-accent hover:text-white uppercase text-outline drop-shadow-md transition-colors ml-2 text-base">
-              Create Account
-            </Link>
+                <button
+                  type="submit"
+                  className="btn-game w-full py-3.5 text-base justify-center mt-1"
+                  disabled={login.isPending}
+                >
+                  {login.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
+                </button>
+              </form>
+            </Form>
           </div>
+
+          <p className="text-center text-white/55 text-sm font-bold mt-4">
+            New here?{' '}
+            <Link href="/register" className="text-accent hover:underline font-bold">Create an account</Link>
+          </p>
+
         </div>
       </div>
     </Layout>

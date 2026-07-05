@@ -12,7 +12,8 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col relative bg-background">
       {!isAdmin && <BackgroundParticles />}
       {!isAdmin && <Navbar />}
-      <main className="flex-1 relative z-10 flex flex-col">
+      {/* pt-14 clears the fixed 56px navbar; pb-24 clears the music player */}
+      <main className={`flex-1 relative z-10 flex flex-col ${!isAdmin ? 'pt-14 pb-24' : ''}`}>
         {children}
       </main>
       {!isAdmin && <MusicPlayer />}

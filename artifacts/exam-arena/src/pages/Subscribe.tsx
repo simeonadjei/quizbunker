@@ -1,178 +1,184 @@
 import { useGetPaymentStatus, getGetPaymentStatusQueryKey, useInitializePayment } from '@workspace/api-client-react';
 import { Layout } from '@/components/Layout';
-import { Zap, Check, Star, Shield, Clock, CircleDollarSign, Trophy } from 'lucide-react';
+import { Zap, Check, Star, Shield, Clock } from 'lucide-react';
 import { useState } from 'react';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
+const PLANS = [
+  {
+    key: 'monthly' as const,
+    label: 'Monthly',
+    price: '10',
+    period: '/mo',
+    icon: <Clock className="w-5 h-5" />,
+    color: 'border-t-secondary',
+    textColor: 'text-secondary',
+    perks: ['All subjects', 'All weeks', 'Dok 1–4 questions', 'Battle history'],
+  },
+  {
+    key: 'semester' as const,
+    label: 'Semester',
+    price: '30',
+    period: '/4 mo',
+    icon: <Star className="w-5 h-5" />,
+    color: 'border-t-accent',
+    textColor: 'text-accent',
+    featured: true,
+    perks: ['Everything in Monthly', 'Best value for school term', 'Aligned to semester dates', '1,500+ questions'],
+  },
+  {
+    key: 'yearly' as const,
+    label: 'Yearly',
+    price: '50',
+    period: '/yr',
+    icon: <Shield className="w-5 h-5" />,
+    color: 'border-t-primary',
+    textColor: 'text-primary',
+    perks: ['Everything in Semester', 'Full academic year', 'All exam years', 'Priority access'],
+  },
+];
+
 export default function Subscribe() {
-  const { data: status, isLoading } = useGetPaymentStatus({ query: { queryKey: getGetPaymentStatusQueryKey() } });
+  const { data: status } = useGetPaymentStatus({ query: { queryKey: getGetPaymentStatusQueryKey() } });
   const initPayment = useInitializePayment();
   const { toast } = useToast();
-
   const [semesterStart, setSemesterStart] = useState<Date>();
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'semester' | 'yearly'>('semester');
 
-  const handleSubscribe = (plan: 'monthly' | 'semester' | 'yearly') => {
-    if (plan === 'semester' && !semesterStart) {
-      toast({ title: "Date required", description: "Please select your semester start date.", variant: "destructive" });
+  const handleSubscribe = () => {
+    if (selectedPlan === 'semester' && !semesterStart) {
+      toast({ title: 'Date required', description: 'Select your semester start date.', variant: 'destructive' });
       return;
     }
-
-    const payload = {
-      plan,
-      semesterStart: plan === 'semester' && semesterStart ? semesterStart.toISOString().split('T')[0] : undefined
-    };
-
-    initPayment.mutate({ data: payload }, {
-      onSuccess: (res) => {
-        window.location.href = res.authorizationUrl;
-      },
-      onError: () => {
-        toast({ title: "Error", description: "Could not initialize payment.", variant: "destructive" });
+    initPayment.mutate({
+      data: {
+        plan: selectedPlan,
+        semesterStart: selectedPlan === 'semester' && semesterStart
+          ? semesterStart.toISOString().split('T')[0]
+          : undefined,
       }
+    }, {
+      onSuccess: (res) => { window.location.href = res.authorizationUrl; },
+      onError: () => toast({ title: 'Error', description: 'Could not start payment.', variant: 'destructive' }),
     });
   };
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12 md:py-20 max-w-6xl">
-        <div className="text-center mb-16 animate-in slide-in-from-bottom-4">
-          <div className="inline-block relative">
-            <div className="absolute inset-0 bg-accent/30 blur-[60px] rounded-full" />
-            <div className="w-24 h-24 bg-accent mx-auto rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_hsl(var(--accent))] border-4 border-white relative z-10 animate-starPulse">
-              <Zap className="w-12 h-12 text-[#3b1a03]" fill="currentColor" />
-            </div>
+      <div className="px-4 py-5 max-w-lg mx-auto w-full">
+
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div
+            className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center mx-auto mb-3 border-2 border-white/50"
+            style={{ boxShadow: '0 5px 0 hsl(38 90% 30%), 0 8px 16px rgba(0,0,0,0.4)' }}
+          >
+            <Zap className="w-7 h-7 text-accent-foreground" fill="currentColor" />
           </div>
-          
-          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tight text-accent text-outline drop-shadow-[0_0_15px_hsl(var(--accent))] mb-4">
-            Power Up
-          </h1>
-          <p className="text-white/90 font-bold bg-black/40 inline-block px-6 py-2 rounded-full border border-white/20 tracking-widest uppercase shadow-inner">UNLOCK FULL ACCESS TO THE ARENA</p>
-          
-          {status?.isActive && (
-            <div className="mt-6 flex justify-center">
-              <div className="hud-badge-gold px-6 py-3 text-lg shadow-[0_0_30px_rgba(255,215,0,0.5)]">
-                <Check className="w-6 h-6" strokeWidth={3} /> Active {status.plan} plan — {status.daysRemaining} days left
-              </div>
-            </div>
-          )}
+          <h1 className="text-game-title text-3xl leading-tight">UNLOCK FULL ACCESS</h1>
+          <p className="text-white/60 text-sm mt-1 font-bold">1,500+ questions — Dok 1 to 4 per subject</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 items-end max-w-5xl mx-auto">
-          
-          {/* Monthly */}
-          <div className="card-game border-t-4 border-l-4 border-primary p-8 md:p-10 flex flex-col transition-all duration-300 animate-in slide-in-from-bottom-8 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]" style={{animationDelay: '100ms'}}>
-            <div className="mb-8 border-b-2 border-white/10 pb-8">
-              <h3 className="text-3xl font-display uppercase tracking-wider mb-4 text-primary text-outline">Casual</h3>
-              <div className="flex items-start gap-2">
-                <span className="text-xl font-bold text-white/50 mt-1">GHS</span>
-                <span className="text-6xl font-display text-white text-outline">10</span>
-                <span className="text-xl font-bold text-white/50 self-end mb-2">/mo</span>
-              </div>
-            </div>
-            
-            <ul className="space-y-5 mb-10 flex-1">
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary"><Check className="w-5 h-5 text-primary" strokeWidth={3} /></div> Full Arena Access</li>
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary"><Check className="w-5 h-5 text-primary" strokeWidth={3} /></div> Battle History</li>
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary"><Check className="w-5 h-5 text-primary" strokeWidth={3} /></div> Global Leaderboards</li>
-            </ul>
-
-            <button 
-              onClick={() => handleSubscribe('monthly')}
-              disabled={initPayment.isPending}
-              className="w-full btn-game py-5 text-xl"
-            >
-              Select Casual
-            </button>
+        {/* Active sub notice */}
+        {status?.isActive && (
+          <div className="card-game border-l-4 border-accent p-4 mb-5 flex items-center gap-3">
+            <Check className="w-5 h-5 text-accent shrink-0" strokeWidth={3} />
+            <span className="text-white font-bold text-sm">
+              Active {status.plan} plan — {status.daysRemaining} days remaining
+            </span>
           </div>
+        )}
 
-          {/* Semester */}
-          <div className="card-game border-4 border-accent p-8 md:p-10 flex flex-col md:-translate-y-4 md:scale-105 z-10 shadow-[0_0_50px_hsl(var(--accent)/0.3)] bg-gradient-to-b from-black/80 to-black/60 animate-in slide-in-from-bottom-8" style={{animationDelay: '200ms'}}>
-            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-accent text-[#3b1a03] px-6 py-2 rounded-full font-display uppercase tracking-widest flex items-center gap-2 border-2 border-white shadow-[0_4px_0_#b57f00] text-sm whitespace-nowrap">
-              <Star className="w-5 h-5 animate-pulse" fill="currentColor" /> Most Popular
-            </div>
-            
-            <div className="mb-8 border-b-2 border-white/10 pb-8 mt-4">
-              <h3 className="text-4xl font-display uppercase tracking-wider mb-4 text-accent text-outline drop-shadow-md">Semester</h3>
-              <div className="flex items-start gap-2">
-                <span className="text-xl font-bold text-white/50 mt-1">GHS</span>
-                <span className="text-7xl font-display text-white text-outline">30</span>
-                <span className="text-xl font-bold text-white/50 self-end mb-2">/4mo</span>
-              </div>
-            </div>
-            
-            <ul className="space-y-5 mb-8 flex-1">
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border border-accent"><Check className="w-5 h-5 text-accent" strokeWidth={3} /></div> Everything in Casual</li>
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border border-accent"><CircleDollarSign className="w-5 h-5 text-accent" strokeWidth={3} /></div> Save 25% vs Monthly</li>
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border border-accent"><Shield className="w-5 h-5 text-accent" strokeWidth={3} /></div> Covers full academic term</li>
-            </ul>
-
-            <div className="space-y-3 mb-8 p-5 bg-black/50 rounded-2xl border-2 border-white/10 shadow-inner">
-              <label className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Clock className="w-4 h-4 text-accent" /> Term Start Date
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    className={cn(
-                      "w-full h-12 px-4 rounded-xl border-2 text-left font-bold transition-colors flex items-center text-lg bg-black/40",
-                      semesterStart ? "border-accent text-white" : "border-white/20 text-white/50 hover:border-white/50"
-                    )}
-                  >
-                    {semesterStart ? format(semesterStart, "PPP") : <span>Pick a date</span>}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 border-2 border-accent bg-black/90 backdrop-blur-xl rounded-2xl">
-                  <Calendar
-                    mode="single"
-                    selected={semesterStart}
-                    onSelect={setSemesterStart}
-                    initialFocus
-                    className="text-white"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <button 
-              onClick={() => handleSubscribe('semester')}
-              disabled={initPayment.isPending}
-              className="w-full btn-game-accent py-6 text-2xl animate-pulse"
+        {/* Plan selector */}
+        <div className="flex gap-2 mb-4">
+          {PLANS.map(p => (
+            <button
+              key={p.key}
+              onClick={() => setSelectedPlan(p.key)}
+              className={cn(
+                'flex-1 py-2.5 rounded-2xl font-display text-sm border-2 transition-all duration-150',
+                selectedPlan === p.key
+                  ? 'bg-primary text-white border-white/40 shadow-[0_4px_0_hsl(22,90%,30%)]'
+                  : 'bg-black/30 text-white/60 border-white/15 hover:border-white/30'
+              )}
             >
-              Select Semester
+              {p.label}
             </button>
-          </div>
-
-          {/* Yearly */}
-          <div className="card-game border-t-4 border-l-4 border-secondary p-8 md:p-10 flex flex-col transition-all duration-300 animate-in slide-in-from-bottom-8 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]" style={{animationDelay: '300ms'}}>
-            <div className="mb-8 border-b-2 border-white/10 pb-8">
-              <h3 className="text-3xl font-display uppercase tracking-wider mb-4 text-secondary text-outline">Hardcore</h3>
-              <div className="flex items-start gap-2">
-                <span className="text-xl font-bold text-white/50 mt-1">GHS</span>
-                <span className="text-6xl font-display text-white text-outline">50</span>
-                <span className="text-xl font-bold text-white/50 self-end mb-2">/yr</span>
-              </div>
-            </div>
-            
-            <ul className="space-y-5 mb-10 flex-1">
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary"><Check className="w-5 h-5 text-secondary" strokeWidth={3} /></div> Everything in Semester</li>
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary"><CircleDollarSign className="w-5 h-5 text-secondary" strokeWidth={3} /></div> Save 58% vs Monthly</li>
-              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary"><Trophy className="w-5 h-5 text-secondary" strokeWidth={3} /></div> Uninterrupted access</li>
-            </ul>
-
-            <button 
-              onClick={() => handleSubscribe('yearly')}
-              disabled={initPayment.isPending}
-              className="w-full btn-game-secondary py-5 text-xl"
-            >
-              Select Yearly
-            </button>
-          </div>
-
+          ))}
         </div>
+
+        {/* Selected plan detail card */}
+        {PLANS.map(p => {
+          if (p.key !== selectedPlan) return null;
+          return (
+            <div key={p.key} className={`card-game border-t-4 ${p.color} p-5 mb-4`}>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className={`flex items-center gap-1.5 font-display ${p.textColor} text-lg mb-1`}>
+                    {p.icon} {p.label}
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-white/50 text-sm font-bold">GHS</span>
+                    <span className="text-5xl font-display text-white leading-none">{p.price}</span>
+                    <span className="text-white/50 text-sm font-bold self-end pb-1">{p.period}</span>
+                  </div>
+                </div>
+                {p.featured && (
+                  <span className="hud-badge-gold text-xs px-2.5 py-1">BEST VALUE</span>
+                )}
+              </div>
+
+              <ul className="space-y-2 mb-5">
+                {p.perks.map(perk => (
+                  <li key={perk} className="flex items-center gap-2 text-white/80 text-sm font-bold">
+                    <Check className="w-4 h-4 text-accent shrink-0" strokeWidth={3} />
+                    {perk}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Semester date picker */}
+              {p.key === 'semester' && (
+                <div className="mb-4">
+                  <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-2">Semester start date</p>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="btn-game-ghost w-full py-2.5 text-sm justify-center">
+                        {semesterStart ? format(semesterStart, 'MMM d, yyyy') : 'Pick a date'}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-card border-2 border-border rounded-2xl" align="center">
+                      <Calendar
+                        mode="single"
+                        selected={semesterStart}
+                        onSelect={setSemesterStart}
+                        disabled={(d) => d < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              <button
+                onClick={handleSubscribe}
+                disabled={initPayment.isPending}
+                className="btn-game w-full py-4 text-lg justify-center"
+              >
+                {initPayment.isPending ? 'Redirecting...' : `Pay GHS ${p.price}`}
+              </button>
+            </div>
+          );
+        })}
+
+        <p className="text-center text-white/40 text-xs font-bold">
+          Secure payment via Paystack. Cancel anytime.
+        </p>
+
       </div>
     </Layout>
   );

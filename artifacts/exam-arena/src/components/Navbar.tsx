@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import { useGetCurrentUser, useLogoutUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Gamepad2, LogOut, History, ShieldAlert, Sparkles, Trophy, User as UserIcon } from 'lucide-react';
+import { Gamepad2, LogOut, History, Sparkles, User as UserIcon } from 'lucide-react';
 
 export function Navbar() {
   const { data: user } = useGetCurrentUser({ query: { enabled: true, queryKey: getGetCurrentUserQueryKey() } });
@@ -19,62 +19,68 @@ export function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/60 to-transparent pt-4 pb-8 pointer-events-none">
-      <div className="container mx-auto px-4 flex items-start justify-between pointer-events-auto">
-        <Link href="/" className="flex items-center gap-2 group transform transition-transform hover:scale-105 active:scale-95">
-          <div className="bg-primary p-2.5 rounded-xl shadow-[0_4px_0_hsl(32,95%,35%),0_4px_10px_rgba(0,0,0,0.5)] border-2 border-white/50">
-            <Gamepad2 className="w-8 h-8 text-white" strokeWidth={2.5} />
+    <nav className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-white/10 shadow-lg">
+      <div className="max-w-screen-lg mx-auto px-4 h-14 flex items-center justify-between gap-3">
+
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 shrink-0 group">
+          <div
+            className="bg-primary p-1.5 rounded-xl border-2 border-white/40 group-active:translate-y-0.5 transition-transform"
+            style={{ boxShadow: '0 4px 0 hsl(22 90% 30%)' }}
+          >
+            <Gamepad2 className="w-5 h-5 text-white" strokeWidth={2.5} />
           </div>
-          <div className="flex flex-col -gap-1">
-            <span className="font-display text-2xl leading-none text-outline text-white tracking-wider">
-              EXAM<span className="text-accent text-outline">ARENA</span>
+          <div className="flex flex-col leading-none">
+            <span className="font-display text-lg leading-none text-white tracking-wide">
+              QUIZ <span className="text-game-title-orange" style={{ WebkitTextStroke: '1.5px rgba(0,0,0,0.5)' }}>BUNKER</span>
             </span>
-            <span className="font-display text-xs text-secondary tracking-widest text-outline">GHANA</span>
+            <span className="font-display text-[10px] text-secondary tracking-widest leading-none">GHANA</span>
           </div>
         </Link>
 
-        <div className="flex items-center gap-3">
+        {/* Nav actions */}
+        <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Link href="/dashboard" className="hud-badge hover:scale-105 transition-transform hidden sm:flex text-white">
-                <Gamepad2 className="w-4 h-4 text-primary" />
-                <span>ARENA</span>
+              <Link href="/dashboard" className="hud-badge hover:scale-105 transition-transform hidden sm:flex">
+                <Gamepad2 className="w-3.5 h-3.5 text-primary" />
+                <span>PLAY</span>
               </Link>
-              <Link href="/history" className="hud-badge hover:scale-105 transition-transform hidden sm:flex text-white">
-                <History className="w-4 h-4 text-secondary" />
+              <Link href="/history" className="hud-badge hover:scale-105 transition-transform hidden sm:flex">
+                <History className="w-3.5 h-3.5 text-secondary" />
                 <span>LOG</span>
               </Link>
-              <Link href="/subscribe" className="hud-badge-gold hover:scale-105 transition-transform flex animate-starPulse">
-                <Sparkles className="w-4 h-4" />
+              <Link href="/subscribe" className="hud-badge-gold hover:scale-105 transition-transform flex">
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>PRO</span>
               </Link>
-              
-              <div className="hud-badge pl-1 pr-4 hidden md:flex text-white">
-                <div className="bg-primary/20 p-1 rounded-full border border-primary/50">
-                  <UserIcon className="w-4 h-4 text-primary" />
+              <div className="hud-badge pl-1 pr-3 hidden sm:flex">
+                <div className="bg-primary/30 p-1 rounded-full border border-primary/50">
+                  <UserIcon className="w-3.5 h-3.5 text-primary" />
                 </div>
-                <span className="ml-2 truncate max-w-[100px]">{user.name.split(' ')[0].toUpperCase()}</span>
+                <span className="ml-1 truncate max-w-[80px] text-xs">{user.name.split(' ')[0].toUpperCase()}</span>
               </div>
-              
-              <button 
+              <button
                 onClick={handleLogout}
-                className="bg-destructive/80 p-2.5 rounded-xl shadow-[0_4px_0_hsl(348,83%,27%),0_4px_10px_rgba(0,0,0,0.5)] border-2 border-white/50 text-white hover:scale-105 active:scale-95 transition-transform"
+                className="bg-destructive/80 p-2 rounded-xl border-2 border-white/30 text-white hover:scale-105 active:translate-y-0.5 transition-transform"
+                style={{ boxShadow: '0 3px 0 hsl(0 85% 35%)' }}
                 title="Logout"
               >
-                <LogOut className="w-5 h-5" strokeWidth={2.5} />
+                <LogOut className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="hud-badge hover:scale-105 transition-transform text-white">
+              <Link href="/login" className="hud-badge hover:scale-105 transition-transform text-sm">
                 LOGIN
               </Link>
-              <Link href="/register" className="btn-game px-6 py-2.5 text-sm sm:text-base">
+              <Link href="/register" className="btn-game px-5 py-2 text-sm">
                 PLAY NOW
               </Link>
             </>
           )}
         </div>
+
       </div>
     </nav>
   );

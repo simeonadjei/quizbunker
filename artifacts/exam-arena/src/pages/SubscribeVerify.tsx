@@ -101,7 +101,7 @@ function VerifyProcessor({ reference }: { reference: string }) {
               </p>
               <Link href="/dashboard">
                 <button className="w-full btn-game py-5 text-2xl flex items-center justify-center gap-3 animate-pulse">
-                  <Sparkles className="w-6 h-6" /> Enter the Arena
+                  <Sparkles className="w-6 h-6" /> Enter the Bunker
                 </button>
               </Link>
             </div>

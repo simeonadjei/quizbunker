@@ -1,22 +1,21 @@
 import { Link } from 'wouter';
 import { Layout } from '@/components/Layout';
 import { ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center animate-in zoom-in-95">
-        <ShieldAlert className="w-24 h-24 text-destructive mb-6 drop-shadow-[0_0_15px_rgba(255,50,80,0.5)]" />
-        <h1 className="text-6xl font-black uppercase text-destructive glow-text mb-4">404 - SECTOR NOT FOUND</h1>
-        <p className="text-muted-foreground font-mono text-lg max-w-md mb-8">
-          The coordinates you entered don't exist in this arena. The sector may have been wiped.
-        </p>
-        <Link href="/">
-          <Button className="neon-button font-bold uppercase tracking-widest px-8 bg-primary text-primary-foreground hover:bg-primary py-6">
-            Return to Base
-          </Button>
-        </Link>
+      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
+        <div className="card-game p-10 max-w-sm w-full flex flex-col items-center">
+          <ShieldAlert className="w-14 h-14 text-destructive mb-4" />
+          <h1 className="text-game-title text-4xl mb-2">404</h1>
+          <p className="text-white/60 font-bold text-sm mb-6 leading-snug">
+            This page doesn't exist in the Bunker.
+          </p>
+          <Link href="/" className="btn-game px-6 py-3 text-sm inline-flex justify-center">
+            Back to Home
+          </Link>
+        </div>
       </div>
     </Layout>
   );

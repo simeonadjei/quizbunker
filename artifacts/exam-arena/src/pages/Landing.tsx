@@ -1,6 +1,6 @@
 import { Layout } from '@/components/Layout';
 import { Link } from 'wouter';
-import { Trophy, Zap, Target, Star } from 'lucide-react';
+import { Trophy, Zap, BookOpen, Star } from 'lucide-react';
 import { useGetCurrentUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 
 export default function Landing() {
@@ -8,87 +8,100 @@ export default function Landing() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center justify-center container mx-auto px-4 py-20 text-center relative z-10">
-        
-        {/* Floating background elements specific to hero */}
-        <div className="absolute inset-0 pointer-events-none flex justify-center items-center opacity-40">
-           <Star className="absolute top-1/4 left-1/4 w-12 h-12 text-accent animate-starPulse" />
-           <Star className="absolute bottom-1/3 right-1/4 w-8 h-8 text-accent animate-starPulse" style={{ animationDelay: '0.5s' }} />
-           <Trophy className="absolute top-1/3 right-1/3 w-16 h-16 text-primary animate-float" style={{ animationDelay: '1s' }} />
-        </div>
+      <div className="flex-1 flex flex-col items-center px-4 py-6 text-center relative z-10 max-w-lg mx-auto w-full">
 
-        {/* Hero Section */}
-        <div className="max-w-4xl space-y-8 animate-in zoom-in-95 duration-1000 relative">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border-2 border-primary/50 bg-primary/20 text-white font-display text-sm uppercase mb-4 shadow-[0_0_15px_hsl(var(--primary)/0.5)]">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+        {/* Hero */}
+        <div className="w-full space-y-4 mt-4">
+
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/40 text-white font-bold text-xs uppercase tracking-widest">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
             </span>
-            System Online. Tournament Active.
+            Live — Ghana Past Questions
           </div>
-          
-          <div className="space-y-2">
-            <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase text-outline">
-              <span className="text-white">Enter the</span>
+
+          {/* Title */}
+          <div>
+            <h1 className="text-game-title text-5xl sm:text-6xl leading-tight">
+              QUIZ
             </h1>
-            <h1 className="text-7xl md:text-9xl font-black tracking-tighter uppercase text-outline-primary text-primary drop-shadow-[0_0_30px_hsl(var(--primary))] animate-pulse">
-              Arena
+            <h1 className="text-game-title-orange text-6xl sm:text-7xl leading-tight">
+              BUNKER
             </h1>
           </div>
-          
-          <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto font-bold bg-black/30 p-4 rounded-2xl backdrop-blur-sm border-2 border-white/10">
-            Ghana's most intense exam practice platform. Questions are challenges. Every correct answer is a victory. Are you ready player one?
+
+          {/* Tagline */}
+          <p className="text-white/80 font-bold text-base leading-snug">
+            Ghana's top exam practice platform.<br />
+            Crush real past questions, level by level.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
+
+          {/* 1500+ callout */}
+          <div className="card-game px-5 py-4 text-left space-y-2 border-l-4 border-accent">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-accent shrink-0" />
+              <span className="font-display text-accent text-lg leading-none">1,500+ Questions</span>
+            </div>
+            <p className="text-white/75 text-sm leading-snug">
+              Dok 1 – 4 per subject topic. Real past questions organised by year and week. Practice exactly what comes in the exam.
+            </p>
+          </div>
+
+          {/* CTA */}
+          <div className="flex flex-col gap-3 pt-2">
             {isLoading ? null : user ? (
-              <Link 
-                href="/dashboard" 
-                className="btn-game px-12 py-5 text-2xl animate-bounce"
-              >
-                Return to Arena 
+              <Link href="/dashboard" className="btn-game w-full py-4 text-lg justify-center">
+                Continue Playing
               </Link>
             ) : (
               <>
-                <Link 
-                  href="/register" 
-                  className="btn-game px-10 py-5 text-xl flex items-center justify-center gap-3 animate-pulse"
-                >
-                  Start New Game <GamepadIcon className="w-6 h-6" />
+                <Link href="/register" className="btn-game w-full py-4 text-lg justify-center">
+                  Create Free Account
                 </Link>
-                <Link 
-                  href="/login" 
-                  className="btn-game-secondary px-10 py-5 text-xl flex items-center justify-center gap-3"
-                >
-                  Load Save Data
+                <Link href="/login" className="btn-game-secondary w-full py-3 text-base justify-center">
+                  I Already Have an Account
                 </Link>
               </>
             )}
           </div>
         </div>
 
-        {/* Feature grid */}
-        <div className="grid md:grid-cols-3 gap-8 w-full max-w-5xl mt-32">
-          <FeatureCard 
-            icon={<Trophy className="w-10 h-10 text-accent drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]" />}
-            title="Boss Fights"
-            desc="Face real past questions from BECE and WASSCE formatted as high-stakes levels."
-            delay={100}
-            colorClass="border-accent"
+        {/* Stats strip */}
+        <div className="grid grid-cols-3 gap-3 w-full mt-8">
+          {[
+            { icon: <BookOpen className="w-5 h-5 text-accent" />, value: '1,500+', label: 'Questions' },
+            { icon: <Trophy className="w-5 h-5 text-primary" />, label: 'Dok 1–4', value: 'All Levels' },
+            { icon: <Star className="w-5 h-5 text-secondary" />, value: 'Weekly', label: 'Sets' },
+          ].map((s) => (
+            <div key={s.label} className="card-game p-3 flex flex-col items-center gap-1">
+              {s.icon}
+              <span className="font-display text-white text-sm leading-none">{s.value}</span>
+              <span className="text-white/60 text-xs">{s.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Feature cards */}
+        <div className="flex flex-col gap-4 w-full mt-6">
+          <FeatureCard
+            icon={<Trophy className="w-6 h-6 text-accent" />}
+            title="Past Questions"
+            desc="All subjects organised by year — tackle them week by week like game levels."
+            colorClass="border-l-accent"
           />
-          <FeatureCard 
-            icon={<Zap className="w-10 h-10 text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" />}
-            title="Power Up"
-            desc="Track your stats, review your mistakes, and level up your knowledge."
-            delay={200}
-            colorClass="border-primary"
+          <FeatureCard
+            icon={<Zap className="w-6 h-6 text-primary" />}
+            title="Track Progress"
+            desc="Review every answer after each session and watch your score rise."
+            colorClass="border-l-primary"
           />
-          <FeatureCard 
-            icon={<Target className="w-10 h-10 text-secondary drop-shadow-[0_0_10px_hsl(var(--secondary))]" />}
-            title="Leaderboard"
-            desc="Compete against the curriculum. Every set you clear makes you stronger."
-            delay={300}
-            colorClass="border-secondary"
+          <FeatureCard
+            icon={<BookOpen className="w-6 h-6 text-secondary" />}
+            title="Dok 1 to 4"
+            desc="Questions across all difficulty levels — from recall to extended thinking."
+            colorClass="border-l-secondary"
           />
         </div>
 
@@ -97,40 +110,18 @@ export default function Landing() {
   );
 }
 
-function FeatureCard({ icon, title, desc, delay, colorClass }: { icon: React.ReactNode, title: string, desc: string, delay: number, colorClass: string }) {
+function FeatureCard({ icon, title, desc, colorClass }: {
+  icon: React.ReactNode; title: string; desc: string; colorClass: string;
+}) {
   return (
-    <div 
-      className={`card-game p-8 text-left group animate-in fade-in slide-in-from-bottom-8 fill-mode-both border-l-4 border-t-4 ${colorClass} hover:-translate-y-2 transition-transform duration-300`}
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <div className="bg-black/50 w-20 h-20 rounded-2xl flex items-center justify-center border-2 border-white/20 group-hover:scale-110 transition-all mb-6 shadow-inner">
+    <div className={`card-game p-4 flex items-start gap-4 text-left border-l-4 ${colorClass}`}>
+      <div className="bg-black/30 w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border border-white/10">
         {icon}
       </div>
-      <h3 className="text-2xl font-display text-white text-outline mb-3 uppercase tracking-wide">{title}</h3>
-      <p className="text-white/80 font-bold leading-relaxed">{desc}</p>
+      <div>
+        <h3 className="font-display text-white text-base mb-0.5">{title}</h3>
+        <p className="text-white/65 text-sm leading-snug">{desc}</p>
+      </div>
     </div>
   );
-}
-
-function GamepadIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="6" x2="10" y1="12" y2="12" />
-      <line x1="8" x2="8" y1="10" y2="14" />
-      <line x1="15" x2="15.01" y1="13" y2="13" />
-      <line x1="18" x2="18.01" y1="11" y2="11" />
-      <rect width="20" height="12" x="2" y="6" rx="4" />
-    </svg>
-  )
 }
