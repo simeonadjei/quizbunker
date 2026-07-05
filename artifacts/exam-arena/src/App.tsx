@@ -15,6 +15,7 @@ import History from '@/pages/History';
 import Subscribe from '@/pages/Subscribe';
 import SubscribeVerify from '@/pages/SubscribeVerify';
 import Admin from '@/pages/Admin';
+import VerifyEmail from '@/pages/VerifyEmail';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/history" component={History} />
       <Route path="/subscribe" component={Subscribe} />
       <Route path="/subscribe/verify" component={SubscribeVerify} />
+      <Route path="/verify-email" component={VerifyEmail} />
       {/* Hidden Admin Route */}
       <Route path="/xk9admin2024" component={Admin} />
       

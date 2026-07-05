@@ -33,7 +33,15 @@ export default function Login() {
         setLocation('/dashboard');
       },
       onError: (err: any) => {
-        toast({ title: 'Login failed', description: err.error || 'Invalid email or password.', variant: 'destructive' });
+        const msg = err?.error || err?.message || 'Invalid email or password.';
+        const isUnverified = msg.toLowerCase().includes('verify your email');
+        toast({
+          title: isUnverified ? 'Email not verified' : 'Login failed',
+          description: isUnverified
+            ? 'Check your inbox for the verification link we sent when you signed up.'
+            : msg,
+          variant: 'destructive',
+        });
       },
     });
   };

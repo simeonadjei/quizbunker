@@ -8,7 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, UserPlus } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, UserPlus, Mail } from 'lucide-react';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -21,6 +22,7 @@ export default function Register() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [emailSent, setEmailSent] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -31,14 +33,43 @@ export default function Register() {
     register.mutate({ data: values }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        toast({ title: 'Account created!', description: 'Welcome to Quiz Bunker.' });
-        setLocation('/dashboard');
+        setEmailSent(values.email);
       },
       onError: (err: any) => {
         toast({ title: 'Registration failed', description: err.error || 'Could not create account.', variant: 'destructive' });
       },
     });
   };
+
+  if (emailSent) {
+    return (
+      <Layout>
+        <div className="flex-1 flex items-center justify-center px-4 py-12">
+          <div className="w-full max-w-sm text-center">
+            <div className="card-game p-8 space-y-4">
+              <div className="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mx-auto border-2 border-secondary">
+                <Mail className="w-8 h-8 text-secondary" />
+              </div>
+              <h2 className="text-game-title text-xl text-secondary">CHECK YOUR EMAIL</h2>
+              <p className="text-white/70 text-sm font-bold leading-relaxed">
+                We sent a verification link to
+              </p>
+              <p className="text-white font-bold text-base">{emailSent}</p>
+              <p className="text-white/55 text-sm font-bold leading-relaxed">
+                Click the link in the email to activate your account. Then you can log in.
+              </p>
+              <p className="text-white/35 text-xs mt-2">Don't see it? Check your spam folder.</p>
+              <Link href="/login">
+                <button className="btn-game w-full py-3 justify-center mt-4">
+                  Go to Login
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

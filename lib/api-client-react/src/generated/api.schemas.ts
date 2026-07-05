@@ -193,6 +193,7 @@ export interface SubscriptionStatus {
 }
 
 export interface AdminLoginInput {
+  email?: string;
   password: string;
 }
 

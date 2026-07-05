@@ -63,11 +63,16 @@ function requireAdmin(req: Request, res: Response, next: NextFunction): void {
 
 // POST /admin/auth
 router.post("/admin/auth", async (req, res) => {
-  const { password } = req.body as { password?: string };
+  const { email, password } = req.body as { email?: string; password?: string };
   const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminEmail = process.env.ADMIN_EMAIL;
 
-  if (!adminPassword || password !== adminPassword) {
-    return res.status(401).json({ error: "Invalid password" });
+  // Check password always; check email only if ADMIN_EMAIL is set
+  const passwordOk = adminPassword && password === adminPassword;
+  const emailOk = !adminEmail || (email && email.toLowerCase() === adminEmail.toLowerCase());
+
+  if (!passwordOk || !emailOk) {
+    return res.status(401).json({ error: "Invalid credentials" });
   }
 
   // Regenerate session on privilege escalation to prevent session fixation

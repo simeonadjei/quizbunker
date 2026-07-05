@@ -37,15 +37,16 @@ export default function AdminPortal() {
 }
 
 function AdminLogin({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const login = useAdminLogin();
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login.mutate({ data: { password } }, {
+    login.mutate({ data: { email, password } }, {
       onSuccess: () => onLogin(),
-      onError: () => toast({ title: "Access Denied", variant: "destructive" })
+      onError: () => toast({ title: "Access Denied", description: "Invalid credentials.", variant: "destructive" })
     });
   };
 
@@ -55,11 +56,20 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
         <ShieldAlert className="w-12 h-12 text-red-500 mx-auto mb-6" />
         <h2 className="text-red-500 text-center mb-6 text-xl">AUTHENTICATION REQUIRED</h2>
         <Input 
+          type="email" 
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="bg-black border-red-500/30 text-red-500 focus-visible:ring-red-500 rounded-none mb-3"
+          placeholder="ADMIN EMAIL"
+          autoComplete="email"
+        />
+        <Input 
           type="password" 
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="bg-black border-red-500/30 text-red-500 focus-visible:ring-red-500 rounded-none mb-4"
           placeholder="ENTER PASSKEY"
+          autoComplete="current-password"
         />
         <Button 
           type="submit" 
