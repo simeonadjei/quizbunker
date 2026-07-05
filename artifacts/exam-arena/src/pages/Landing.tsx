@@ -45,7 +45,7 @@ export default function Landing() {
               <span className="font-display text-accent text-lg leading-none">1,500+ Questions</span>
             </div>
             <p className="text-white/75 text-sm leading-snug">
-              Dok 1 – 4 per subject topic. Real past questions organised by year and week. Practice exactly what comes in the exam.
+              Questions organised by year and week.
             </p>
           </div>
 
@@ -87,7 +87,7 @@ export default function Landing() {
         <div className="flex flex-col gap-4 w-full mt-6">
           <FeatureCard
             icon={<Trophy className="w-6 h-6 text-accent" />}
-            title="Past Questions"
+            title="Questions"
             desc="All subjects organised by year — tackle them week by week like game levels."
             colorClass="border-l-accent"
           />
