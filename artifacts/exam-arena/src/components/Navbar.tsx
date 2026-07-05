@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import { useGetCurrentUser, useLogoutUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Gamepad2, LogOut, History, Sparkles, User as UserIcon } from 'lucide-react';
+import { LogOut, History, Sparkles, User as UserIcon, Gamepad2 } from 'lucide-react';
 
 export function Navbar() {
   const { data: user } = useGetCurrentUser({ query: { enabled: true, queryKey: getGetCurrentUserQueryKey() } });
@@ -24,17 +24,17 @@ export function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <div
-            className="bg-primary p-1.5 rounded-xl border-2 border-white/40 group-active:translate-y-0.5 transition-transform"
-            style={{ boxShadow: '0 4px 0 hsl(22 90% 30%)' }}
-          >
-            <Gamepad2 className="w-5 h-5 text-white" strokeWidth={2.5} />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Quiz Bunker Logo"
+            className="h-10 w-10 rounded-xl object-cover group-active:translate-y-0.5 transition-transform"
+            style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.4)' }}
+          />
           <div className="flex flex-col leading-none">
-            <span className="font-display text-lg leading-none text-white tracking-wide">
-              QUIZ <span className="text-game-title-orange" style={{ WebkitTextStroke: '1.5px rgba(0,0,0,0.5)' }}>BUNKER</span>
+            <span className="font-display text-base leading-tight text-white tracking-wide">
+              QUIZ <span className="text-game-title-orange" style={{ WebkitTextStroke: '1px rgba(0,0,0,0.5)' }}>BUNKER</span>
             </span>
-            <span className="font-display text-[10px] text-secondary tracking-widest leading-none">GHANA</span>
+            <span className="font-display text-[9px] text-secondary tracking-widest leading-none whitespace-nowrap">FOR GHANA SHS STUDENTS</span>
           </div>
         </Link>
 
