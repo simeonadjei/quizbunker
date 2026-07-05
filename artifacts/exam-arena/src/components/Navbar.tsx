@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import { useGetCurrentUser, useLogoutUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Gamepad2, LogOut, History, ShieldAlert, Sparkles } from 'lucide-react';
+import { Gamepad2, LogOut, History, ShieldAlert, Sparkles, Trophy, User as UserIcon } from 'lucide-react';
 
 export function Navbar() {
   const { data: user } = useGetCurrentUser({ query: { enabled: true, queryKey: getGetCurrentUserQueryKey() } });
@@ -19,50 +19,58 @@ export function Navbar() {
   };
 
   return (
-    <nav className="border-b border-primary/20 bg-background/50 backdrop-blur-md sticky top-0 z-40">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-primary/20 p-2 rounded-lg group-hover:bg-primary/30 transition-colors">
-            <Gamepad2 className="w-6 h-6 text-primary glow-text" />
+    <nav className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/60 to-transparent pt-4 pb-8 pointer-events-none">
+      <div className="container mx-auto px-4 flex items-start justify-between pointer-events-auto">
+        <Link href="/" className="flex items-center gap-2 group transform transition-transform hover:scale-105 active:scale-95">
+          <div className="bg-primary p-2.5 rounded-xl shadow-[0_4px_0_hsl(32,95%,35%),0_4px_10px_rgba(0,0,0,0.5)] border-2 border-white/50">
+            <Gamepad2 className="w-8 h-8 text-white" strokeWidth={2.5} />
           </div>
-          <span className="font-bold text-xl tracking-tight text-foreground group-hover:text-primary transition-colors">
-            EXAM<span className="text-primary">ARENA</span>
-          </span>
+          <div className="flex flex-col -gap-1">
+            <span className="font-display text-2xl leading-none text-outline text-white tracking-wider">
+              EXAM<span className="text-accent text-outline">ARENA</span>
+            </span>
+            <span className="font-display text-xs text-secondary tracking-widest text-outline">GHANA</span>
+          </div>
         </Link>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
           {user ? (
             <>
-              <Link href="/dashboard" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
-                ARENA
+              <Link href="/dashboard" className="hud-badge hover:scale-105 transition-transform hidden sm:flex text-white">
+                <Gamepad2 className="w-4 h-4 text-primary" />
+                <span>ARENA</span>
               </Link>
-              <Link href="/history" className="text-sm font-medium hover:text-primary transition-colors hidden sm:flex items-center gap-1">
-                <History className="w-4 h-4" /> BATTLE LOG
+              <Link href="/history" className="hud-badge hover:scale-105 transition-transform hidden sm:flex text-white">
+                <History className="w-4 h-4 text-secondary" />
+                <span>LOG</span>
               </Link>
-              <Link href="/subscribe" className="text-sm font-medium text-accent hover:text-accent/80 transition-colors flex items-center gap-1 glow-text">
-                <Sparkles className="w-4 h-4" /> POWER UP
+              <Link href="/subscribe" className="hud-badge-gold hover:scale-105 transition-transform flex animate-starPulse">
+                <Sparkles className="w-4 h-4" />
+                <span>PRO</span>
               </Link>
-              <div className="h-6 w-px bg-border hidden sm:block" />
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-mono text-muted-foreground hidden lg:inline-block">
-                  PLAYER: {user.name.toUpperCase()}
-                </span>
-                <button 
-                  onClick={handleLogout}
-                  className="text-sm flex items-center gap-2 text-destructive hover:text-destructive/80 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden md:inline-block">LOGOUT</span>
-                </button>
+              
+              <div className="hud-badge pl-1 pr-4 hidden md:flex text-white">
+                <div className="bg-primary/20 p-1 rounded-full border border-primary/50">
+                  <UserIcon className="w-4 h-4 text-primary" />
+                </div>
+                <span className="ml-2 truncate max-w-[100px]">{user.name.split(' ')[0].toUpperCase()}</span>
               </div>
+              
+              <button 
+                onClick={handleLogout}
+                className="bg-destructive/80 p-2.5 rounded-xl shadow-[0_4px_0_hsl(348,83%,27%),0_4px_10px_rgba(0,0,0,0.5)] border-2 border-white/50 text-white hover:scale-105 active:scale-95 transition-transform"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" strokeWidth={2.5} />
+              </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link href="/login" className="hud-badge hover:scale-105 transition-transform text-white">
                 LOGIN
               </Link>
-              <Link href="/register" className="text-sm font-bold bg-primary text-primary-foreground px-4 py-2 rounded-md neon-button">
-                JOIN TOURNAMENT
+              <Link href="/register" className="btn-game px-6 py-2.5 text-sm sm:text-base">
+                PLAY NOW
               </Link>
             </>
           )}

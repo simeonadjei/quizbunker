@@ -6,10 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UserPlus } from 'lucide-react';
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -48,31 +47,34 @@ export default function Register() {
   return (
     <Layout>
       <div className="flex-1 flex items-center justify-center p-4 py-12">
-        <div className="w-full max-w-md bg-card/80 backdrop-blur-xl border border-secondary/30 p-8 rounded-2xl shadow-[0_0_30px_-5px_hsl(var(--secondary)/0.3)] animate-in zoom-in-95 duration-300 relative overflow-hidden">
+        <div className="w-full max-w-md card-game border-l-4 border-t-4 border-secondary p-8 md:p-10 animate-in zoom-in-95 duration-300 relative overflow-hidden">
           
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-secondary to-transparent opacity-50" />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/20 blur-[50px] rounded-full pointer-events-none" />
           
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-black uppercase tracking-tight text-secondary glow-text">New Challenger</h1>
-            <p className="text-muted-foreground mt-2 font-mono text-sm">CREATE YOUR PROFILE</p>
+          <div className="text-center mb-8 relative z-10">
+            <div className="mx-auto w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center mb-4 shadow-[0_6px_0_hsl(175,80%,25%)] border-2 border-white/50 transform rotate-3">
+              <UserPlus className="w-8 h-8 text-white" strokeWidth={2.5} />
+            </div>
+            <h1 className="text-4xl font-display uppercase tracking-wider text-outline text-white">New Challenger</h1>
+            <p className="text-white/80 mt-2 font-bold bg-black/30 inline-block px-4 py-1 rounded-full border border-white/10">CREATE YOUR PROFILE</p>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 relative z-10">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-secondary font-mono text-xs uppercase tracking-wider">Player Name</FormLabel>
+                    <FormLabel className="text-white font-display text-sm uppercase tracking-wider drop-shadow-md">Player Name</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="Player One" 
-                        className="bg-background/50 border-secondary/20 focus-visible:ring-secondary font-mono" 
+                        className="bg-black/40 border-2 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-secondary focus-visible:border-secondary font-bold h-12 rounded-xl text-lg" 
                         {...field} 
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-accent font-bold" />
                   </FormItem>
                 )}
               />
@@ -82,15 +84,15 @@ export default function Register() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-secondary font-mono text-xs uppercase tracking-wider">Email Address</FormLabel>
+                    <FormLabel className="text-white font-display text-sm uppercase tracking-wider drop-shadow-md">Email Address</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="player@example.com" 
-                        className="bg-background/50 border-secondary/20 focus-visible:ring-secondary font-mono" 
+                        className="bg-black/40 border-2 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-secondary focus-visible:border-secondary font-bold h-12 rounded-xl text-lg" 
                         {...field} 
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-accent font-bold" />
                   </FormItem>
                 )}
               />
@@ -100,33 +102,33 @@ export default function Register() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-secondary font-mono text-xs uppercase tracking-wider">Password</FormLabel>
+                    <FormLabel className="text-white font-display text-sm uppercase tracking-wider drop-shadow-md">Password</FormLabel>
                     <FormControl>
                       <Input 
                         type="password" 
                         placeholder="••••••••" 
-                        className="bg-background/50 border-secondary/20 focus-visible:ring-secondary font-mono" 
+                        className="bg-black/40 border-2 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-secondary focus-visible:border-secondary font-bold h-12 rounded-xl text-lg tracking-widest" 
                         {...field} 
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-accent font-bold" />
                   </FormItem>
                 )}
               />
 
-              <Button 
+              <button 
                 type="submit" 
-                className="w-full neon-button bg-secondary text-secondary-foreground hover:bg-secondary font-bold uppercase tracking-wider py-6 mt-2"
+                className="w-full btn-game-secondary py-4 text-xl mt-4 flex items-center justify-center"
                 disabled={register.isPending}
               >
-                {register.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Join Tournament"}
-              </Button>
+                {register.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : "Join Tournament"}
+              </button>
             </form>
           </Form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground border-t border-border pt-6">
+          <div className="mt-8 text-center text-sm font-bold text-white/80 border-t-2 border-white/10 pt-6 relative z-10">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:text-primary/80 font-bold uppercase transition-colors">
+            <Link href="/login" className="text-primary hover:text-white uppercase text-outline drop-shadow-md transition-colors ml-2 text-base">
               Login Here
             </Link>
           </div>

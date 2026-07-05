@@ -1,8 +1,7 @@
 import { useGetQuizSession, useSubmitQuizSession, getGetQuizSessionQueryKey } from '@workspace/api-client-react';
 import { useRoute, useLocation } from 'wouter';
-import { useState, useMemo } from 'react';
-import { Loader2, ArrowRight, CheckCircle2, ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { Loader2, ArrowRight, Target, ShieldAlert, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackgroundParticles } from '@/components/BackgroundParticles';
 
@@ -57,66 +56,73 @@ export default function Arena() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col relative overflow-hidden selection:bg-primary selection:text-primary-foreground">
+    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col relative overflow-hidden selection:bg-primary selection:text-primary-foreground pt-16">
       <BackgroundParticles />
       
       {/* Top HUD */}
-      <header className="relative z-10 bg-card/80 backdrop-blur-md border-b border-primary/20 p-4">
-        <div className="container mx-auto flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-xs font-mono text-primary uppercase tracking-wider">Level {session.week}</span>
-            <span className="font-bold text-lg leading-none uppercase">{session.subject} {session.year}</span>
+      <header className="fixed top-0 left-0 right-0 z-40 bg-black/60 backdrop-blur-md border-b-4 border-primary/50 pointer-events-auto">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          
+          <div className="flex items-center gap-3">
+            <div className="bg-primary text-white w-10 h-10 rounded-xl flex items-center justify-center font-display text-xl shadow-[0_2px_0_hsl(32,95%,35%)] border-2 border-white/50">
+              L{session.week}
+            </div>
+            <div className="hidden sm:block">
+              <span className="font-display text-xl leading-none uppercase text-outline text-white">{session.subject}</span>
+              <span className="block text-[10px] text-white/70 font-bold tracking-widest">{session.year}</span>
+            </div>
           </div>
           
-          <div className="flex-1 max-w-md mx-4 hidden md:block">
-            <div className="h-2 bg-muted rounded-full overflow-hidden border border-border">
+          <div className="flex-1 max-w-md mx-4">
+            <div className="progress-game">
               <div 
-                className="h-full bg-primary transition-all duration-500 ease-out relative"
+                className="progress-game-fill"
                 style={{ width: `${progress}%` }}
-              >
-                <div className="absolute inset-0 bg-white/30 animate-[slide_2s_linear_infinite]" />
-              </div>
+              />
             </div>
           </div>
 
-          <div className="font-mono text-xl font-bold tracking-widest text-primary glow-text">
-            {Object.keys(answers).length} / {questions.length}
+          <div className="hud-badge text-white min-w-[80px]">
+            <Target className="w-4 h-4 text-accent" />
+            <span>{Object.keys(answers).length}/{questions.length}</span>
           </div>
         </div>
       </header>
 
-      {/* Mobile Progress */}
-      <div className="h-1 bg-muted md:hidden relative z-10 w-full">
-        <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
-      </div>
-
-      <main className="flex-1 relative z-10 container mx-auto px-4 py-8 md:py-16 flex flex-col max-w-4xl">
+      <main className="flex-1 relative z-10 container mx-auto px-4 py-8 md:py-12 flex flex-col max-w-4xl">
         
-        {/* Navigation Dots */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {questions.map((q, idx) => (
-            <button
-              key={q.id}
-              onClick={() => setCurrentQIndex(idx)}
-              className={cn(
-                "w-8 h-8 rounded border font-mono text-sm font-bold flex items-center justify-center transition-all",
-                currentQIndex === idx ? "border-primary bg-primary/20 text-primary scale-110" :
-                answers[q.id] ? "border-primary/50 bg-primary/10 text-primary/70" :
-                "border-border bg-background/50 text-muted-foreground hover:border-primary/30"
-              )}
-            >
-              {idx + 1}
-            </button>
-          ))}
+        {/* Navigation Map */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8 bg-black/30 p-4 rounded-2xl border-2 border-white/10 backdrop-blur-sm">
+          {questions.map((q, idx) => {
+            const isAnswered = !!answers[q.id];
+            const isCurrent = currentQIndex === idx;
+            
+            return (
+              <button
+                key={q.id}
+                onClick={() => setCurrentQIndex(idx)}
+                className={cn(
+                  "w-10 h-10 rounded-xl border-2 font-display text-base transition-all duration-200 transform",
+                  isCurrent ? "border-white bg-primary text-white scale-110 shadow-[0_4px_0_hsl(32,95%,35%)] -translate-y-1" :
+                  isAnswered ? "border-accent bg-accent/20 text-accent" :
+                  "border-white/20 bg-black/40 text-white/50 hover:border-white/50 hover:bg-white/10"
+                )}
+              >
+                {idx + 1}
+              </button>
+            )
+          })}
         </div>
 
         {/* Question Card */}
         {currentQuestion && (
-          <div className="bg-card/80 backdrop-blur-xl border border-primary/30 p-6 md:p-10 rounded-2xl shadow-[0_0_40px_-10px_hsl(var(--primary)/0.2)] animate-in fade-in slide-in-from-right-8 duration-300" key={currentQuestion.id}>
+          <div className="card-game p-6 md:p-10 border-t-4 border-l-4 border-primary animate-in zoom-in-95 duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.5)]" key={currentQuestion.id}>
             
-            <div className="flex items-start gap-4 mb-8">
-              <span className="text-4xl font-black text-primary/50 font-mono">Q{currentQIndex + 1}</span>
-              <h2 className="text-xl md:text-2xl font-medium leading-relaxed">
+            <div className="flex flex-col sm:flex-row items-start gap-4 mb-8">
+              <div className="bg-primary/20 text-primary border-2 border-primary/50 px-4 py-2 rounded-xl font-display text-2xl shrink-0 text-outline-primary">
+                Q{currentQIndex + 1}
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold leading-tight text-white drop-shadow-md">
                 {currentQuestion.questionText}
               </h2>
             </div>
@@ -134,21 +140,24 @@ export default function Arena() {
                     key={opt.key}
                     onClick={() => handleSelect(opt.key)}
                     className={cn(
-                      "text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4 group",
+                      "text-left p-4 md:p-6 rounded-2xl border-2 transition-all flex items-center gap-4 md:gap-6 group relative overflow-hidden",
                       isSelected 
-                        ? "border-primary bg-primary/10 scale-[1.02] shadow-[0_0_15px_-3px_hsl(var(--primary)/0.4)]" 
-                        : "border-border bg-background/50 hover:border-primary/50 hover:bg-primary/5"
+                        ? "border-primary bg-primary/20 scale-[1.02] shadow-[inset_0_0_20px_hsl(var(--primary)/0.3),0_5px_15px_rgba(0,0,0,0.3)]" 
+                        : "border-white/20 bg-black/40 hover:border-white/60 hover:bg-white/10"
                     )}
                   >
+                    {/* Selected Shine */}
+                    {isSelected && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shine_2s_infinite]" />}
+
                     <div className={cn(
-                      "w-10 h-10 rounded-lg flex items-center justify-center font-bold font-mono text-lg transition-colors border-2",
-                      isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-card border-muted text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
+                      "w-12 h-12 rounded-xl flex items-center justify-center font-display text-2xl transition-all border-2 shrink-0 shadow-inner",
+                      isSelected ? "bg-primary text-white border-white/50 text-outline transform scale-110" : "bg-black/50 border-white/20 text-white/50 group-hover:border-white/50 group-hover:text-white"
                     )}>
                       {opt.key}
                     </div>
                     <span className={cn(
-                      "text-lg flex-1",
-                      isSelected ? "text-foreground font-medium" : "text-muted-foreground group-hover:text-foreground"
+                      "text-xl md:text-2xl flex-1 font-bold",
+                      isSelected ? "text-white" : "text-white/80 group-hover:text-white"
                     )}>
                       {opt.text}
                     </span>
@@ -160,32 +169,41 @@ export default function Arena() {
         )}
 
         {/* Footer Actions */}
-        <div className="mt-auto pt-8 flex justify-between items-center">
-          <Button
-            variant="outline"
-            className="border-border hover:border-primary/50 font-mono uppercase"
+        <div className="mt-8 flex justify-between items-center gap-4 pb-20">
+          <button
+            className={cn(
+              "px-6 py-3 rounded-xl border-2 font-bold uppercase tracking-wider transition-all",
+              currentQIndex === 0 ? "border-white/10 text-white/30 bg-black/20 cursor-not-allowed" : "border-white/20 text-white bg-black/40 hover:bg-white/10 hover:border-white/50 active:scale-95"
+            )}
             onClick={() => setCurrentQIndex(prev => Math.max(0, prev - 1))}
             disabled={currentQIndex === 0}
           >
             Previous
-          </Button>
+          </button>
 
           {isComplete ? (
-            <Button
+            <button
               onClick={handleSubmit}
               disabled={submitSession.isPending}
-              className="bg-accent text-accent-foreground hover:bg-accent neon-button px-8 py-6 text-lg font-bold uppercase tracking-wider glow-border-accent"
+              className="btn-game-accent px-10 py-4 text-xl flex items-center gap-3 animate-pulse"
             >
-              {submitSession.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : "Submit Quiz"}
-            </Button>
+              {submitSession.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                <>
+                  <Sparkles className="w-6 h-6" /> Submit Quiz
+                </>
+              )}
+            </button>
           ) : (
-            <Button
-              className="bg-primary text-primary-foreground hover:bg-primary neon-button font-mono uppercase"
+            <button
+              className={cn(
+                "btn-game px-8 py-3 text-lg flex items-center gap-2",
+                currentQIndex === questions.length - 1 && "opacity-50 pointer-events-none"
+              )}
               onClick={() => setCurrentQIndex(prev => Math.min(questions.length - 1, prev + 1))}
               disabled={currentQIndex === questions.length - 1}
             >
-              Next <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+              Next <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
+            </button>
           )}
         </div>
       </main>
@@ -197,9 +215,11 @@ function LoadingScreen() {
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center relative">
       <BackgroundParticles />
-      <div className="relative z-10 flex flex-col items-center">
-        <Loader2 className="w-16 h-16 text-primary animate-spin mb-4" />
-        <h2 className="text-2xl font-mono uppercase tracking-widest text-primary animate-pulse">Loading Level...</h2>
+      <div className="relative z-10 flex flex-col items-center card-game p-12 animate-pulse">
+        <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center border-4 border-white mb-6 shadow-[0_0_30px_hsl(var(--primary))] animate-[spin_3s_linear_infinite]">
+          <Loader2 className="w-10 h-10 text-white animate-spin" />
+        </div>
+        <h2 className="text-3xl font-display uppercase tracking-widest text-white text-outline">Loading Level</h2>
       </div>
     </div>
   );
@@ -209,13 +229,15 @@ function ErrorScreen() {
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center relative">
       <BackgroundParticles />
-      <div className="relative z-10 bg-card border border-destructive p-8 rounded-xl max-w-md text-center">
-        <ShieldAlert className="w-16 h-16 text-destructive mx-auto mb-4" />
-        <h2 className="text-2xl font-bold uppercase text-destructive mb-2">Connection Lost</h2>
-        <p className="text-muted-foreground mb-6">Could not load the arena data. The signal was interrupted.</p>
-        <Button onClick={() => window.location.href = '/dashboard'} variant="outline" className="w-full font-mono uppercase">
+      <div className="relative z-10 card-game border-l-4 border-t-4 border-destructive p-10 max-w-md w-full text-center">
+        <div className="w-24 h-24 bg-destructive rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_hsl(var(--destructive))] border-4 border-white/50">
+          <ShieldAlert className="w-12 h-12 text-white" />
+        </div>
+        <h2 className="text-3xl font-display uppercase text-outline text-white mb-4">Connection Lost</h2>
+        <p className="text-white/80 font-bold mb-8 bg-black/30 p-4 rounded-xl border border-white/10">Could not load the arena data. The signal was interrupted.</p>
+        <button onClick={() => window.location.href = '/dashboard'} className="btn-game-destructive w-full py-4 text-xl">
           Return to Hub
-        </Button>
+        </button>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import { useGetPaymentStatus, getGetPaymentStatusQueryKey, useInitializePayment } from '@workspace/api-client-react';
 import { Layout } from '@/components/Layout';
-import { Button } from '@/components/ui/button';
-import { Zap, Check, Star, Shield, Clock } from 'lucide-react';
+import { Zap, Check, Star, Shield, Clock, CircleDollarSign, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -39,120 +38,139 @@ export default function Subscribe() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
+      <div className="container mx-auto px-4 py-12 md:py-20 max-w-6xl">
         <div className="text-center mb-16 animate-in slide-in-from-bottom-4">
-          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-accent glow-text flex items-center justify-center gap-3">
-            <Zap className="w-10 h-10" fill="currentColor" /> POWER UP
+          <div className="inline-block relative">
+            <div className="absolute inset-0 bg-accent/30 blur-[60px] rounded-full" />
+            <div className="w-24 h-24 bg-accent mx-auto rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_hsl(var(--accent))] border-4 border-white relative z-10 animate-starPulse">
+              <Zap className="w-12 h-12 text-[#3b1a03]" fill="currentColor" />
+            </div>
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tight text-accent text-outline drop-shadow-[0_0_15px_hsl(var(--accent))] mb-4">
+            Power Up
           </h1>
-          <p className="text-muted-foreground mt-4 font-mono">UNLOCK FULL ACCESS TO THE ARENA</p>
+          <p className="text-white/90 font-bold bg-black/40 inline-block px-6 py-2 rounded-full border border-white/20 tracking-widest uppercase shadow-inner">UNLOCK FULL ACCESS TO THE ARENA</p>
           
           {status?.isActive && (
-            <div className="mt-6 inline-flex items-center gap-2 bg-primary/10 border border-primary text-primary px-4 py-2 rounded-full font-mono text-sm">
-              <Check className="w-4 h-4" /> Active {status.plan} plan — {status.daysRemaining} days remaining
+            <div className="mt-6 flex justify-center">
+              <div className="hud-badge-gold px-6 py-3 text-lg shadow-[0_0_30px_rgba(255,215,0,0.5)]">
+                <Check className="w-6 h-6" strokeWidth={3} /> Active {status.plan} plan — {status.daysRemaining} days left
+              </div>
             </div>
           )}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 items-end max-w-5xl mx-auto">
           
           {/* Monthly */}
-          <div className="bg-card border border-border p-8 rounded-2xl relative flex flex-col hover:border-primary/50 transition-colors animate-in slide-in-from-bottom-8" style={{animationDelay: '100ms'}}>
-            <div className="mb-8">
-              <h3 className="text-2xl font-bold uppercase tracking-wider mb-2 text-foreground">Casual</h3>
-              <div className="text-4xl font-black">GHS 10<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
+          <div className="card-game border-t-4 border-l-4 border-primary p-8 md:p-10 flex flex-col transition-all duration-300 animate-in slide-in-from-bottom-8 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]" style={{animationDelay: '100ms'}}>
+            <div className="mb-8 border-b-2 border-white/10 pb-8">
+              <h3 className="text-3xl font-display uppercase tracking-wider mb-4 text-primary text-outline">Casual</h3>
+              <div className="flex items-start gap-2">
+                <span className="text-xl font-bold text-white/50 mt-1">GHS</span>
+                <span className="text-6xl font-display text-white text-outline">10</span>
+                <span className="text-xl font-bold text-white/50 self-end mb-2">/mo</span>
+              </div>
             </div>
             
-            <ul className="space-y-4 mb-8 flex-1">
-              <li className="flex gap-3 text-muted-foreground"><Check className="w-5 h-5 text-primary shrink-0" /> Full Arena Access</li>
-              <li className="flex gap-3 text-muted-foreground"><Check className="w-5 h-5 text-primary shrink-0" /> Battle History</li>
-              <li className="flex gap-3 text-muted-foreground"><Check className="w-5 h-5 text-primary shrink-0" /> Global Leaderboards</li>
+            <ul className="space-y-5 mb-10 flex-1">
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary"><Check className="w-5 h-5 text-primary" strokeWidth={3} /></div> Full Arena Access</li>
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary"><Check className="w-5 h-5 text-primary" strokeWidth={3} /></div> Battle History</li>
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary"><Check className="w-5 h-5 text-primary" strokeWidth={3} /></div> Global Leaderboards</li>
             </ul>
 
-            <Button 
+            <button 
               onClick={() => handleSubscribe('monthly')}
               disabled={initPayment.isPending}
-              className="w-full neon-button border border-primary text-primary hover:bg-primary hover:text-primary-foreground font-bold uppercase py-6"
-              variant="outline"
+              className="w-full btn-game py-5 text-xl"
             >
-              Select Monthly
-            </Button>
+              Select Casual
+            </button>
           </div>
 
           {/* Semester */}
-          <div className="bg-card border border-secondary p-8 rounded-2xl relative flex flex-col shadow-[0_0_30px_-10px_hsl(var(--secondary)/0.4)] md:scale-105 z-10 animate-in slide-in-from-bottom-8" style={{animationDelay: '200ms'}}>
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-secondary text-secondary-foreground px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 whitespace-nowrap">
-              <Star className="w-3 h-3" fill="currentColor" /> Most Popular
+          <div className="card-game border-4 border-accent p-8 md:p-10 flex flex-col md:-translate-y-4 md:scale-105 z-10 shadow-[0_0_50px_hsl(var(--accent)/0.3)] bg-gradient-to-b from-black/80 to-black/60 animate-in slide-in-from-bottom-8" style={{animationDelay: '200ms'}}>
+            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-accent text-[#3b1a03] px-6 py-2 rounded-full font-display uppercase tracking-widest flex items-center gap-2 border-2 border-white shadow-[0_4px_0_#b57f00] text-sm whitespace-nowrap">
+              <Star className="w-5 h-5 animate-pulse" fill="currentColor" /> Most Popular
             </div>
             
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold uppercase tracking-wider mb-2 text-secondary">Semester</h3>
-              <div className="text-4xl font-black">GHS 30<span className="text-lg text-muted-foreground font-normal">/4mo</span></div>
+            <div className="mb-8 border-b-2 border-white/10 pb-8 mt-4">
+              <h3 className="text-4xl font-display uppercase tracking-wider mb-4 text-accent text-outline drop-shadow-md">Semester</h3>
+              <div className="flex items-start gap-2">
+                <span className="text-xl font-bold text-white/50 mt-1">GHS</span>
+                <span className="text-7xl font-display text-white text-outline">30</span>
+                <span className="text-xl font-bold text-white/50 self-end mb-2">/4mo</span>
+              </div>
             </div>
             
-            <ul className="space-y-4 mb-6 flex-1">
-              <li className="flex gap-3"><Check className="w-5 h-5 text-secondary shrink-0" /> Everything in Casual</li>
-              <li className="flex gap-3"><Check className="w-5 h-5 text-secondary shrink-0" /> Save 25% vs Monthly</li>
-              <li className="flex gap-3"><Check className="w-5 h-5 text-secondary shrink-0" /> Covers full academic term</li>
+            <ul className="space-y-5 mb-8 flex-1">
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border border-accent"><Check className="w-5 h-5 text-accent" strokeWidth={3} /></div> Everything in Casual</li>
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border border-accent"><CircleDollarSign className="w-5 h-5 text-accent" strokeWidth={3} /></div> Save 25% vs Monthly</li>
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border border-accent"><Shield className="w-5 h-5 text-accent" strokeWidth={3} /></div> Covers full academic term</li>
             </ul>
 
-            <div className="space-y-2 mb-6 p-4 bg-background/50 rounded-xl border border-border">
-              <label className="text-xs font-mono text-muted-foreground uppercase block">Select Term Start Date</label>
+            <div className="space-y-3 mb-8 p-5 bg-black/50 rounded-2xl border-2 border-white/10 shadow-inner">
+              <label className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Clock className="w-4 h-4 text-accent" /> Term Start Date
+              </label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
+                  <button
                     className={cn(
-                      "w-full justify-start text-left font-mono border-secondary/30 hover:border-secondary focus:ring-secondary",
-                      !semesterStart && "text-muted-foreground"
+                      "w-full h-12 px-4 rounded-xl border-2 text-left font-bold transition-colors flex items-center text-lg bg-black/40",
+                      semesterStart ? "border-accent text-white" : "border-white/20 text-white/50 hover:border-white/50"
                     )}
                   >
-                    <Clock className="mr-2 h-4 w-4" />
                     {semesterStart ? format(semesterStart, "PPP") : <span>Pick a date</span>}
-                  </Button>
+                  </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 border-secondary bg-card">
+                <PopoverContent className="w-auto p-0 border-2 border-accent bg-black/90 backdrop-blur-xl rounded-2xl">
                   <Calendar
                     mode="single"
                     selected={semesterStart}
                     onSelect={setSemesterStart}
                     initialFocus
-                    className="bg-card text-foreground"
+                    className="text-white"
                   />
                 </PopoverContent>
               </Popover>
             </div>
 
-            <Button 
+            <button 
               onClick={() => handleSubscribe('semester')}
               disabled={initPayment.isPending}
-              className="w-full neon-button bg-secondary text-secondary-foreground hover:bg-secondary/90 font-bold uppercase py-6"
+              className="w-full btn-game-accent py-6 text-2xl animate-pulse"
             >
               Select Semester
-            </Button>
+            </button>
           </div>
 
-        {/* Yearly */}
-        <div className="bg-card border border-border p-8 rounded-2xl relative flex flex-col hover:border-accent/50 transition-colors animate-in slide-in-from-bottom-8" style={{animationDelay: '300ms'}}>
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold uppercase tracking-wider mb-2 text-foreground">Hardcore</h3>
-            <div className="text-4xl font-black">GHS 50<span className="text-lg text-muted-foreground font-normal">/yr</span></div>
-          </div>
-          
-          <ul className="space-y-4 mb-8 flex-1">
-            <li className="flex gap-3 text-muted-foreground"><Check className="w-5 h-5 text-accent shrink-0" /> Everything in Semester</li>
-            <li className="flex gap-3 text-muted-foreground"><Check className="w-5 h-5 text-accent shrink-0" /> Save 58% vs Monthly</li>
-            <li className="flex gap-3 text-muted-foreground"><Shield className="w-5 h-5 text-accent shrink-0" /> Uninterrupted access</li>
-          </ul>
+          {/* Yearly */}
+          <div className="card-game border-t-4 border-l-4 border-secondary p-8 md:p-10 flex flex-col transition-all duration-300 animate-in slide-in-from-bottom-8 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]" style={{animationDelay: '300ms'}}>
+            <div className="mb-8 border-b-2 border-white/10 pb-8">
+              <h3 className="text-3xl font-display uppercase tracking-wider mb-4 text-secondary text-outline">Hardcore</h3>
+              <div className="flex items-start gap-2">
+                <span className="text-xl font-bold text-white/50 mt-1">GHS</span>
+                <span className="text-6xl font-display text-white text-outline">50</span>
+                <span className="text-xl font-bold text-white/50 self-end mb-2">/yr</span>
+              </div>
+            </div>
+            
+            <ul className="space-y-5 mb-10 flex-1">
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary"><Check className="w-5 h-5 text-secondary" strokeWidth={3} /></div> Everything in Semester</li>
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary"><CircleDollarSign className="w-5 h-5 text-secondary" strokeWidth={3} /></div> Save 58% vs Monthly</li>
+              <li className="flex items-center gap-4 text-white font-bold"><div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary"><Trophy className="w-5 h-5 text-secondary" strokeWidth={3} /></div> Uninterrupted access</li>
+            </ul>
 
-          <Button 
-            onClick={() => handleSubscribe('yearly')}
-            disabled={initPayment.isPending}
-            className="w-full neon-button border border-accent text-accent hover:bg-accent hover:text-accent-foreground font-bold uppercase py-6"
-            variant="outline"
-          >
-            Select Yearly
-          </Button>
-        </div>
+            <button 
+              onClick={() => handleSubscribe('yearly')}
+              disabled={initPayment.isPending}
+              className="w-full btn-game-secondary py-5 text-xl"
+            >
+              Select Yearly
+            </button>
+          </div>
 
         </div>
       </div>
