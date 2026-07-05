@@ -154,7 +154,7 @@ router.post("/auth/login", async (req, res) => {
     return res.status(400).json({ error: "Email and password are required" });
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, rememberMe } = parsed.data;
 
   const [user] = await db
     .select()
@@ -180,6 +180,12 @@ router.post("/auth/login", async (req, res) => {
     req.session.regenerate((err) => (err ? reject(err) : resolve())),
   );
   req.session.userId = user.id;
+
+  // "Remember me" extends the session cookie to 30 days; otherwise it falls
+  // back to the default session lifetime (7 days) set in app.ts.
+  if (rememberMe) {
+    req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+  }
 
   return res.json({ user: formatUser(user) });
 });

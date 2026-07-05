@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, LogIn } from 'lucide-react';
@@ -13,6 +14,7 @@ import { Loader2, LogIn } from 'lucide-react';
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean(),
 });
 
 export default function Login() {
@@ -23,7 +25,7 @@ export default function Login() {
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '', password: '', rememberMe: true },
   });
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
@@ -100,6 +102,25 @@ export default function Login() {
                         />
                       </FormControl>
                       <FormMessage className="text-accent font-bold text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="rememberMe"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="border-white/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                      </FormControl>
+                      <FormLabel className="text-white/70 font-bold text-xs cursor-pointer !mt-0">
+                        Remember me
+                      </FormLabel>
                     </FormItem>
                   )}
                 />

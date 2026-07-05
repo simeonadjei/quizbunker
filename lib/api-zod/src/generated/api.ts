@@ -47,7 +47,8 @@ export const RegisterUserResponse = zod.object({
  */
 export const LoginUserBody = zod.object({
   "email": zod.string(),
-  "password": zod.string()
+  "password": zod.string(),
+  "rememberMe": zod.boolean().optional()
 })
 
 export const LoginUserResponse = zod.object({
