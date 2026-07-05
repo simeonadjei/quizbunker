@@ -59,7 +59,7 @@ router.post("/payments/initialize", requireAuth, async (req, res) => {
   const origin =
     (req.headers.origin as string) ||
     `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
-  const callbackUrl = `${origin}/subscribe?reference=${reference}`;
+  const callbackUrl = `${origin}/subscribe/verify?reference=${reference}`;
 
   const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
