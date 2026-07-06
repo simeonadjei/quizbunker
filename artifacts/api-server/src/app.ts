@@ -73,11 +73,32 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const PgSession = connectPgSimple(session);
 
+// connect-pg-simple reads a bundled table.sql file to create the sessions
+// table, but esbuild does not include .sql assets in the output bundle.
+// We create the table ourselves with inline SQL so the deployed build works.
+export async function ensureSessionTable(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "user_sessions" (
+        "sid"    varchar      NOT NULL COLLATE "default",
+        "sess"   json         NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_user_sessions_expire"
+        ON "user_sessions" ("expire");
+    `);
+  } finally {
+    client.release();
+  }
+}
+
 app.use(
   session({
     store: new PgSession({
       pool,
-      createTableIfMissing: true,
+      // createTableIfMissing intentionally omitted — we handle it above
       tableName: "user_sessions",
     }),
     secret: process.env.SESSION_SECRET,
