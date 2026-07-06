@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, usersTable, paymentsTable } from "@workspace/db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
+import crypto from "crypto";
 import type { Request, Response, NextFunction } from "express";
 
 const router = Router();
@@ -90,6 +91,7 @@ router.post("/payments/initialize", requireAuth, async (req, res) => {
 router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
   const reference = String(req.params.reference);
 
+  // Ensure this reference belongs to the current user
   const [payment] = await db
     .select()
     .from(paymentsTable)
@@ -98,29 +100,64 @@ router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
 
   if (!payment) return res.status(404).json({ error: "Payment record not found" });
 
-  if (payment.status === "success") {
-    return res.json({ success: true, plan: payment.plan, subscriptionEnd: payment.endDate?.toISOString() ?? null });
-  }
+  const activated = await activatePaymentRecord(reference);
 
+  // Re-fetch to get updated plan info
+  const [updated] = await db
+    .select()
+    .from(paymentsTable)
+    .where(eq(paymentsTable.reference, reference))
+    .limit(1);
+
+  return res.json({
+    success: activated,
+    plan: updated?.plan ?? payment.plan,
+    subscriptionEnd: updated?.endDate?.toISOString() ?? null,
+  });
+});
+
+// ── Shared helper ─────────────────────────────────────────────────────────────
+// Returns true if the payment is confirmed as successful (either was already
+// marked so, or we just verified it with Paystack and activated it now).
+async function activatePaymentRecord(reference: string): Promise<boolean> {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
-  if (!secretKey) {
-    return res.json({ success: false, plan: payment.plan, subscriptionEnd: null });
+  if (!secretKey) return false;
+
+  // Fetch the pending record only — if it is already 'success' we check the
+  // user table directly to handle any prior partial-write.
+  const [payment] = await db
+    .select()
+    .from(paymentsTable)
+    .where(eq(paymentsTable.reference, reference))
+    .limit(1);
+
+  if (!payment) return false;
+
+  // If already marked success, confirm user subscription is also set.
+  if (payment.status === "success" && payment.endDate) {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payment.userId)).limit(1);
+    const repairNeeded = !user || user.subscriptionPlan === "none" || !user.subscriptionEnd;
+    if (!repairNeeded) return true;
+    // Repair partial write: payment succeeded but user row wasn't updated
+    await db
+      .update(usersTable)
+      .set({
+        subscriptionPlan: payment.plan,
+        subscriptionEnd: payment.endDate,
+        ...(payment.plan === "semester" && payment.semesterStart ? { semesterStart: payment.semesterStart } : {}),
+      })
+      .where(eq(usersTable.id, payment.userId));
+    return true;
   }
 
+  // Verify with Paystack
   const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
     headers: { Authorization: `Bearer ${secretKey}` },
   });
+  const data = (await verifyRes.json()) as { status: boolean; data?: { status: string } };
 
-  const data = (await verifyRes.json()) as {
-    status: boolean;
-    data?: { status: string };
-  };
+  if (!data.status || data.data?.status !== "success") return false;
 
-  if (!data.status || data.data?.status !== "success") {
-    return res.json({ success: false, plan: payment.plan, subscriptionEnd: null });
-  }
-
-  // Calculate subscription period
   const planKey = payment.plan as PlanKey;
   const planConfig = PLANS[planKey] ?? PLANS.monthly;
 
@@ -128,27 +165,79 @@ router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
   if (payment.plan === "semester" && payment.semesterStart) {
     startDate = new Date(payment.semesterStart);
   }
-
   const endDate = new Date(startDate);
   endDate.setMonth(endDate.getMonth() + planConfig.months);
 
-  // Mark payment as successful
-  await db
-    .update(paymentsTable)
-    .set({ status: "success", startDate, endDate })
-    .where(eq(paymentsTable.reference, reference));
+  // Atomic update: payment + user in a single transaction.
+  // Conditional transition (status='pending') prevents double-activation races.
+  await db.transaction(async (tx) => {
+    const updated = await tx
+      .update(paymentsTable)
+      .set({ status: "success", startDate, endDate })
+      .where(and(eq(paymentsTable.reference, reference), eq(paymentsTable.status, "pending")))
+      .returning({ id: paymentsTable.id });
 
-  // Update user's subscription
-  await db
-    .update(usersTable)
-    .set({
-      subscriptionPlan: payment.plan,
-      subscriptionEnd: endDate,
-      ...(payment.plan === "semester" ? { semesterStart: startDate } : {}),
-    })
-    .where(eq(usersTable.id, payment.userId));
+    // Only update user if we actually transitioned from pending → success
+    if (updated.length > 0) {
+      await tx
+        .update(usersTable)
+        .set({
+          subscriptionPlan: payment.plan,
+          subscriptionEnd: endDate,
+          ...(payment.plan === "semester" ? { semesterStart: startDate } : {}),
+        })
+        .where(eq(usersTable.id, payment.userId));
+    }
+  });
 
-  return res.json({ success: true, plan: payment.plan, subscriptionEnd: endDate.toISOString() });
+  return true;
+}
+
+// POST /payments/webhook  – Paystack sends charge.success events here
+router.post("/payments/webhook", async (req, res) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) return res.status(400).end();
+
+  const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+  if (!rawBody) return res.status(400).end();
+
+  const signature = req.headers["x-paystack-signature"] as string | undefined;
+  if (!signature) return res.status(401).end();
+
+  // Compute HMAC and compare with timing-safe equality to prevent timing attacks
+  const hashBuf = Buffer.from(
+    crypto.createHmac("sha512", secretKey).update(rawBody).digest("hex"),
+    "hex",
+  );
+  const sigBuf = Buffer.from(signature, "hex");
+
+  if (hashBuf.length !== sigBuf.length || !crypto.timingSafeEqual(hashBuf, sigBuf)) {
+    return res.status(401).end();
+  }
+
+  const event = JSON.parse(rawBody.toString()) as { event: string; data?: { reference?: string } };
+
+  if (event.event === "charge.success" && event.data?.reference) {
+    await activatePaymentRecord(event.data.reference).catch(() => null);
+  }
+
+  return res.status(200).end();
+});
+
+// GET /payments/check-pending  – lets a logged-in user re-verify their latest pending payment
+// Useful when the browser redirect from Paystack failed (e.g. session expired mid-flow)
+router.get("/payments/check-pending", requireAuth, async (req, res) => {
+  const [pending] = await db
+    .select()
+    .from(paymentsTable)
+    .where(and(eq(paymentsTable.userId, req.session.userId!), eq(paymentsTable.status, "pending")))
+    .orderBy(desc(paymentsTable.createdAt))
+    .limit(1);
+
+  if (!pending) return res.json({ found: false });
+
+  const activated = await activatePaymentRecord(pending.reference);
+  return res.json({ found: true, activated, reference: pending.reference });
 });
 
 // GET /payments/status

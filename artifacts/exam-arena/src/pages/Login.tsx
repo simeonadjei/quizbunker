@@ -28,11 +28,14 @@ export default function Login() {
     defaultValues: { email: '', password: '', rememberMe: true },
   });
 
+  // Support ?next= redirect after login (used by verify page when session expires)
+  const nextUrl = new URLSearchParams(window.location.search).get('next') || '/dashboard';
+
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
     login.mutate({ data: values }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        setLocation('/dashboard');
+        setLocation(nextUrl);
       },
       onError: (err: any) => {
         const msg = err?.error || err?.message || 'Invalid email or password.';

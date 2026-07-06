@@ -1,6 +1,6 @@
 import { useGetPaymentStatus, getGetPaymentStatusQueryKey, useInitializePayment } from '@workspace/api-client-react';
 import { Layout } from '@/components/Layout';
-import { Zap, Check, Star, Shield, Clock } from 'lucide-react';
+import { Zap, Check, Star, Shield, Clock, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -62,10 +62,16 @@ export default function Subscribe() {
           : undefined,
       }
     }, {
-      onSuccess: (res) => { window.location.href = res.authorizationUrl; },
+      onSuccess: (res) => {
+        // Store reference so the user can re-verify if the redirect fails
+        localStorage.setItem('pendingPayRef', res.reference ?? '');
+        window.location.href = res.authorizationUrl;
+      },
       onError: () => toast({ title: 'Error', description: 'Could not start payment.', variant: 'destructive' }),
     });
   };
+
+  const pendingRef = typeof window !== 'undefined' ? localStorage.getItem('pendingPayRef') : null;
 
   return (
     <Layout>
@@ -90,6 +96,24 @@ export default function Subscribe() {
             <span className="text-white font-bold text-sm">
               Active {status.plan} plan — {status.daysRemaining} days remaining
             </span>
+          </div>
+        )}
+
+        {/* Pending payment recovery — shown when user paid but redirect failed */}
+        {!status?.isActive && pendingRef && (
+          <div className="card-game border-l-4 border-primary p-4 mb-5 flex items-start gap-3">
+            <RefreshCw className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm mb-2">
+                You have a pending payment. If you already paid, tap below to confirm.
+              </p>
+              <a
+                href={`/subscribe/verify?reference=${encodeURIComponent(pendingRef)}`}
+                className="btn-game py-2 px-4 text-sm inline-flex"
+              >
+                Verify My Payment
+              </a>
+            </div>
           </div>
         )}
 
