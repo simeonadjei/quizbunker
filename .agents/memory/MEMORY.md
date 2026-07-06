@@ -1,0 +1,1 @@
+- [Mobile select dropdowns](mobile-select-dropdowns.md) — Radix Select breaks on Android Chrome due to backdrop-filter compositing; use native <select> instead.

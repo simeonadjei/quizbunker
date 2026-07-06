@@ -5,8 +5,7 @@ import {
 } from '@workspace/api-client-react';
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Loader2, Play, Lock, BookOpen, Sparkles } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SUBJECT_COLORS = [
@@ -52,33 +51,45 @@ export default function Dashboard() {
         </div>
 
         {/* Filters row */}
-        <div className="card-game p-4 mb-4 flex flex-col gap-3 relative z-50">
+        <div className="card-game p-4 mb-4 flex flex-col gap-3">
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Year</label>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="bg-black/40 border-2 border-white/20 text-white font-bold h-11 rounded-xl focus:ring-primary focus:border-primary">
-                  <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-2 border-border rounded-xl">
+              <label htmlFor="select-year" className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Year</label>
+              <div className="relative">
+                <select
+                  id="select-year"
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(e.target.value)}
+                  disabled={loadingFilters || !filters?.years.length}
+                  className="w-full h-11 rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-9 text-white font-bold text-sm appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ colorScheme: 'dark' }}
+                >
+                  <option value="" disabled>Year</option>
                   {filters?.years.map(y => (
-                    <SelectItem key={y} value={y} className="font-bold cursor-pointer">{y}</SelectItem>
+                    <option key={y} value={y}>{y}</option>
                   ))}
-                </SelectContent>
-              </Select>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              </div>
             </div>
             <div className="flex-1">
-              <label className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Subject</label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="bg-black/40 border-2 border-white/20 text-white font-bold h-11 rounded-xl focus:ring-primary focus:border-primary">
-                  <SelectValue placeholder="Subject" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-2 border-border rounded-xl">
+              <label htmlFor="select-subject" className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Subject</label>
+              <div className="relative">
+                <select
+                  id="select-subject"
+                  value={selectedSubject}
+                  onChange={e => setSelectedSubject(e.target.value)}
+                  disabled={loadingFilters || !filters?.subjects.length}
+                  className="w-full h-11 rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-9 text-white font-bold text-sm appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ colorScheme: 'dark' }}
+                >
+                  <option value="" disabled>Subject</option>
                   {filters?.subjects.map(s => (
-                    <SelectItem key={s} value={s} className="font-bold cursor-pointer">{s}</SelectItem>
+                    <option key={s} value={s}>{s}</option>
                   ))}
-                </SelectContent>
-              </Select>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              </div>
             </div>
           </div>
         </div>
