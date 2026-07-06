@@ -52,7 +52,7 @@ export default function Dashboard() {
         </div>
 
         {/* Filters row */}
-        <div className="card-game p-4 mb-4 flex flex-col gap-3">
+        <div className="card-game p-4 mb-4 flex flex-col gap-3 relative z-50">
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Year</label>
