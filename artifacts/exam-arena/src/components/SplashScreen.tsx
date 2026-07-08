@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface SplashScreenProps {
   onFinished: () => void;
@@ -15,9 +15,19 @@ const LETTER_COLORS = [
 export default function SplashScreen({ onFinished }: SplashScreenProps) {
   const [visibleLetters, setVisibleLetters] = useState(0);
   const [fading, setFading] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  // Preload the image so the <img> tag is only shown once fully decoded —
+  // prevents the browser from painting it row-by-row (progressive render).
+  useEffect(() => {
+    const preload = new window.Image();
+    preload.src = `${import.meta.env.BASE_URL}logo.png`;
+    const finish = () => setImgLoaded(true);
+    preload.onload = finish;
+    preload.onerror = finish; // show even if load fails
+  }, []);
 
   useEffect(() => {
-    // Reveal letters one by one starting at 300ms
     let idx = 0;
     const interval = setInterval(() => {
       idx += 1;
@@ -90,20 +100,22 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
           boxShadow: '0 0 40px 6px hsl(32 95% 55% / 0.35)',
         }} />
 
-        {/* Logo — instant, no entrance animation */}
-        <img
-          src={`${import.meta.env.BASE_URL}logo.png`}
-          alt="Quiz Bunker"
-          style={{
-            position: 'absolute',
-            inset: 14,
-            width: 'calc(100% - 28px)',
-            height: 'calc(100% - 28px)',
-            objectFit: 'cover',
-            borderRadius: '50%',
-            border: '2px solid hsl(32 95% 55% / 0.5)',
-          }}
-        />
+        {/* Logo — rendered only after full decode, no row-by-row paint */}
+        {imgLoaded && (
+          <img
+            src={`${import.meta.env.BASE_URL}logo.png`}
+            alt="Quiz Bunker"
+            style={{
+              position: 'absolute',
+              inset: 14,
+              width: 'calc(100% - 28px)',
+              height: 'calc(100% - 28px)',
+              objectFit: 'cover',
+              borderRadius: '50%',
+              border: '2px solid hsl(32 95% 55% / 0.5)',
+            }}
+          />
+        )}
       </div>
 
       {/* Letter-by-letter title */}
