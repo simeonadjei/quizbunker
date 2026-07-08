@@ -12,13 +12,187 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Quiz Bunker" />
     <meta name="twitter:description" content="Ghana's top exam practice platform. 1,500+ past questions, Dok 1 to 4." />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
+    <!-- Preload logo so it is in cache before anything else renders -->
+    <link rel="preload" as="image" href="%BASE_URL%logo.png" />
+    <link rel="icon" type="image/png" href="%BASE_URL%logo.png" />
+    <link rel="apple-touch-icon" href="%BASE_URL%logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Load Fredoka One for the splash title synchronously -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+
+    <style>
+      /* ── Splash reset ────────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: hsl(240, 35%, 11%); }
+
+      /* ── Splash wrapper ──────────────────────────────────────────── */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: hsl(240, 35%, 11%);
+        gap: 32px;
+        transition: opacity 1s ease-in-out;
+      }
+
+      /* ── Ring container ──────────────────────────────────────────── */
+      .splash-ring-wrap {
+        position: relative;
+        width: 220px;
+        height: 220px;
+        flex-shrink: 0;
+      }
+
+      /* spinning SVG ring */
+      .splash-ring {
+        position: absolute;
+        inset: 0;
+        width: 220px;
+        height: 220px;
+        animation: spinRing 2.4s linear infinite;
+      }
+
+      /* glow behind logo */
+      .splash-glow {
+        position: absolute;
+        inset: 10px;
+        border-radius: 50%;
+        box-shadow: 0 0 40px 8px rgba(255, 165, 0, 0.35);
+      }
+
+      /* logo circle */
+      .splash-logo {
+        position: absolute;
+        inset: 14px;
+        width: calc(100% - 28px);
+        height: calc(100% - 28px);
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(255, 165, 0, 0.5);
+        display: block;
+      }
+
+      /* ── Title ───────────────────────────────────────────────────── */
+      .splash-title {
+        display: flex;
+        gap: 2px;
+        font-family: 'Fredoka One', cursive;
+        font-size: clamp(28px, 6vw, 42px);
+        letter-spacing: 2px;
+        min-height: 52px;
+        align-items: center;
+      }
+
+      .splash-letter {
+        display: inline-block;
+        opacity: 0;
+        transform: translateY(12px);
+        animation: letterIn 0.18s ease forwards;
+      }
+
+      /* ── Dots ────────────────────────────────────────────────────── */
+      .splash-dots {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .splash-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #FFD700, #FF8E53);
+        box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+        animation: dotBounce 1.2s ease-in-out infinite;
+      }
+
+      /* ── Keyframes ───────────────────────────────────────────────── */
+      @keyframes spinRing {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+
+      @keyframes letterIn {
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes dotBounce {
+        0%, 80%, 100% { transform: translateY(0);     opacity: 0.4; }
+        40%            { transform: translateY(-10px); opacity: 1;   }
+      }
+    </style>
   </head>
   <body>
+
+    <!-- ════ SPLASH (pure HTML — visible from first paint) ════ -->
+    <div id="splash">
+
+      <div class="splash-ring-wrap">
+        <!-- Spinning gold arc -->
+        <svg class="splash-ring" viewBox="0 0 220 220">
+          <defs>
+            <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%"   stop-color="#FFD700" stop-opacity="1"/>
+              <stop offset="40%"  stop-color="#FF8E53" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#FFD700" stop-opacity="0.05"/>
+            </linearGradient>
+          </defs>
+          <circle cx="110" cy="110" r="102"
+            fill="none" stroke="url(#rg)" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="200 450"/>
+        </svg>
+
+        <div class="splash-glow"></div>
+
+        <img class="splash-logo"
+             src="%BASE_URL%logo.png"
+             decoding="sync"
+             alt="Quiz Bunker" />
+      </div>
+
+      <!-- Letter-by-letter title with staggered CSS animation -->
+      <div class="splash-title">
+        <span class="splash-letter" style="color:#FFD700;text-shadow:0 0 12px #FFD70088;animation-delay:0.10s">Q</span>
+        <span class="splash-letter" style="color:#FF6B6B;text-shadow:0 0 12px #FF6B6B88;animation-delay:0.22s">u</span>
+        <span class="splash-letter" style="color:#4ECDC4;text-shadow:0 0 12px #4ECDC488;animation-delay:0.34s">i</span>
+        <span class="splash-letter" style="color:#A8E063;text-shadow:0 0 12px #A8E06388;animation-delay:0.46s">z</span>
+        <span style="display:inline-block;width:14px"></span>
+        <span class="splash-letter" style="color:#C471ED;text-shadow:0 0 12px #C471ED88;animation-delay:0.70s">B</span>
+        <span class="splash-letter" style="color:#12C2E9;text-shadow:0 0 12px #12C2E988;animation-delay:0.82s">u</span>
+        <span class="splash-letter" style="color:#F64F59;text-shadow:0 0 12px #F64F5988;animation-delay:0.94s">n</span>
+        <span class="splash-letter" style="color:#43E97B;text-shadow:0 0 12px #43E97B88;animation-delay:1.06s">k</span>
+        <span class="splash-letter" style="color:#FA709A;text-shadow:0 0 12px #FA709A88;animation-delay:1.18s">e</span>
+        <span class="splash-letter" style="color:#FEE140;text-shadow:0 0 12px #FEE14088;animation-delay:1.30s">r</span>
+      </div>
+
+      <!-- Three bouncing golden dots -->
+      <div class="splash-dots">
+        <div class="splash-dot" style="animation-delay:0s"></div>
+        <div class="splash-dot" style="animation-delay:0.2s"></div>
+        <div class="splash-dot" style="animation-delay:0.4s"></div>
+      </div>
+    </div>
+    <!-- ════ END SPLASH ════ -->
+
     <div id="root"></div>
+
+    <script>
+      // Fade out and remove the HTML splash after 8 seconds
+      (function () {
+        var el = document.getElementById('splash');
+        setTimeout(function () {
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+          setTimeout(function () { el.remove(); }, 1000);
+        }, 7000);
+      })();
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

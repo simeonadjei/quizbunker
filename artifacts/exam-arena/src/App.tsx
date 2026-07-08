@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -6,7 +5,6 @@ import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 
 import { MusicProvider } from '@/contexts/MusicContext';
-import SplashScreen from '@/components/SplashScreen';
 import Landing from '@/pages/Landing';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -54,23 +52,17 @@ function Router() {
 }
 
 function App() {
-  const [splashDone, setSplashDone] = useState(false);
-  const handleSplashFinished = useCallback(() => setSplashDone(true), []);
-
   return (
-    <>
-      {!splashDone && <SplashScreen onFinished={handleSplashFinished} />}
-      <QueryClientProvider client={queryClient}>
-        <MusicProvider>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-              <Router />
-            </WouterRouter>
-            <Toaster />
-          </TooltipProvider>
-        </MusicProvider>
-      </QueryClientProvider>
-    </>
+    <QueryClientProvider client={queryClient}>
+      <MusicProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </MusicProvider>
+    </QueryClientProvider>
   );
 }
 
