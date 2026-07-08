@@ -44,7 +44,7 @@ export default function Register() {
   if (emailSent) {
     return (
       <Layout>
-        <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-sm text-center">
             <div className="card-game p-8 space-y-4">
               <div className="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mx-auto border-2 border-secondary">
@@ -73,7 +73,7 @@ export default function Register() {
 
   return (
     <Layout>
-      <div className="flex-1 flex items-center justify-center px-4 py-6">
+      <div className="flex-1 flex items-center justify-center px-6 py-6">
         <div className="w-full max-w-sm">
 
           {/* Logo strip */}

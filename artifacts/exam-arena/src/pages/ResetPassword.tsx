@@ -45,7 +45,7 @@ export default function ResetPassword() {
   if (!token) {
     return (
       <Layout>
-        <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-sm text-center">
             <div className="card-game p-8 space-y-4">
               <XCircle className="w-14 h-14 text-red-400 mx-auto" />
@@ -67,7 +67,7 @@ export default function ResetPassword() {
 
   return (
     <Layout>
-      <div className="flex-1 flex items-center justify-center px-4 py-6">
+      <div className="flex-1 flex items-center justify-center px-6 py-6">
         <div className="w-full max-w-sm">
 
           <div className="text-center mb-6">

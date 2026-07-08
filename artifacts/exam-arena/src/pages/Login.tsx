@@ -53,7 +53,7 @@ export default function Login() {
 
   return (
     <Layout>
-      <div className="flex-1 flex items-center justify-center px-4 py-6">
+      <div className="flex-1 flex items-center justify-center px-6 py-6">
         <div className="w-full max-w-sm">
 
           {/* Logo strip */}

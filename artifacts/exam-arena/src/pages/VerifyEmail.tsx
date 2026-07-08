@@ -40,7 +40,7 @@ export default function VerifyEmail() {
 
   return (
     <Layout>
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm text-center">
           {status === 'loading' && (
             <div className="card-game p-8 space-y-4">
