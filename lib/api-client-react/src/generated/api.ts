@@ -40,6 +40,7 @@ import type {
   QuizSessionInput,
   QuizSubmitInput,
   RegisterInput,
+  ResendVerificationInput,
   ResetPasswordInput,
   Song,
   SongReorderInput,
@@ -1993,3 +1994,39 @@ export function useGetAdminStats<TData = Awaited<ReturnType<typeof getAdminStats
 
 
 
+
+// ── resend verification ───────────────────────────────────────────────────────
+
+export const getResendVerificationUrl = () => `/api/auth/resend-verification`;
+
+export const resendVerification = async (resendVerificationInput: ResendVerificationInput, options?: RequestInit): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getResendVerificationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(resendVerificationInput),
+  });
+};
+
+export const getResendVerificationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendVerification>>, TError,{data: BodyType<ResendVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendVerification>>, TError,{data: BodyType<ResendVerificationInput>}, TContext> => {
+  const mutationKey = ['resendVerification'];
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendVerification>>, {data: BodyType<ResendVerificationInput>}> = (props) => {
+    const { data } = props ?? {};
+    return resendVerification(data, requestOptions);
+  };
+  return { mutationKey, mutationFn, ...mutationOptions };
+};
+
+export type ResendVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof resendVerification>>>;
+export type ResendVerificationMutationBody = BodyType<ResendVerificationInput>;
+export type ResendVerificationMutationError = ErrorType<unknown>;
+
+export const useResendVerification = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendVerification>>, TError,{data: BodyType<ResendVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+) => {
+  const mutationOptions = getResendVerificationMutationOptions(options);
+  return useMutation(mutationOptions);
+};

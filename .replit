@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -27,3 +27,6 @@ ADMIN_SECRET_PATH = "xk9admin2024"
 VITE_PAYSTACK_PUBLIC_KEY = "pk_live_4d9588dc807864a6ae12755315140c92197c94d0"
 ADMIN_EMAIL = "simeonadjei12015@gmail.com"
 GMAIL_USER = "simeonadjei12015@gmail.com"
+
+[nix]
+channel = "stable-25_05"

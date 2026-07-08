@@ -56,6 +56,10 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface ResendVerificationInput {
+  email: string;
+}
+
 export interface ForgotPasswordInput {
   email: string;
 }

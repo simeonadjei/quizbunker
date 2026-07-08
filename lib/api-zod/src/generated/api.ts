@@ -78,6 +78,14 @@ export const ForgotPasswordBody = zod.object({
   "email": zod.string().email()
 })
 
+export const ResendVerificationBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const ResendVerificationResponse = zod.object({
+  "message": zod.string()
+})
+
 export const ForgotPasswordResponse = zod.object({
   "message": zod.string()
 })

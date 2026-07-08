@@ -56,6 +56,15 @@ const verifyEmailLimiter = rateLimit({
   message: { error: "Too many verification attempts. Please try again in an hour." },
 });
 
+/** Resend-verification: max 5 per hour per IP — prevents email flooding */
+const resendVerificationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many resend requests. Please try again in an hour." },
+});
+
 // ── Email sender ──────────────────────────────────────────────────────────────
 
 function createTransporter() {
@@ -228,6 +237,46 @@ router.post("/auth/verify-email", verifyEmailLimiter, async (req, res) => {
     .where(eq(usersTable.id, user.id));
 
   return res.json({ message: "Email verified successfully! You can now log in." });
+});
+
+// ── POST /auth/resend-verification ───────────────────────────────────────────
+
+router.post("/auth/resend-verification", resendVerificationLimiter, async (req, res) => {
+  const { email } = req.body as { email?: string };
+
+  // Generic response so we don't leak which emails are registered
+  const genericMessage = { message: "If your account exists and isn't verified yet, a new verification link has been sent." };
+
+  if (!email || typeof email !== "string") {
+    return res.json(genericMessage);
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, email.toLowerCase()))
+    .limit(1);
+
+  if (!user || user.emailVerified) {
+    return res.json(genericMessage);
+  }
+
+  // Issue a fresh token so old links can't be reused
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  await db
+    .update(usersTable)
+    .set({ verificationToken })
+    .where(eq(usersTable.id, user.id));
+
+  const origin =
+    (req.headers.origin as string) ||
+    `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
+
+  sendVerificationEmail(user.email, user.name, verificationToken, origin).catch((err) => {
+    console.error("[EMAIL ERROR]", err);
+  });
+
+  return res.json(genericMessage);
 });
 
 // ── POST /auth/login ──────────────────────────────────────────────────────────
