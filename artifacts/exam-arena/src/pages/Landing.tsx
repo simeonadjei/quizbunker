@@ -52,7 +52,7 @@ export default function Landing() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center px-5 text-center relative z-10 max-w-md mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center px-7 text-center relative z-10 max-w-md mx-auto w-full">
 
         {/* ── Hero ─────────────────────────────────────────────────── */}
         <div className="w-full mt-8 mb-2">
