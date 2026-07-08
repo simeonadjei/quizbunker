@@ -95,6 +95,32 @@
         animation: letterIn 0.18s ease forwards;
       }
 
+      /* ── Hype word roller ────────────────────────────────────────── */
+      .splash-hype-wrap {
+        height: 36px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .splash-hype {
+        font-family: 'Fredoka One', cursive;
+        font-size: clamp(18px, 4vw, 26px);
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: #FF8E53;
+        text-shadow: 0 0 16px rgba(255,142,83,0.7), 0 0 32px rgba(255,142,83,0.3);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.35s ease, transform 0.35s ease;
+      }
+
+      .splash-hype.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
       /* ── Dots ────────────────────────────────────────────────────── */
       .splash-dots {
         display: flex;
@@ -170,6 +196,11 @@
         <span class="splash-letter" style="color:#FEE140;text-shadow:0 0 12px #FEE14088;animation-delay:1.30s">r</span>
       </div>
 
+      <!-- Rolling hype words -->
+      <div class="splash-hype-wrap">
+        <span class="splash-hype" id="splash-hype"></span>
+      </div>
+
       <!-- Three bouncing golden dots -->
       <div class="splash-dots">
         <div class="splash-dot" style="animation-delay:0s"></div>
@@ -182,13 +213,30 @@
     <div id="root"></div>
 
     <script>
-      // Fade out and remove the HTML splash after 8 seconds
       (function () {
-        var el = document.getElementById('splash');
+        var words = ['DOMINATE', 'CONQUER', 'MASTER IT', 'ACE IT', 'LEVEL UP', 'CRUSH IT', 'RISE UP', 'WIN BIG', 'PROVE IT'];
+        var el = document.getElementById('splash-hype');
+        var idx = 0;
+
+        function showWord() {
+          el.textContent = words[idx % words.length];
+          el.classList.add('visible');
+          idx++;
+          setTimeout(function () {
+            el.classList.remove('visible');
+            setTimeout(showWord, 450);
+          }, 1600);
+        }
+
+        // Start after title letters finish appearing (~1.5s delay)
+        setTimeout(showWord, 1500);
+
+        // Fade out and remove the HTML splash after 8 seconds
+        var splash = document.getElementById('splash');
         setTimeout(function () {
-          el.style.opacity = '0';
-          el.style.pointerEvents = 'none';
-          setTimeout(function () { el.remove(); }, 1000);
+          splash.style.opacity = '0';
+          splash.style.pointerEvents = 'none';
+          setTimeout(function () { splash.remove(); }, 1000);
         }, 7000);
       })();
     </script>

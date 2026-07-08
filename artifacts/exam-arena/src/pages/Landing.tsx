@@ -2,6 +2,50 @@ import { Layout } from '@/components/Layout';
 import { Link } from 'wouter';
 import { Trophy, Zap, BookOpen, Star } from 'lucide-react';
 import { useGetCurrentUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
+import { useState, useEffect } from 'react';
+
+const HYPE_WORDS = [
+  'DOMINATE',
+  'CONQUER',
+  'MASTER',
+  'ACE IT',
+  'LEVEL UP',
+  'CRUSH IT',
+  'RISE UP',
+  'WIN BIG',
+];
+
+function RollingWord() {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % HYPE_WORDS.length);
+        setVisible(true);
+      }, 400);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="h-9 flex items-center justify-center overflow-hidden">
+      <span
+        className="font-display text-2xl tracking-widest text-accent"
+        style={{
+          display: 'inline-block',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0)' : 'translateY(-18px)',
+          transition: 'opacity 0.35s ease, transform 0.35s ease',
+        }}
+      >
+        {HYPE_WORDS[index]}
+      </span>
+    </div>
+  );
+}
 
 export default function Landing() {
   const { data: user, isLoading } = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey() } });
@@ -24,6 +68,7 @@ export default function Landing() {
 
           {/* Title */}
           <div>
+            <RollingWord />
             <h1 className="text-game-title text-5xl sm:text-6xl leading-tight">
               QUIZ
             </h1>
