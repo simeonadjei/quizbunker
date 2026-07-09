@@ -13,8 +13,8 @@ export function Layout({ children }: { children: ReactNode }) {
       {!isAdmin && <BackgroundParticles />}
       {!isAdmin && <Navbar />}
       {/* pt-14 clears the fixed 56px navbar; pb-24 clears the music player */}
-      <main className={`flex-1 relative z-10 flex flex-col ${!isAdmin ? 'pt-14 pb-24' : ''}`}>
-        <div className={!isAdmin ? 'w-full max-w-md mx-auto flex flex-col flex-1' : 'flex flex-col flex-1'}>
+      <main className={`flex-1 relative z-10 flex flex-col items-center ${!isAdmin ? 'pt-14 pb-24' : ''}`}>
+        <div className={!isAdmin ? 'w-full max-w-md flex flex-col flex-1' : 'w-full flex flex-col flex-1'}>
           {children}
         </div>
       </main>
