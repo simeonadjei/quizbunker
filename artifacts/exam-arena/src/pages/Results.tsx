@@ -1,6 +1,7 @@
-import { useGetQuizSession, getGetQuizSessionQueryKey } from '@workspace/api-client-react';
+import { useGetQuizSession, useGetCurrentUser, getGetQuizSessionQueryKey, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { useRoute } from 'wouter';
 import { Layout } from '@/components/Layout';
+import { Certificate } from '@/components/Certificate';
 import { Loader2, Trophy, Skull, Target, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { Link } from 'wouter';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,10 @@ export default function Results() {
 
   const { data: session, isLoading, error } = useGetQuizSession(sessionId, {
     query: { enabled: !!sessionId, queryKey: getGetQuizSessionQueryKey(sessionId) }
+  });
+
+  const { data: currentUser } = useGetCurrentUser({
+    query: { queryKey: getGetCurrentUserQueryKey() }
   });
 
   if (isLoading) {
@@ -119,8 +124,23 @@ export default function Results() {
           </Link>
         </div>
 
+        {/* Certificate — shown on victory with user's real name */}
+        {isVictory && currentUser && (
+          <Certificate
+            studentName={currentUser.name}
+            subject={session.subject}
+            year={session.year}
+            week={session.week ?? 0}
+            weekTopic={session.weekTopic ?? ''}
+            score={score}
+            total={total}
+            percentage={percentage}
+            completedAt={session.completedAt}
+          />
+        )}
+
         {/* Review */}
-        <div className="card-game p-4 border-t-4 border-secondary">
+        <div className="card-game p-4 border-t-4 border-secondary mt-5">
           <div className="flex items-center gap-3 mb-4">
             <Target className="w-5 h-5 text-secondary shrink-0" />
             <h2 className="font-display text-white text-base uppercase">Answer Review</h2>
