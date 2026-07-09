@@ -41,6 +41,8 @@ const allowedOrigins = new Set(
   [
     process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
     ...(process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(",").map((d) => `https://${d.trim()}`) : []),
+    // Non-Replit production frontend (e.g. Render static site), set via env var
+    ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",").map((d) => d.trim()) : []),
     "http://localhost:3000",
     "http://localhost:5173",
   ].filter(Boolean) as string[],
