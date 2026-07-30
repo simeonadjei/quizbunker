@@ -88,6 +88,13 @@
   100% { transform: translateX(200%); }
 }
 
+@keyframes shootingStar {
+  0%   { transform: translateX(0)    scaleX(0.4); opacity: 0; }
+  8%   { opacity: 1; }
+  70%  { opacity: 0.9; }
+  100% { transform: translateX(130vw) scaleX(1);   opacity: 0; }
+}
+
 /* ─── Colour tokens ─────────────────────────────────────────────────────── */
 :root, .dark {
   --background: 240 35% 11%;
