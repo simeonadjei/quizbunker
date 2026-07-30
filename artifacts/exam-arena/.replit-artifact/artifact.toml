@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Exam Arena"
+title = "QuizBunker"
 version = "1.0.0"
 id = "artifacts/exam-arena"
 router = "path"
