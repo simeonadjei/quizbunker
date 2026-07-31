@@ -17,6 +17,10 @@ export interface MessageResponse {
   message: string;
 }
 
+export interface ResendVerificationInput {
+  email: string;
+}
+
 export interface RegisterInput {
   email: string;
   /** @minLength 6 */
@@ -54,10 +58,6 @@ export interface User {
 
 export interface AuthResponse {
   user: User;
-}
-
-export interface ResendVerificationInput {
-  email: string;
 }
 
 export interface ForgotPasswordInput {
@@ -243,9 +243,48 @@ export interface AdminStats {
   recentSessions: number;
 }
 
+export interface ActivityLog {
+  id: number;
+  type: string;
+  /** @nullable */
+  userId?: number | null;
+  /** @nullable */
+  userEmail?: string | null;
+  /** @nullable */
+  userName?: string | null;
+  /** @nullable */
+  metadata?: string | null;
+  /** @nullable */
+  ip?: string | null;
+  createdAt: string;
+}
+
+export interface AdminPayment {
+  id: number;
+  userId: number;
+  /** @nullable */
+  userEmail?: string | null;
+  /** @nullable */
+  userName?: string | null;
+  plan: string;
+  amount: number;
+  status: string;
+  reference: string;
+  /** @nullable */
+  startDate?: string | null;
+  /** @nullable */
+  endDate?: string | null;
+  createdAt: string;
+}
+
 export type ListQuestionsParams = {
 year?: string;
 subject?: string;
 week?: number;
+};
+
+export type ListAdminActivityParams = {
+limit?: number;
+type?: string;
 };
 

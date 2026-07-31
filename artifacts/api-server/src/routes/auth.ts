@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { RegisterUserBody, LoginUserBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
+import { logActivity } from "../lib/activity";
 
 const router = Router();
 
@@ -201,6 +202,8 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
     console.error("[EMAIL ERROR]", err);
   });
 
+  logActivity({ type: "register", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
+
   return res.status(201).json({
     user: formatUser(user),
     requiresVerification: true,
@@ -235,6 +238,8 @@ router.post("/auth/verify-email", verifyEmailLimiter, async (req, res) => {
     .update(usersTable)
     .set({ emailVerified: true, verificationToken: null })
     .where(eq(usersTable.id, user.id));
+
+  logActivity({ type: "email_verify", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
 
   return res.json({ message: "Email verified successfully! You can now log in." });
 });
@@ -275,6 +280,8 @@ router.post("/auth/resend-verification", resendVerificationLimiter, async (req, 
   sendVerificationEmail(user.email, user.name, verificationToken, origin).catch((err) => {
     console.error("[EMAIL ERROR]", err);
   });
+
+  logActivity({ type: "resend_verification", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
 
   return res.json(genericMessage);
 });
@@ -320,6 +327,8 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
     req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
   }
 
+  logActivity({ type: "login", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
+
   return res.json({ user: formatUser(user) });
 });
 
@@ -362,6 +371,8 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     console.error("[EMAIL ERROR]", err);
   });
 
+  logActivity({ type: "password_reset_request", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
+
   return res.json(genericMessage);
 });
 
@@ -392,12 +403,16 @@ router.post("/auth/reset-password", resetPasswordLimiter, async (req, res) => {
     .set({ passwordHash, resetToken: null, resetTokenExpires: null })
     .where(eq(usersTable.id, user.id));
 
+  logActivity({ type: "password_reset", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
+
   return res.json({ message: "Password reset successfully! You can now log in with your new password." });
 });
 
 // ── POST /auth/logout ─────────────────────────────────────────────────────────
 
 router.post("/auth/logout", (req, res) => {
+  const userId = req.session.userId;
+  logActivity({ type: "logout", req, userId: userId ?? null }).catch(() => {});
   req.session.destroy(() => {});
   return res.json({ message: "Logged out" });
 });

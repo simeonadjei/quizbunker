@@ -6,13 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './activityLog';
 export * from './adminLoginInput';
+export * from './adminPayment';
 export * from './adminStats';
 export * from './answerInput';
 export * from './authResponse';
 export * from './errorResponse';
 export * from './forgotPasswordInput';
 export * from './healthStatus';
+export * from './listAdminActivityParams';
 export * from './listQuestionsParams';
 export * from './loginInput';
 export * from './messageResponse';
@@ -29,6 +32,7 @@ export * from './quizSessionDetail';
 export * from './quizSessionInput';
 export * from './quizSubmitInput';
 export * from './registerInput';
+export * from './resendVerificationInput';
 export * from './resetPasswordInput';
 export * from './song';
 export * from './songReorderInput';

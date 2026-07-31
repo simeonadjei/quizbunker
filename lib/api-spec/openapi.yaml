@@ -151,6 +151,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /auth/resend-verification:
+    post:
+      operationId: resendVerification
+      tags: [auth]
+      summary: Resend email verification link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendVerificationInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
   /auth/me:
     get:
       operationId: getCurrentUser
@@ -543,6 +562,45 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminStats"
 
+  /admin/activity:
+    get:
+      operationId: listAdminActivity
+      tags: [admin]
+      summary: Get site-wide activity log
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityLog"
+
+  /admin/payments:
+    get:
+      operationId: listAdminPayments
+      tags: [admin]
+      summary: Get all payment records
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPayment"
+
 components:
   schemas:
     HealthStatus:
@@ -567,6 +625,13 @@ components:
           type: string
 
     # ── Auth ────────────────────────────────────────────────────────────────
+    ResendVerificationInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+
     RegisterInput:
       type: object
       required: [email, password, name]
@@ -933,3 +998,51 @@ components:
           type: integer
         recentSessions:
           type: integer
+
+    ActivityLog:
+      type: object
+      required: [id, type, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        userId:
+          type: ["integer", "null"]
+        userEmail:
+          type: ["string", "null"]
+        userName:
+          type: ["string", "null"]
+        metadata:
+          type: ["string", "null"]
+        ip:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AdminPayment:
+      type: object
+      required: [id, userId, plan, amount, status, reference, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userEmail:
+          type: ["string", "null"]
+        userName:
+          type: ["string", "null"]
+        plan:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+        reference:
+          type: string
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string

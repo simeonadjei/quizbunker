@@ -3,6 +3,7 @@ import { db, usersTable, paymentsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
 import type { Request, Response, NextFunction } from "express";
+import { logActivity } from "../lib/activity";
 
 const router = Router();
 
@@ -84,6 +85,8 @@ router.post("/payments/initialize", requireAuth, async (req, res) => {
     return res.status(400).json({ error: data.message || "Payment initialization failed" });
   }
 
+  logActivity({ type: "payment_init", req, userId: user.id, userEmail: user.email, userName: user.name, metadata: { plan, reference, amount } }).catch(() => {});
+
   return res.json({ authorizationUrl: data.data.authorization_url, reference });
 });
 
@@ -108,6 +111,10 @@ router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
     .from(paymentsTable)
     .where(eq(paymentsTable.reference, reference))
     .limit(1);
+
+  if (activated) {
+    logActivity({ type: "payment_success", req, userId: req.session.userId!, metadata: { reference, plan: updated?.plan ?? payment.plan } }).catch(() => {});
+  }
 
   return res.json({
     success: activated,

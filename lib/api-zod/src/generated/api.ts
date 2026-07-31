@@ -78,14 +78,6 @@ export const ForgotPasswordBody = zod.object({
   "email": zod.string().email()
 })
 
-export const ResendVerificationBody = zod.object({
-  "email": zod.string().email()
-})
-
-export const ResendVerificationResponse = zod.object({
-  "message": zod.string()
-})
-
 export const ForgotPasswordResponse = zod.object({
   "message": zod.string()
 })
@@ -104,6 +96,18 @@ export const ResetPasswordBody = zod.object({
 })
 
 export const ResetPasswordResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Resend email verification link
+ */
+export const ResendVerificationBody = zod.object({
+  "email": zod.string()
+})
+
+export const ResendVerificationResponse = zod.object({
   "message": zod.string()
 })
 
@@ -482,5 +486,45 @@ export const GetAdminStatsResponse = zod.object({
   "totalSongs": zod.number(),
   "recentSessions": zod.number()
 })
+
+
+/**
+ * @summary Get site-wide activity log
+ */
+export const ListAdminActivityQueryParams = zod.object({
+  "limit": zod.coerce.number().optional(),
+  "type": zod.coerce.string().optional()
+})
+
+export const ListAdminActivityResponseItem = zod.object({
+  "id": zod.number(),
+  "type": zod.string(),
+  "userId": zod.number().nullish(),
+  "userEmail": zod.string().nullish(),
+  "userName": zod.string().nullish(),
+  "metadata": zod.string().nullish(),
+  "ip": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListAdminActivityResponse = zod.array(ListAdminActivityResponseItem)
+
+
+/**
+ * @summary Get all payment records
+ */
+export const ListAdminPaymentsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "userEmail": zod.string().nullish(),
+  "userName": zod.string().nullish(),
+  "plan": zod.string(),
+  "amount": zod.number(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "startDate": zod.string().nullish(),
+  "endDate": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListAdminPaymentsResponse = zod.array(ListAdminPaymentsResponseItem)
 
 

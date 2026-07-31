@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { db, questionsTable, songsTable, usersTable, quizSessionsTable } from "@workspace/db";
+import { db, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable } from "@workspace/db";
 import { eq, desc, count, gt } from "drizzle-orm";
 import { parseQuestionText } from "../lib/parser";
 import mammoth from "mammoth";
@@ -80,6 +80,11 @@ router.post("/admin/auth", async (req, res) => {
     req.session.regenerate((err) => (err ? reject(err) : resolve())),
   );
   req.session.isAdmin = true;
+
+  // Log admin login
+  const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim() || req.socket?.remoteAddress || null;
+  db.insert(activityLogsTable).values({ type: "admin_login", userEmail: email ?? null, ip }).catch(() => {});
+
   return res.json({ message: "Authenticated" });
 });
 
@@ -236,6 +241,72 @@ router.delete("/admin/songs/:id", requireAdmin, async (req, res) => {
 
   await db.delete(songsTable).where(eq(songsTable.id, id));
   return res.json({ message: "Song deleted" });
+});
+
+// GET /admin/activity
+router.get("/admin/activity", requireAdmin, async (req, res) => {
+  const limit = Math.min(parseInt(String((req as { query: Record<string, string> }).query.limit ?? "200"), 10) || 200, 500);
+  const type = String((req as { query: Record<string, string> }).query.type ?? "").trim() || undefined;
+
+  let query = db
+    .select()
+    .from(activityLogsTable)
+    .orderBy(desc(activityLogsTable.createdAt))
+    .limit(limit);
+
+  const rows = await (type
+    ? db.select().from(activityLogsTable).where(eq(activityLogsTable.type, type)).orderBy(desc(activityLogsTable.createdAt)).limit(limit)
+    : query);
+
+  return res.json(
+    rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      userId: r.userId ?? null,
+      userEmail: r.userEmail ?? null,
+      userName: r.userName ?? null,
+      metadata: r.metadata ?? null,
+      ip: r.ip ?? null,
+      createdAt: r.createdAt.toISOString(),
+    })),
+  );
+});
+
+// GET /admin/payments
+router.get("/admin/payments", requireAdmin, async (_req, res) => {
+  const payments = await db
+    .select({
+      id: paymentsTable.id,
+      userId: paymentsTable.userId,
+      userEmail: usersTable.email,
+      userName: usersTable.name,
+      plan: paymentsTable.plan,
+      amount: paymentsTable.amount,
+      status: paymentsTable.status,
+      reference: paymentsTable.reference,
+      startDate: paymentsTable.startDate,
+      endDate: paymentsTable.endDate,
+      createdAt: paymentsTable.createdAt,
+    })
+    .from(paymentsTable)
+    .leftJoin(usersTable, eq(paymentsTable.userId, usersTable.id))
+    .orderBy(desc(paymentsTable.createdAt));
+
+  return res.json(
+    payments.map((p) => ({
+      id: p.id,
+      userId: p.userId,
+      userEmail: p.userEmail ?? null,
+      userName: p.userName ?? null,
+      plan: p.plan,
+      amount: p.amount,
+      status: p.status,
+      reference: p.reference,
+      startDate: p.startDate?.toISOString() ?? null,
+      endDate: p.endDate?.toISOString() ?? null,
+      createdAt: p.createdAt.toISOString(),
+    })),
+  );
 });
 
 // GET /admin/users

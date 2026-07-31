@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useAdminLogin, useGetAdminStats, useListAdminUsers, useListSongs, useUpdateSong, useDeleteSong, getGetAdminStatsQueryKey, getListSongsQueryKey, getListAdminUsersQueryKey } from '@workspace/api-client-react';
+import { useAdminLogin, useGetAdminStats, useListAdminUsers, useListSongs, useUpdateSong, useDeleteSong, useListAdminActivity, useListAdminPayments, getGetAdminStatsQueryKey, getListSongsQueryKey, getListAdminUsersQueryKey, getListAdminActivityQueryKey, getListAdminPaymentsQueryKey } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, CheckCircle, ShieldAlert } from 'lucide-react';
+import { Loader2, Upload, Trash2, CheckCircle, ShieldAlert, Activity, CreditCard, RefreshCw } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
@@ -31,6 +31,8 @@ export default function AdminPortal() {
         </div>
         
         <UsersPanel />
+        <ActivityPanel />
+        <PaymentsPanel />
       </div>
     </div>
   );
