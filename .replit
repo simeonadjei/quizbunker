@@ -22,8 +22,6 @@ timeoutMs = 20000
 [userenv]
 
 [userenv.shared]
-ADMIN_PASSWORD = "bg262"
-ADMIN_SECRET_PATH = "xk9admin2024"
 ADMIN_EMAIL = "simeonadjei12015@gmail.com"
 GMAIL_USER = "simeonadjei12015@gmail.com"
 FRONTEND_URL = "https://65bba146-e014-493c-ad8a-05bfd48402ce-00-2gbo85b5lxqzz.kirk.replit.dev"
