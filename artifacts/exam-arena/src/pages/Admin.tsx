@@ -38,6 +38,179 @@ export default function AdminPortal() {
   );
 }
 
+// ── Activity Feed ─────────────────────────────────────────────────────────────
+
+const TYPE_COLORS: Record<string, string> = {
+  register: 'text-cyan-400',
+  login: 'text-green-400',
+  logout: 'text-zinc-400',
+  email_verify: 'text-blue-400',
+  resend_verification: 'text-yellow-400',
+  password_reset_request: 'text-orange-400',
+  password_reset: 'text-orange-300',
+  payment_init: 'text-purple-400',
+  payment_success: 'text-emerald-400',
+  quiz_start: 'text-sky-400',
+  quiz_complete: 'text-indigo-400',
+  admin_login: 'text-red-400',
+};
+
+function ActivityPanel() {
+  const [typeFilter, setTypeFilter] = useState('');
+  const queryClient = useQueryClient();
+  const { data: logs = [], isFetching } = useListAdminActivity(
+    typeFilter ? { type: typeFilter } : undefined,
+    { query: { queryKey: getListAdminActivityQueryKey(typeFilter ? { type: typeFilter } : undefined) } }
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-red-500 flex items-center gap-2">
+          <Activity className="w-5 h-5" /> ACTIVITY LOG
+        </h2>
+        <div className="flex gap-2 items-center">
+          <select
+            value={typeFilter}
+            onChange={e => setTypeFilter(e.target.value)}
+            className="bg-zinc-900 border border-zinc-700 text-zinc-300 text-xs rounded px-2 py-1.5"
+          >
+            <option value="">ALL EVENTS</option>
+            {Object.keys(TYPE_COLORS).map(t => (
+              <option key={t} value={t}>{t.toUpperCase()}</option>
+            ))}
+          </select>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => queryClient.invalidateQueries({ queryKey: getListAdminActivityQueryKey() })}
+            className="text-zinc-500 hover:text-zinc-300"
+          >
+            {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          </Button>
+        </div>
+      </div>
+      <div className="overflow-x-auto rounded border border-zinc-800">
+        <table className="w-full text-xs">
+          <thead className="bg-zinc-900 text-zinc-500 text-left uppercase tracking-wider">
+            <tr>
+              <th className="px-4 py-3 font-normal">WHEN</th>
+              <th className="px-4 py-3 font-normal">EVENT</th>
+              <th className="px-4 py-3 font-normal">USER</th>
+              <th className="px-4 py-3 font-normal">IP</th>
+              <th className="px-4 py-3 font-normal">META</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-800/60">
+            {logs.length === 0 && !isFetching && (
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-zinc-600">No activity yet</td></tr>
+            )}
+            {logs.map(log => (
+              <tr key={log.id} className="hover:bg-zinc-800/30">
+                <td className="px-4 py-2.5 text-zinc-500 whitespace-nowrap">
+                  {format(new Date(log.createdAt), 'MM-dd HH:mm:ss')}
+                </td>
+                <td className={`px-4 py-2.5 font-mono font-bold whitespace-nowrap ${TYPE_COLORS[log.type] ?? 'text-zinc-300'}`}>
+                  {log.type}
+                </td>
+                <td className="px-4 py-2.5 text-zinc-400">
+                  {log.userName ?? log.userEmail ?? (log.userId ? `#${log.userId}` : '—')}
+                </td>
+                <td className="px-4 py-2.5 text-zinc-600">{log.ip ?? '—'}</td>
+                <td className="px-4 py-2.5 text-zinc-600 font-mono text-[10px] max-w-xs truncate">
+                  {log.metadata ?? ''}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Payments Panel ────────────────────────────────────────────────────────────
+
+function PaymentsPanel() {
+  const queryClient = useQueryClient();
+  const { data: payments = [], isFetching } = useListAdminPayments({
+    query: { queryKey: getListAdminPaymentsQueryKey() }
+  });
+
+  const STATUS_COLORS: Record<string, string> = {
+    success: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+    pending: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
+    failed: 'bg-red-500/20 text-red-400 border border-red-500/30',
+  };
+
+  const total = payments.filter(p => p.status === 'success').reduce((s, p) => s + p.amount, 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-red-500 flex items-center gap-2">
+          <CreditCard className="w-5 h-5" /> PAYMENTS
+          {total > 0 && (
+            <span className="text-xs text-emerald-400 font-normal ml-2">
+              Total collected: GHS {(total / 100).toFixed(2)}
+            </span>
+          )}
+        </h2>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => queryClient.invalidateQueries({ queryKey: getListAdminPaymentsQueryKey() })}
+          className="text-zinc-500 hover:text-zinc-300"
+        >
+          {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+        </Button>
+      </div>
+      <div className="overflow-x-auto rounded border border-zinc-800">
+        <table className="w-full text-xs">
+          <thead className="bg-zinc-900 text-zinc-500 text-left uppercase tracking-wider">
+            <tr>
+              <th className="px-4 py-3 font-normal">DATE</th>
+              <th className="px-4 py-3 font-normal">USER</th>
+              <th className="px-4 py-3 font-normal">PLAN</th>
+              <th className="px-4 py-3 font-normal">AMOUNT</th>
+              <th className="px-4 py-3 font-normal">STATUS</th>
+              <th className="px-4 py-3 font-normal">REFERENCE</th>
+              <th className="px-4 py-3 font-normal">EXPIRES</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-800/60">
+            {payments.length === 0 && !isFetching && (
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-zinc-600">No payments yet</td></tr>
+            )}
+            {payments.map(p => (
+              <tr key={p.id} className="hover:bg-zinc-800/30">
+                <td className="px-4 py-2.5 text-zinc-500 whitespace-nowrap">
+                  {format(new Date(p.createdAt), 'yyyy-MM-dd')}
+                </td>
+                <td className="px-4 py-2.5 text-zinc-300">
+                  <div>{p.userName ?? '—'}</div>
+                  <div className="text-zinc-600">{p.userEmail ?? ''}</div>
+                </td>
+                <td className="px-4 py-2.5 text-zinc-300 uppercase">{p.plan}</td>
+                <td className="px-4 py-2.5 text-zinc-300">GHS {(p.amount / 100).toFixed(2)}</td>
+                <td className="px-4 py-2.5">
+                  <span className={`px-2 py-0.5 rounded text-[10px] ${STATUS_COLORS[p.status] ?? 'text-zinc-500'}`}>
+                    {p.status.toUpperCase()}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-zinc-600 font-mono text-[10px]">{p.reference}</td>
+                <td className="px-4 py-2.5 text-zinc-500">
+                  {p.endDate ? format(new Date(p.endDate), 'yyyy-MM-dd') : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function AdminLogin({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

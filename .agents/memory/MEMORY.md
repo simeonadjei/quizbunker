@@ -1,1 +1,3 @@
 - [Mobile select dropdowns](mobile-select-dropdowns.md) — Radix Select breaks on Android Chrome due to backdrop-filter compositing; use native <select> instead.
+- [DB push TTY requirement](db-push-tty.md) — drizzle-kit push always requires a TTY even with --force; use executeSql for schema changes in non-interactive shells.
+- [Codegen inline schema collision](codegen-inline-schema.md) — Orval generates duplicate type names when OpenAPI uses inline request body schemas; always use $ref to named components.
