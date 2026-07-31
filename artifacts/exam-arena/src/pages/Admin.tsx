@@ -484,7 +484,7 @@ function EmailTestPanel() {
       }
     } catch (err) {
       setStatus('error');
-      setMessage('Network error — could not reach the API');
+      setMessage(err instanceof Error ? err.message : 'Network error — could not reach the API');
     }
   };
 

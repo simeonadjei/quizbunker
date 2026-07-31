@@ -107,10 +107,13 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      // Replit always terminates TLS at its proxy, so cookies must be Secure
+      // even in NODE_ENV=development.  Fall back to false only when running
+      // on a plain-HTTP local machine (no REPL_ID in the environment).
+      secure: process.env.NODE_ENV === "production" || !!process.env.REPL_ID,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: (process.env.NODE_ENV === "production" || !!process.env.REPL_ID) ? "none" : "lax",
     },
   }),
 );
