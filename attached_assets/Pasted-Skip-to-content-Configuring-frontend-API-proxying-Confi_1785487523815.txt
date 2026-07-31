@@ -1,0 +1,104 @@
+Skip to content
+
+
+
+
+
+
+
+
+
+
+
+
+
+/
+
+
+
+
+Configuring frontend API proxying
+
+Configuring frontend API proxying
+That's the root cause. The frontend at quizbunkershs.onrender.com makes /api/... calls that hit the static site (which returns index.html), never reaching the actual API at quizbunker-o733.onrender.com. The fix is a proxy rule in the _redirects file.
+
+
+4 actions
+Pushed (commit 5d720ff). Render will rebuild the static site automatically.
+
+What was wrong: Your frontend and API are on separate Render services, but every /api/... call from the browser was hitting the static site (returning index.html) instead of your API. That's why registration, login, and everything else silently failed.
+
+What changed: The _redirects file now has a proxy rule:
+
+/api/*  →  https://quizbunker-o733.onrender.com/api/:splat
+
+So every API call is transparently forwarded to your actual backend. Once Render finishes the static site rebuild, registration, email confirmation, resend, and forgot password should all work end-to-end.
+
+
+Worked for 22 seconds
+email is still not arriving for confirming, resend email not arriving
+
+QU
+questions12
+questions12
+1 hour ago
+Investigating email delivery failure
+
+Investigating email delivery failure
+Let me add a test-email endpoint to the admin panel so you can see exactly what error Gmail is returning — that'll tell us definitively what's wrong.
+
+
+6 actions
+Now I'll add a test-email endpoint to the API and a button in the admin panel — both in parallel:
+
+
+4 actions
+Now add the email test panel to Admin.tsx:
+
+
+4 actions
+Now add the EmailTestPanel component to Admin.tsx:
+
+
+4 actions
+Pushed (commit d86498d). Once Render deploys:
+
+Go to https://quizbunkershs.onrender.com/xk9admin2024
+Log in to the admin panel
+You'll see an EMAIL DIAGNOSTICS section — click Send Test
+It will show you exactly what's happening:
+
+✅ green message → SMTP is working, emails are sending (check spam folder for the test email)
+❌ red error → paste that error here and I'll fix it immediately
+The most common errors and what they mean:
+
+Invalid login → Gmail app password is wrong or 2FA isn't enabled on the account
+Connection timeout → Render's IP is being blocked by Gmail (would need to switch to a service like Resend or Mailgun)
+Certificate errors → TLS config issue
+
+Worked for 1 minute
+brighten the background, Network error — could not reach the API, when send was click after entering email
+
+QU
+questions12
+questions12
+37 minutes ago
+Troubleshooting API connectivity issues
+
+Troubleshooting API connectivity issues
+Two things to fix: the API URL routing (the _redirects proxy doesn't support POST on Render static sites), and brightening the admin background. Let me check the current frontend entry and pages.
+
+
+3 actions
+main.tsx already has VITE_API_URL wired up, but the direct fetch() calls in VerifyEmail.tsx and Admin.tsx bypass it — they use hardcoded /api/... paths. I'll add a small helper and fix all of them, plus brighten the admin background.
+
+
+Opened utils.ts
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+
+Worked for 1 minute
+brighten the background, Network error — could not reach the API, when send was click after entering email Agent activity Two things to fix: the API URL routing (the `_redirects` proxy doesn't support POST on Render static sites), and brightening the admin background. Let me check the current frontend entry and pages. Agent activity `main.tsx` already has `VITE_API_URL` wired up, but the direct `fetch()` calls in `VerifyEmail.tsx` and `Admin.tsx` bypass it — they use hardcoded `/api/...` paths. I'll add a small helper and fix all of them, plus brighten the admin background. Agent activity Agent activity Agent activity
+
+Scroll to latest
+Guests can't use Agent in Starter Plan user's repls

@@ -16,7 +16,7 @@ export default function AdminPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0b10] text-gray-200 p-8 font-mono">
+    <div className="min-h-screen bg-zinc-900 text-gray-200 p-8 font-mono">
       <div className="max-w-6xl mx-auto space-y-12">
         <header className="border-b border-red-500/30 pb-4 mb-8">
           <h1 className="text-3xl font-bold text-red-500">SYSTEM.ADMIN_OVERRIDE</h1>
