@@ -68,14 +68,42 @@ const resendVerificationLimiter = rateLimit({
 
 // ── Email sender ──────────────────────────────────────────────────────────────
 
-function createTransporter() {
-  const user = process.env.GMAIL_USER || process.env.ADMIN_EMAIL;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+function getEmailConfig(): { user: string; pass: string } | null {
+  const user = (process.env.GMAIL_USER || process.env.ADMIN_EMAIL || "").trim();
+  // Strip all whitespace — Gmail app passwords are often copied with spaces
+  const pass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
   if (!user || !pass) return null;
+  return { user, pass };
+}
+
+function createTransporter() {
+  const cfg = getEmailConfig();
+  if (!cfg) return null;
+  // Explicit SMTP config is more reliable than the `service: "gmail"` shorthand
   return nodemailer.createTransport({
-    service: "gmail",
-    auth: { user, pass },
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user: cfg.user, pass: cfg.pass },
   });
+}
+
+/** Call once at startup — logs whether email is properly configured. */
+export async function verifyEmailConfig(): Promise<void> {
+  const cfg = getEmailConfig();
+  if (!cfg) {
+    console.error("[EMAIL] ⚠️  Email NOT configured — GMAIL_USER (or ADMIN_EMAIL) and GMAIL_APP_PASSWORD must both be set.");
+    return;
+  }
+  const transporter = createTransporter()!;
+  try {
+    await transporter.verify();
+    console.log(`[EMAIL] ✅ SMTP connection verified — sending as ${cfg.user}`);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[EMAIL] ❌ SMTP verification FAILED for ${cfg.user}: ${msg}`);
+    console.error("[EMAIL] Check that: 1) 2-Step Verification is ON for the Gmail account, 2) the App Password is correct and has no typos, 3) the account is not locked.");
+  }
 }
 
 async function sendVerificationEmail(toEmail: string, name: string, token: string, origin: string) {
@@ -83,14 +111,14 @@ async function sendVerificationEmail(toEmail: string, name: string, token: strin
   const transporter = createTransporter();
 
   if (!transporter) {
-    // Email not configured yet — log the link in dev so it can be tested manually
+    console.error("[EMAIL] Cannot send verification email — transporter not configured.");
     if (process.env.NODE_ENV !== "production") {
       console.log(`[DEV EMAIL VERIFICATION] ${toEmail} → ${verifyUrl}`);
     }
     return;
   }
 
-  const senderEmail = process.env.GMAIL_USER || process.env.ADMIN_EMAIL;
+  const senderEmail = getEmailConfig()!.user;
 
   await transporter.sendMail({
     from: `"Quiz Bunker" <${senderEmail}>`,
@@ -120,13 +148,14 @@ async function sendPasswordResetEmail(toEmail: string, name: string, token: stri
   const transporter = createTransporter();
 
   if (!transporter) {
+    console.error("[EMAIL] Cannot send password reset email — transporter not configured.");
     if (process.env.NODE_ENV !== "production") {
       console.log(`[DEV PASSWORD RESET] ${toEmail} → ${resetUrl}`);
     }
     return;
   }
 
-  const senderEmail = process.env.GMAIL_USER || process.env.ADMIN_EMAIL;
+  const senderEmail = getEmailConfig()!.user;
 
   await transporter.sendMail({
     from: `"Quiz Bunker" <${senderEmail}>`,
@@ -200,7 +229,7 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
 
   // Send verification email (non-blocking — don't fail registration if email fails)
   sendVerificationEmail(email, name, verificationToken, origin).catch((err) => {
-    console.error("[EMAIL ERROR]", err);
+    const msg = err instanceof Error ? err.message : String(err); console.error(`[EMAIL ERROR] ${msg}`, err);
   });
 
   logActivity({ type: "register", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
@@ -280,7 +309,7 @@ router.post("/auth/resend-verification", resendVerificationLimiter, async (req, 
     `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
 
   sendVerificationEmail(user.email, user.name, verificationToken, origin).catch((err) => {
-    console.error("[EMAIL ERROR]", err);
+    const msg = err instanceof Error ? err.message : String(err); console.error(`[EMAIL ERROR] ${msg}`, err);
   });
 
   logActivity({ type: "resend_verification", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
@@ -371,7 +400,7 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
 
   sendPasswordResetEmail(user.email, user.name, resetToken, origin).catch((err) => {
-    console.error("[EMAIL ERROR]", err);
+    const msg = err instanceof Error ? err.message : String(err); console.error(`[EMAIL ERROR] ${msg}`, err);
   });
 
   logActivity({ type: "password_reset_request", req, userId: user.id, userEmail: user.email, userName: user.name }).catch(() => {});
