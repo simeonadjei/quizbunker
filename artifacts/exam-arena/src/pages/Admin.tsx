@@ -3,7 +3,7 @@ import { useAdminLogin, useGetAdminStats, useListAdminUsers, useListSongs, useUp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, CheckCircle, ShieldAlert, Activity, CreditCard, RefreshCw } from 'lucide-react';
+import { Loader2, Upload, Trash2, CheckCircle, ShieldAlert, Activity, CreditCard, RefreshCw, Mail } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,6 +24,7 @@ export default function AdminPortal() {
         </header>
         
         <StatsPanel />
+        <EmailTestPanel />
         
         <div className="grid md:grid-cols-2 gap-8">
           <QuestionUploader />
@@ -454,6 +455,68 @@ function SongManager() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function EmailTestPanel() {
+  const [to, setTo] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  const handleTest = async () => {
+    setStatus('loading');
+    setMessage('');
+    try {
+      const res = await fetch('/api/admin/test-email', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: to.trim() || undefined }),
+      });
+      const data = await res.json() as { ok: boolean; message?: string; error?: string };
+      if (data.ok) {
+        setStatus('ok');
+        setMessage(data.message ?? 'Email sent successfully');
+      } else {
+        setStatus('error');
+        setMessage(data.error ?? 'Unknown error');
+      }
+    } catch (err) {
+      setStatus('error');
+      setMessage('Network error — could not reach the API');
+    }
+  };
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 p-6">
+      <h2 className="text-xl font-bold text-red-500 flex items-center gap-2 mb-4">
+        <Mail className="w-5 h-5" /> EMAIL DIAGNOSTICS
+      </h2>
+      <p className="text-zinc-500 text-xs mb-4">
+        Sends a test email via SMTP and shows the exact error if it fails. Leave blank to send to the admin email.
+      </p>
+      <div className="flex gap-2 items-center">
+        <input
+          type="email"
+          value={to}
+          onChange={e => setTo(e.target.value)}
+          placeholder="recipient@example.com (optional)"
+          className="flex-1 bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500"
+        />
+        <button
+          onClick={handleTest}
+          disabled={status === 'loading'}
+          className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white text-sm font-bold rounded flex items-center gap-2 disabled:opacity-50"
+        >
+          {status === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Test'}
+        </button>
+      </div>
+      {message && (
+        <div className={`mt-3 text-xs font-mono p-3 rounded border ${status === 'ok' ? 'bg-green-900/30 border-green-700 text-green-400' : 'bg-red-900/30 border-red-700 text-red-400'}`}>
+          {status === 'ok' ? '✅ ' : '❌ '}{message}
+        </div>
+      )}
     </div>
   );
 }

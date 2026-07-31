@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import nodemailer from "nodemailer";
 import { db, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable } from "@workspace/db";
 import { eq, desc, count, gt } from "drizzle-orm";
 import { parseQuestionText } from "../lib/parser";
@@ -86,6 +87,48 @@ router.post("/admin/auth", async (req, res) => {
   db.insert(activityLogsTable).values({ type: "admin_login", userEmail: email ?? null, ip }).catch(() => {});
 
   return res.json({ message: "Authenticated" });
+});
+
+// POST /admin/test-email — sends a test email and returns success or the exact SMTP error
+router.post("/admin/test-email", requireAdmin, async (req, res) => {
+  const user = (process.env.GMAIL_USER || process.env.ADMIN_EMAIL || "").trim();
+  const pass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
+
+  if (!user || !pass) {
+    return res.status(400).json({
+      ok: false,
+      error: "Email not configured. GMAIL_USER (or ADMIN_EMAIL) and GMAIL_APP_PASSWORD must both be set.",
+    });
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    auth: { user, pass },
+  });
+
+  try {
+    await transporter.verify();
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ ok: false, error: `SMTP connection failed: ${msg}` });
+  }
+
+  const to = (req.body as { to?: string }).to || user;
+  try {
+    await transporter.sendMail({
+      from: `"Quiz Bunker Admin" <${user}>`,
+      to,
+      subject: "✅ Quiz Bunker — email test",
+      text: "This is a test email from your Quiz Bunker admin panel. If you received this, email sending is working correctly.",
+    });
+    return res.json({ ok: true, message: `Test email sent to ${to}` });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ ok: false, error: `Send failed: ${msg}` });
+  }
 });
 
 // POST /admin/questions/upload
