@@ -1,0 +1,35 @@
+==> Running 'pnpm --filter @workspace/api-server run start'
+> @workspace/api-server@0.0.0 start /opt/render/project/src/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+{"level":50,"time":1785473966986,"pid":65,"hostname":"srv-d98dcqreo5us73db2u10-hibernate-668cbb564d-6xvdk","err":{"type":"Error","message":"getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a","stack":"Error: getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a\n    at <anonymous> (/opt/render/project/src/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async ensureSessionTable (/opt/render/project/src/artifacts/api-server/src/app.ts:82:18)","errno":-3008,"code":"ENOTFOUND","syscall":"getaddrinfo","hostname":"dpg-d98e33jtqb8s73fglpd0-a"},"msg":"Failed to ensure session table — aborting"}
+/opt/render/project/src/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Exit status 1
+==> Running 'pnpm --filter @workspace/api-server run start'
+> @workspace/api-server@0.0.0 start /opt/render/project/src/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+{"level":50,"time":1785473982094,"pid":65,"hostname":"srv-d98dcqreo5us73db2u10-hibernate-668cbb564d-6xvdk","err":{"type":"Error","message":"getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a","stack":"Error: getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a\n    at <anonymous> (/opt/render/project/src/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async ensureSessionTable (/opt/render/project/src/artifacts/api-server/src/app.ts:82:18)","errno":-3008,"code":"ENOTFOUND","syscall":"getaddrinfo","hostname":"dpg-d98e33jtqb8s73fglpd0-a"},"msg":"Failed to ensure session table — aborting"}
+/opt/render/project/src/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Exit status 1
+==> Running 'pnpm --filter @workspace/api-server run start'
+> @workspace/api-server@0.0.0 start /opt/render/project/src/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+{"level":50,"time":1785474010490,"pid":65,"hostname":"srv-d98dcqreo5us73db2u10-hibernate-668cbb564d-6xvdk","err":{"type":"Error","message":"getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a","stack":"Error: getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a\n    at <anonymous> (/opt/render/project/src/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async ensureSessionTable (/opt/render/project/src/artifacts/api-server/src/app.ts:82:18)","errno":-3008,"code":"ENOTFOUND","syscall":"getaddrinfo","hostname":"dpg-d98e33jtqb8s73fglpd0-a"},"msg":"Failed to ensure session table — aborting"}
+/opt/render/project/src/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Exit status 1
+==> Running 'pnpm --filter @workspace/api-server run start'
+> @workspace/api-server@0.0.0 start /opt/render/project/src/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+{"level":50,"time":1785474052667,"pid":65,"hostname":"srv-d98dcqreo5us73db2u10-hibernate-668cbb564d-6xvdk","err":{"type":"Error","message":"getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a","stack":"Error: getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a\n    at <anonymous> (/opt/render/project/src/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async ensureSessionTable (/opt/render/project/src/artifacts/api-server/src/app.ts:82:18)","errno":-3008,"code":"ENOTFOUND","syscall":"getaddrinfo","hostname":"dpg-d98e33jtqb8s73fglpd0-a"},"msg":"Failed to ensure session table — aborting"}
+/opt/render/project/src/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Exit status 1
+==> Running 'pnpm --filter @workspace/api-server run start'
+> @workspace/api-server@0.0.0 start /opt/render/project/src/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+{"level":50,"time":1785474111319,"pid":65,"hostname":"srv-d98dcqreo5us73db2u10-hibernate-668cbb564d-6xvdk","err":{"type":"Error","message":"getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a","stack":"Error: getaddrinfo ENOTFOUND dpg-d98e33jtqb8s73fglpd0-a\n    at <anonymous> (/opt/render/project/src/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async ensureSessionTable (/opt/render/project/src/artifacts/api-server/src/app.ts:82:18)","errno":-3008,"code":"ENOTFOUND","syscall":"getaddrinfo","hostname":"dpg-d98e33jtqb8s73fglpd0-a"},"msg":"Failed to ensure session table — aborting"}
+/opt/render/project/src/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Exit status 1
