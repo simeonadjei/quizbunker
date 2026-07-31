@@ -97,37 +97,37 @@
 
 /* ─── Colour tokens ─────────────────────────────────────────────────────── */
 :root, .dark {
-  --background: 240 35% 11%;
+  --background: 240 40% 8%;
   --foreground: 0 0% 100%;
 
-  --border: 240 30% 22%;
-  --input: 240 30% 22%;
-  --ring: 32 95% 55%;
+  --border: 240 30% 24%;
+  --input: 240 30% 24%;
+  --ring: 32 100% 60%;
 
-  --card: 240 28% 16%;
+  --card: 240 32% 13%;
   --card-foreground: 0 0% 100%;
-  --card-border: 240 30% 26%;
+  --card-border: 240 30% 28%;
 
-  --popover: 240 28% 16%;
+  --popover: 240 32% 13%;
   --popover-foreground: 0 0% 100%;
-  --popover-border: 240 30% 26%;
+  --popover-border: 240 30% 28%;
 
-  /* Warm orange — primary CTA */
-  --primary: 32 95% 52%;
+  /* Vivid orange — primary CTA */
+  --primary: 28 100% 55%;
   --primary-foreground: 0 0% 100%;
 
-  /* Teal — secondary accent */
-  --secondary: 175 80% 42%;
+  /* Electric teal — secondary accent */
+  --secondary: 175 100% 45%;
   --secondary-foreground: 0 0% 100%;
 
-  /* Gold — highlight */
-  --accent: 45 100% 50%;
-  --accent-foreground: 30 60% 15%;
+  /* Neon gold — highlight */
+  --accent: 45 100% 55%;
+  --accent-foreground: 30 60% 10%;
 
-  --muted: 240 25% 20%;
-  --muted-foreground: 240 10% 65%;
+  --muted: 240 28% 18%;
+  --muted-foreground: 240 15% 70%;
 
-  --destructive: 0 85% 58%;
+  --destructive: 0 90% 60%;
   --destructive-foreground: 0 0% 100%;
 
   --radius: 0.75rem;
@@ -148,8 +148,9 @@
     @apply font-sans antialiased bg-background text-foreground;
     /* Rich two-tone gradient — no blur/glow on the bg itself */
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -10%, hsl(32 80% 28% / 0.35), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 90%, hsl(175 80% 22% / 0.25), transparent);
+      radial-gradient(ellipse 80% 50% at 50% -10%, hsl(28 100% 35% / 0.5), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 90%, hsl(175 100% 25% / 0.4), transparent),
+      radial-gradient(ellipse 50% 40% at 10% 50%, hsl(263 90% 30% / 0.2), transparent);
   }
 }
 

@@ -5,6 +5,33 @@ import { Loader2, ArrowRight, Target, ShieldAlert, Sparkles } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { BackgroundParticles } from '@/components/BackgroundParticles';
 
+const OPTION_STYLES = {
+  A: {
+    selectedBg: 'bg-cyan-500/25',
+    border: 'border-cyan-400',
+    shadow: 'shadow-[0_0_18px_hsl(189_95%_52%/0.4)]',
+    badgeBg: 'bg-cyan-500',
+  },
+  B: {
+    selectedBg: 'bg-emerald-500/25',
+    border: 'border-emerald-400',
+    shadow: 'shadow-[0_0_18px_hsl(152_76%_50%/0.4)]',
+    badgeBg: 'bg-emerald-500',
+  },
+  C: {
+    selectedBg: 'bg-rose-500/25',
+    border: 'border-rose-400',
+    shadow: 'shadow-[0_0_18px_hsl(351_95%_60%/0.4)]',
+    badgeBg: 'bg-rose-500',
+  },
+  D: {
+    selectedBg: 'bg-violet-500/25',
+    border: 'border-violet-400',
+    shadow: 'shadow-[0_0_18px_hsl(263_90%_65%/0.4)]',
+    badgeBg: 'bg-violet-500',
+  },
+} as const;
+
 export default function Quiz() {
   const [, params] = useRoute('/quiz/:sessionId');
   const sessionId = Number(params?.sessionId);
@@ -118,32 +145,33 @@ export default function Quiz() {
               <p className="text-white font-bold text-base leading-snug">{currentQuestion.questionText}</p>
             </div>
 
-            {/* Options */}
-            <div className="flex flex-col gap-2.5">
+            {/* Options — 2×2 vertical grid */}
+            <div className="grid grid-cols-2 gap-3">
               {(['A', 'B', 'C', 'D'] as const).map((key) => {
                 const text = currentQuestion[`option${key}` as `option${'A'|'B'|'C'|'D'}`];
                 const isSelected = answers[currentQuestion.id] === key;
+                const optionStyle = OPTION_STYLES[key];
                 return (
                   <button
                     key={key}
                     onClick={() => handleSelect(key)}
                     className={cn(
-                      'text-left px-3 py-3 rounded-2xl border-2 transition-all duration-150 flex items-center gap-3 active:scale-[0.98]',
+                      'relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 transition-all duration-150 active:scale-95 py-4 px-3 min-h-[110px] text-center',
                       isSelected
-                        ? 'border-primary bg-primary/20'
-                        : 'border-white/15 bg-black/30 hover:border-white/35 hover:bg-black/40'
+                        ? `${optionStyle.selectedBg} ${optionStyle.border} ${optionStyle.shadow}`
+                        : 'border-white/15 bg-black/40 hover:border-white/30 hover:bg-white/5'
                     )}
-                    style={isSelected ? { boxShadow: 'inset 0 0 12px hsl(32 95% 52% / 0.2)' } : undefined}
                   >
+                    {/* Key badge */}
                     <div className={cn(
-                      'w-9 h-9 rounded-xl flex items-center justify-center font-display text-base border-2 shrink-0 transition-all',
+                      'w-10 h-10 rounded-xl flex items-center justify-center font-display text-lg border-2 shrink-0 transition-all',
                       isSelected
-                        ? 'bg-primary text-white border-white/40'
-                        : 'bg-black/40 border-white/20 text-white/50'
+                        ? `${optionStyle.badgeBg} text-white border-white/40`
+                        : 'bg-black/50 border-white/20 text-white/60'
                     )}>
                       {key}
                     </div>
-                    <span className={cn('text-sm font-bold leading-snug', isSelected ? 'text-white' : 'text-white/75')}>
+                    <span className={cn('text-xs font-bold leading-snug', isSelected ? 'text-white' : 'text-white/70')}>
                       {text}
                     </span>
                   </button>
