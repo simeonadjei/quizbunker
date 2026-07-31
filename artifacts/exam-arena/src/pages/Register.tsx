@@ -1,5 +1,5 @@
 import { Layout } from '@/components/Layout';
-import { useRegisterUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
+import { useRegisterUser, useResendVerification, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { Link, useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,10 +19,12 @@ const registerSchema = z.object({
 
 export default function Register() {
   const register = useRegisterUser();
+  const resend = useResendVerification();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [emailSent, setEmailSent] = useState<string | null>(null);
+  const [resentOk, setResentOk] = useState(false);
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -38,6 +40,15 @@ export default function Register() {
       onError: (err: any) => {
         toast({ title: 'Registration failed', description: err.error || 'Could not create account.', variant: 'destructive' });
       },
+    });
+  };
+
+  const handleResend = () => {
+    if (!emailSent) return;
+    setResentOk(false);
+    resend.mutate({ data: { email: emailSent } }, {
+      onSuccess: () => setResentOk(true),
+      onError: () => toast({ title: 'Could not resend', description: 'Please try again shortly.', variant: 'destructive' }),
     });
   };
 
@@ -58,9 +69,22 @@ export default function Register() {
               <p className="text-white/55 text-sm font-bold leading-relaxed">
                 Click the link in the email to activate your account. Then you can log in.
               </p>
-              <p className="text-white/35 text-xs mt-2">Don't see it? Check your spam folder.</p>
+              <p className="text-white/35 text-xs mt-2">Don't see it? Check your spam folder or resend below.</p>
+
+              {resentOk ? (
+                <p className="text-secondary text-sm font-bold">✅ New link sent! Check your inbox.</p>
+              ) : (
+                <button
+                  className="btn-game-ghost w-full py-2.5 text-sm justify-center flex items-center gap-2"
+                  onClick={handleResend}
+                  disabled={resend.isPending}
+                >
+                  {resend.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Resend verification email'}
+                </button>
+              )}
+
               <Link href="/login">
-                <button className="btn-game w-full py-3 justify-center mt-4">
+                <button className="btn-game w-full py-3 justify-center mt-2">
                   Go to Login
                 </button>
               </Link>

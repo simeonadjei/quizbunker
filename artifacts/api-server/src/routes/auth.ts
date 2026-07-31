@@ -79,11 +79,12 @@ function getEmailConfig(): { user: string; pass: string } | null {
 function createTransporter() {
   const cfg = getEmailConfig();
   if (!cfg) return null;
-  // Explicit SMTP config is more reliable than the `service: "gmail"` shorthand
+  // Port 587 + STARTTLS is more reliably allowed on cloud hosts than 465/SSL
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: { user: cfg.user, pass: cfg.pass },
   });
 }
