@@ -192,8 +192,9 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
     .values({ email: email.toLowerCase(), name, passwordHash, verificationToken, emailVerified: false })
     .returning();
 
-  // Detect origin for verification link
+  // Detect origin for verification link — prefer FRONTEND_URL (set in production env)
   const origin =
+    process.env.FRONTEND_URL ||
     (req.headers.origin as string) ||
     `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
 
@@ -274,6 +275,7 @@ router.post("/auth/resend-verification", resendVerificationLimiter, async (req, 
     .where(eq(usersTable.id, user.id));
 
   const origin =
+    process.env.FRONTEND_URL ||
     (req.headers.origin as string) ||
     `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
 
@@ -364,6 +366,7 @@ router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => 
     .where(eq(usersTable.id, user.id));
 
   const origin =
+    process.env.FRONTEND_URL ||
     (req.headers.origin as string) ||
     `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
 
