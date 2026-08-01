@@ -103,12 +103,10 @@ router.post("/admin/test-email", requireAdmin, async (req, res) => {
 
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    requireTLS: true,
+    port: 465,
+    secure: true,   // SSL on 465; Render blocks 587 (STARTTLS) but 465 may pass
     auth: { user, pass },
-    // Force IPv4 — Render (and many cloud hosts) block outbound IPv6,
-    // so the default DNS resolution can return an unreachable IPv6 address.
+    // Force IPv4 — Render blocks outbound IPv6
     family: 4,
   });
 
