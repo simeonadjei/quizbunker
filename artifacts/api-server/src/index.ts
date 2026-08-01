@@ -1,4 +1,4 @@
-import app, { ensureSessionTable } from "./app";
+import app, { ensureSessionTable, backfillTrials } from "./app";
 import { logEmailConfigStatus } from "./lib/email";
 import { logger } from "./lib/logger";
 
@@ -16,7 +16,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-ensureSessionTable()
+Promise.all([ensureSessionTable(), backfillTrials()])
   .then(() => {
     // Log whether email is configured at startup
     logEmailConfigStatus();

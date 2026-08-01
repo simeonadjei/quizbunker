@@ -96,6 +96,29 @@ export async function ensureSessionTable(): Promise<void> {
   }
 }
 
+/**
+ * Backfill 2-day trials for every user who has never had a subscription
+ * (plan = 'none') or whose trial has already expired.
+ * Safe to run on every startup — won't touch active trials or paid plans.
+ */
+export async function backfillTrials(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(`
+      UPDATE users
+      SET subscription_plan = 'trial',
+          subscription_end   = NOW() + INTERVAL '2 days'
+      WHERE subscription_plan = 'none'
+         OR (subscription_plan = 'trial' AND subscription_end < NOW())
+    `);
+    if (result.rowCount && result.rowCount > 0) {
+      logger.info({ count: result.rowCount }, "Backfilled 2-day trials for existing users");
+    }
+  } finally {
+    client.release();
+  }
+}
+
 app.use(
   session({
     store: new PgSession({
