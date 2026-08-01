@@ -1,6 +1,6 @@
 import { useGetQuizSession, useSubmitQuizSession, getGetQuizSessionQueryKey } from '@workspace/api-client-react';
 import { useRoute, useLocation } from 'wouter';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackgroundParticles } from '@/components/BackgroundParticles';
@@ -26,6 +26,7 @@ export default function Quiz() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [currentQIndex, setCurrentQIndex] = useState(0);
+  const feedbackRef = useRef<HTMLDivElement>(null);
 
   const questions = session?.questions || [];
   const currentQuestion = questions[currentQIndex];
@@ -33,6 +34,15 @@ export default function Quiz() {
   const isComplete = Object.keys(answers).length === questions.length && questions.length > 0;
   const isCurrentRevealed = currentQuestion ? !!revealed[currentQuestion.id] : false;
   const isLastQuestion = currentQIndex === questions.length - 1;
+
+  // Auto-scroll to feedback panel when an answer is revealed
+  useEffect(() => {
+    if (isCurrentRevealed && feedbackRef.current) {
+      setTimeout(() => {
+        feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 150);
+    }
+  }, [isCurrentRevealed, currentQIndex]);
 
   const handleSelect = (answer: string) => {
     if (session?.completedAt) return;
@@ -116,9 +126,10 @@ export default function Quiz() {
           {/* ── Question text ── */}
           {currentQuestion && (
             <div
-              className="rounded-2xl px-4 py-5 border-2 border-white/10"
+              className="rounded-2xl px-4 py-5 border-2 border-primary/50"
               style={{
-                background: 'linear-gradient(135deg, rgba(10,11,20,0.92), rgba(20,25,40,0.88))',
+                background: 'linear-gradient(135deg, rgba(180,80,20,0.18), rgba(120,50,10,0.22))',
+                boxShadow: '0 0 0 1px rgba(255,120,40,0.15), 0 4px 24px rgba(0,0,0,0.5)',
               }}
             >
               <div className="flex items-start gap-3">
@@ -195,7 +206,7 @@ export default function Quiz() {
             const feedbackText = (currentQuestion as any).feedback as string | null | undefined;
 
             return (
-              <div className={cn(
+              <div ref={feedbackRef} className={cn(
                 'rounded-2xl p-5 border-l-4 animate-in slide-in-from-bottom-3 duration-300',
                 isRight ? 'bg-emerald-500/10 border-emerald-400' : 'bg-rose-500/10 border-rose-400'
               )}>

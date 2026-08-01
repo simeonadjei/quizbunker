@@ -1,0 +1,57 @@
+I don't see answer option A, the song is still not working
+
+Two issues: option A is hidden behind the sticky question header (a z-index/sticky overlay problem), and songs not working. Let me check the audio route and fix both.
+
+The audio URL format is clear (/api/uploads/songs/filename.mp3). Now I can fix both issues at once:
+
+Option A hidden — replace the sticky approach with a fixed scroll container between header and bottom nav (no z-index overlay possible)
+Songs not working on mobile — document.addEventListener click handlers don't count as user gestures on iOS Safari; play must be called from the direct element handler. Wire _startPlayback() to the music button tap.
+Now fix the song issue — call _startPlayback() directly from the MusicPlayer button tap (iOS Safari requires play() inside the direct element handler, not a bubbled document listener), and remove once: true so any click works:
+
+Now fix MusicContext — remove once: true so any click can trigger playback (not just the first one):
+
+Pushed to cf9be50. Here's what changed:
+
+Option A now always visible The old "sticky" question header was overlaying options when the user scrolled even 1px — a classic z-index overlay problem. Replaced it with a fixed scroll container that sits exactly between the HUD bar and the bottom nav. The question text is at the top of that container in normal flow, and all four options sit below it with no overlap possible.
+
+Songs should now play on iOS Safari / mobile Two fixes together:
+
+Tapping the collapsed music button now calls _startPlayback() directly and synchronously inside that button's onClick — this satisfies iOS Safari's requirement that audio.play() happens inside the direct element handler, not bubbling up through a document listener
+Removed { once: true } from the fallback document listeners so any subsequent gesture can still trigger playback if the first attempt was blocked
+I don't see answer option A, song still not playing
+
+Let me read the current Quiz.tsx to diagnose the actual layout:
+
+The screenshot reveals the real problem: Option A isn't hidden by overlay — it's simply not rendering visibly. The fixed scroll container approach has a mobile-Chrome quirk. Let me also read MusicPlayer and MusicContext to fix both issues properly.
+
+I can see both problems clearly now. For the layout: the fixed scroll container has a rendering quirk in Android Chrome where the initial scroll position clips Option A at the top. For iOS audio: the document touchstart listener races with the button click, and the double audio.play() call within the same gesture breaks iOS Safari. Let me fix both properly.
+
+Now fix the scroll area — replace the fixed inner scroll container with natural document scroll:
+
+Now I need to close the new div properly in Quiz.tsx and fix the MusicContext iOS issue in parallel:
+
+Good, the two closing </div> tags at lines 228-229 close the inner content div and the outer scroll wrapper div correctly. Now let me fix MusicContext for iOS and commit everything:
+
+Pushed as df8901f. Two root causes fixed:
+
+Option A — The fixed-position inner scroll container had a mobile Chrome quirk: it renders with the scroll position offset by one element height, so Option A was above the visible area even though it was in the DOM. Replaced with natural document scroll — the outer wrapper now just has pt-14 pb-24 padding to clear the HUD and bottom nav. Everything scrolls as normal page content; nothing can clip.
+
+iOS audio — Three bugs were working together to block playback:
+
+isPlayingRef.current was used as the "already playing" guard, but it only updates in the .then() callback. If a previous play() failed (e.g., initial autoplay blocked), the ref was still false but the audio element was in a confused state. Now checks audio.paused — the browser's own ground truth.
+audio.load() was being called immediately before audio.play() in the same synchronous gesture. On iOS, calling load() resets the element and breaks the gesture context window that play() needs. Removed that load() call — play() alone starts downloading if needed.
+The document touchstart listener was firing before the button's click event for the same tap, so play() was being called twice within the same gesture. iOS Safari blocks the second call. Removed the touchstart listener entirely — click is sufficient.
+The question is not appearing, it needs to be pushed down, if Answer chosen is wrong, let correct answer be shown together with feedback, if correct let feedback for the correct answer be shown
+
+I can see everything clearly now. Three fixes needed:
+
+Question card is rendering but its dark gradient background makes it invisible against the page — needs a visible distinct style
+Feedback needs restructuring: wrong → show correct answer prominently + feedback; correct → show feedback
+Auto-scroll to feedback when an answer is selected
+Now add the feedback ref and auto-scroll, fix the question card style, and rewrite the feedback panel all in one edit:
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+QuizBunker
+Website
