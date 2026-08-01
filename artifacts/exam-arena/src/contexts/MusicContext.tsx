@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { useListSongs, getListSongsQueryKey } from '@workspace/api-client-react';
 
+// On Render the API lives on a different domain; prefix relative audio URLs
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+
 interface MusicContextType {
   isPlaying: boolean;
   togglePlay: () => void;
@@ -44,9 +47,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (audioRef.current && currentSong) {
+      // Resolve the song URL — prefix with API_BASE when the URL is relative
+      const resolvedUrl = currentSong.url.startsWith('/')
+        ? `${API_BASE}${currentSong.url}`
+        : currentSong.url;
       // Only change source if it's different
-      if (audioRef.current.src !== currentSong.url) {
-        audioRef.current.src = currentSong.url;
+      if (audioRef.current.src !== resolvedUrl) {
+        audioRef.current.src = resolvedUrl;
         if (isPlaying) {
           audioRef.current.play().catch(e => console.log('Autoplay prevented', e));
         }
