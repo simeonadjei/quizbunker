@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { setBaseUrl } from '@workspace/api-client-react';
+import { setBaseUrl, setCredentials } from '@workspace/api-client-react';
 
 import App from './App';
 
@@ -13,6 +13,9 @@ import './index.css';
 const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
 if (apiUrl) {
   setBaseUrl(apiUrl);
+  // Cross-origin deployment: session cookies must be sent with every request
+  // so that admin auth (and regular auth) is preserved across calls.
+  setCredentials("include");
 }
 
 createRoot(document.getElementById('root')!).render(<App />);
