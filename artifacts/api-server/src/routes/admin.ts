@@ -492,13 +492,17 @@ router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (
     const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
 
     // Read file bytes into memory then clean up disk immediately
-    let fileData: Buffer | null = null;
+    let fileData: Buffer | undefined;
     try {
       fileData = fs.readFileSync(file.path);
-    } catch {
-      // If read fails, we still insert the record without binary data
+    } catch (readErr) {
+      req.log.warn({ err: readErr }, "Failed to read uploaded audio file from disk");
     } finally {
       fs.unlink(file.path, () => {});
+    }
+
+    if (!fileData || fileData.length === 0) {
+      return res.status(500).json({ error: "Could not read uploaded file data" });
     }
 
     // Insert with a placeholder URL first so we can get the real ID for the audio URL
@@ -510,7 +514,7 @@ router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (
         url: "/api/songs/0/audio", // temporary, updated below
         sortOrder: nextSortOrder,
         isActive: true,
-        fileData: fileData ?? undefined,
+        fileData,
         mimeType,
       })
       .returning();

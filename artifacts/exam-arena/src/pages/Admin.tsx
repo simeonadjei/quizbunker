@@ -646,7 +646,11 @@ function SongManager() {
         body: formData,
         credentials: "include"
       });
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        let msg = 'Upload failed';
+        try { const d = await res.json(); msg = d.error || msg; } catch { /* ignore */ }
+        throw new Error(msg);
+      }
 
       toast({ title: `${files.length} Track${files.length > 1 ? 's' : ''} Added` });
       setFiles([]);

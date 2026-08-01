@@ -7,6 +7,17 @@ const bytea = customType<{ data: Buffer; notNull: false; default: false }>({
   dataType() {
     return "bytea";
   },
+  toDriver(value: Buffer): Buffer {
+    return value;
+  },
+  fromDriver(value: unknown): Buffer {
+    if (Buffer.isBuffer(value)) return value;
+    if (typeof value === "string") {
+      // pg returns bytea as hex string prefixed with \x
+      return Buffer.from(value.replace(/^\\x/, ""), "hex");
+    }
+    return Buffer.from(value as ArrayBuffer);
+  },
 });
 
 export const songsTable = pgTable("songs", {
