@@ -456,6 +456,16 @@ router.put("/admin/songs/reorder", requireAdmin, async (req, res) => {
   return res.json({ message: "Songs reordered" });
 });
 
+// MIME type map for audio uploads
+const AUDIO_MIME: Record<string, string> = {
+  ".mp3":  "audio/mpeg",
+  ".wav":  "audio/wav",
+  ".ogg":  "audio/ogg",
+  ".m4a":  "audio/mp4",
+  ".aac":  "audio/aac",
+  ".flac": "audio/flac",
+};
+
 // POST /admin/songs
 router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (req, res) => {
   const files = req.files as Express.Multer.File[] | undefined;
@@ -478,15 +488,38 @@ router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (
     const file = files[i];
     const rawTitle = (titles[i] || req.body.title || "").trim();
     const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
 
-    const url = `/api/uploads/songs/${file.filename}`;
+    // Read file bytes into memory then clean up disk immediately
+    let fileData: Buffer | null = null;
+    try {
+      fileData = fs.readFileSync(file.path);
+    } catch {
+      // If read fails, we still insert the record without binary data
+    } finally {
+      fs.unlink(file.path, () => {});
+    }
 
+    // Insert with a placeholder URL first so we can get the real ID for the audio URL
     const [song] = await db
       .insert(songsTable)
-      .values({ title, filename: file.filename, url, sortOrder: nextSortOrder, isActive: true })
+      .values({
+        title,
+        filename: file.filename,
+        url: "/api/songs/0/audio", // temporary, updated below
+        sortOrder: nextSortOrder,
+        isActive: true,
+        fileData: fileData ?? undefined,
+        mimeType,
+      })
       .returning();
 
-    inserted.push({ id: song.id, title: song.title, url: song.url, sortOrder: song.sortOrder, isActive: song.isActive });
+    // Update URL to use the DB-backed audio endpoint (survives redeploys)
+    const audioUrl = `/api/songs/${song.id}/audio`;
+    await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
+
+    inserted.push({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
     nextSortOrder++;
   }
 
@@ -515,6 +548,7 @@ router.put("/admin/songs/:id", requireAdmin, async (req, res) => {
 router.delete("/admin/songs/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
 
+  // Best-effort: also clean up legacy disk file if it still exists
   const [song] = await db.select().from(songsTable).where(eq(songsTable.id, id)).limit(1);
   if (song) {
     const filePath = path.join(songsDir, song.filename);
