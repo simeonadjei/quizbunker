@@ -1,12 +1,12 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
 import rateLimit from "express-rate-limit";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { RegisterUserBody, LoginUserBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
 
@@ -66,63 +66,9 @@ const resendVerificationLimiter = rateLimit({
   message: { error: "Too many resend requests. Please try again in an hour." },
 });
 
-// ── Email sender ──────────────────────────────────────────────────────────────
-
-function getEmailConfig(): { user: string; pass: string } | null {
-  const user = (process.env.GMAIL_USER || process.env.ADMIN_EMAIL || "").trim();
-  // Strip all whitespace — Gmail app passwords are often copied with spaces
-  const pass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
-  if (!user || !pass) return null;
-  return { user, pass };
-}
-
-function createTransporter() {
-  const cfg = getEmailConfig();
-  if (!cfg) return null;
-  // Port 587 + STARTTLS is more reliably allowed on cloud hosts than 465/SSL
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: { user: cfg.user, pass: cfg.pass },
-  });
-}
-
-/** Call once at startup — logs whether email is properly configured. */
-export async function verifyEmailConfig(): Promise<void> {
-  const cfg = getEmailConfig();
-  if (!cfg) {
-    console.error("[EMAIL] ⚠️  Email NOT configured — GMAIL_USER (or ADMIN_EMAIL) and GMAIL_APP_PASSWORD must both be set.");
-    return;
-  }
-  const transporter = createTransporter()!;
-  try {
-    await transporter.verify();
-    console.log(`[EMAIL] ✅ SMTP connection verified — sending as ${cfg.user}`);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[EMAIL] ❌ SMTP verification FAILED for ${cfg.user}: ${msg}`);
-    console.error("[EMAIL] Check that: 1) 2-Step Verification is ON for the Gmail account, 2) the App Password is correct and has no typos, 3) the account is not locked.");
-  }
-}
-
 async function sendVerificationEmail(toEmail: string, name: string, token: string, origin: string) {
   const verifyUrl = `${origin}/verify-email?token=${token}`;
-  const transporter = createTransporter();
-
-  if (!transporter) {
-    console.error("[EMAIL] Cannot send verification email — transporter not configured.");
-    if (process.env.NODE_ENV !== "production") {
-      console.log(`[DEV EMAIL VERIFICATION] ${toEmail} → ${verifyUrl}`);
-    }
-    return;
-  }
-
-  const senderEmail = getEmailConfig()!.user;
-
-  await transporter.sendMail({
-    from: `"Quiz Bunker" <${senderEmail}>`,
+  const result = await sendEmail({
     to: toEmail,
     subject: "✅ Verify your Quiz Bunker account",
     html: `
@@ -142,24 +88,15 @@ async function sendVerificationEmail(toEmail: string, name: string, token: strin
       </div>
     `,
   });
+  if (!result.ok) console.error(`[EMAIL ERROR] ${result.error}`);
+  if (process.env.NODE_ENV !== "production" && !result.ok) {
+    console.log(`[DEV EMAIL VERIFICATION] ${toEmail} → ${verifyUrl}`);
+  }
 }
 
 async function sendPasswordResetEmail(toEmail: string, name: string, token: string, origin: string) {
   const resetUrl = `${origin}/reset-password?token=${token}`;
-  const transporter = createTransporter();
-
-  if (!transporter) {
-    console.error("[EMAIL] Cannot send password reset email — transporter not configured.");
-    if (process.env.NODE_ENV !== "production") {
-      console.log(`[DEV PASSWORD RESET] ${toEmail} → ${resetUrl}`);
-    }
-    return;
-  }
-
-  const senderEmail = getEmailConfig()!.user;
-
-  await transporter.sendMail({
-    from: `"Quiz Bunker" <${senderEmail}>`,
+  const result = await sendEmail({
     to: toEmail,
     subject: "🔑 Reset your Quiz Bunker password",
     html: `
@@ -179,6 +116,10 @@ async function sendPasswordResetEmail(toEmail: string, name: string, token: stri
       </div>
     `,
   });
+  if (!result.ok) console.error(`[EMAIL ERROR] ${result.error}`);
+  if (process.env.NODE_ENV !== "production" && !result.ok) {
+    console.log(`[DEV PASSWORD RESET] ${toEmail} → ${resetUrl}`);
+  }
 }
 
 // ── Format user ───────────────────────────────────────────────────────────────

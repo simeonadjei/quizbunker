@@ -1,5 +1,5 @@
 import app, { ensureSessionTable } from "./app";
-import { verifyEmailConfig } from "./routes/auth";
+import { logEmailConfigStatus } from "./lib/email";
 import { logger } from "./lib/logger";
 
 const rawPort = process.env["PORT"];
@@ -18,8 +18,8 @@ if (Number.isNaN(port) || port <= 0) {
 
 ensureSessionTable()
   .then(() => {
-    // Check email config at startup so Render logs show clearly whether it's working
-    verifyEmailConfig().catch(() => {});
+    // Log whether email is configured at startup
+    logEmailConfigStatus();
 
     app.listen(port, (err) => {
       if (err) {

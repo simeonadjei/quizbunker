@@ -2,12 +2,12 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import nodemailer from "nodemailer";
 import { db, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable } from "@workspace/db";
 import { eq, desc, count, gt } from "drizzle-orm";
 import { parseQuestionText } from "../lib/parser";
 import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
+import { sendEmail, isEmailConfigured } from "../lib/email";
 
 const router = Router();
 
@@ -89,47 +89,32 @@ router.post("/admin/auth", async (req, res) => {
   return res.json({ message: "Authenticated" });
 });
 
-// POST /admin/test-email — sends a test email and returns success or the exact SMTP error
+// POST /admin/test-email — sends a test email via Resend and returns success or the exact error
 router.post("/admin/test-email", requireAdmin, async (req, res) => {
-  const user = (process.env.GMAIL_USER || process.env.ADMIN_EMAIL || "").trim();
-  const pass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
-
-  if (!user || !pass) {
+  if (!isEmailConfigured()) {
     return res.status(400).json({
       ok: false,
-      error: "Email not configured. GMAIL_USER (or ADMIN_EMAIL) and GMAIL_APP_PASSWORD must both be set.",
+      error: "Email not configured — RESEND_API_KEY must be set as an environment variable on Render.",
     });
   }
 
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,   // SSL on 465; Render blocks 587 (STARTTLS) but 465 may pass
-    auth: { user, pass },
-    // Force IPv4 — Render blocks outbound IPv6
-    family: 4,
+  const adminEmail = (process.env.GMAIL_USER || process.env.ADMIN_EMAIL || "").trim();
+  const to = (req.body as { to?: string }).to?.trim() || adminEmail;
+
+  if (!to) {
+    return res.status(400).json({ ok: false, error: "No recipient — set GMAIL_USER or pass a 'to' address." });
+  }
+
+  const result = await sendEmail({
+    to,
+    subject: "✅ Quiz Bunker — email test",
+    html: "<p>This is a test email from your Quiz Bunker admin panel. If you received this, email sending is working correctly.</p>",
   });
 
-  try {
-    await transporter.verify();
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return res.status(500).json({ ok: false, error: `SMTP connection failed: ${msg}` });
+  if (!result.ok) {
+    return res.status(500).json({ ok: false, error: result.error });
   }
-
-  const to = (req.body as { to?: string }).to || user;
-  try {
-    await transporter.sendMail({
-      from: `"Quiz Bunker Admin" <${user}>`,
-      to,
-      subject: "✅ Quiz Bunker — email test",
-      text: "This is a test email from your Quiz Bunker admin panel. If you received this, email sending is working correctly.",
-    });
-    return res.json({ ok: true, message: `Test email sent to ${to}` });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return res.status(500).json({ ok: false, error: `Send failed: ${msg}` });
-  }
+  return res.json({ ok: true, message: `Test email sent to ${to}` });
 });
 
 // POST /admin/questions/upload
