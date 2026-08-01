@@ -136,6 +136,13 @@ export function parseQuestionText(
       current.correctAnswer = answerMatch[1].toUpperCase();
       continue;
     }
+
+    // Parse feedback: "Feedback: explanation text"
+    const feedbackMatch = line.match(/^Feedback\s*:\s*(.+)$/i);
+    if (feedbackMatch) {
+      current.feedback = feedbackMatch[1].trim();
+      continue;
+    }
   }
 
   // Save the last question
