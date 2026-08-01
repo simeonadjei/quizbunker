@@ -54,7 +54,21 @@ export default function Landing() {
         <div className="w-full max-w-6xl mx-auto">
 
           {/* ── Hero ──────────────────────────────────────────────── */}
-          <div className="w-full mt-6 sm:mt-10 mb-3">
+          <div className="w-full mt-4 sm:mt-8 mb-3">
+
+            {/* Logo image — always visible, anchors the hero */}
+            <div className="flex justify-center mb-3">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{ boxShadow: '0 0 40px 8px hsl(35 100% 55% / 0.35)', borderRadius: '50%' }} />
+                <img
+                  src="/logo.png"
+                  alt="Quiz Bunker"
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover relative z-10 border-2"
+                  style={{ borderColor: 'hsl(40 100% 60% / 0.6)' }}
+                />
+              </div>
+            </div>
 
             {/* Live badge */}
             <div
@@ -72,7 +86,7 @@ export default function Landing() {
               Live — Ghana Past Questions
             </div>
 
-            {/* Logo lockup — compact */}
+            {/* Logo lockup */}
             <div className="relative inline-block w-full">
               <div className="absolute inset-0 pointer-events-none"
                 style={{
