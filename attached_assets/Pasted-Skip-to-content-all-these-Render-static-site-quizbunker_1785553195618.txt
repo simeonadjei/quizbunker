@@ -1,0 +1,120 @@
+Skip to content
+
+
+
+
+
+
+
+
+
+
+
+
+
+/
+
+
+
+
+all these Render static site (quizbunkershs) → Environment:
+
+VITE_API_URL = https://quizbunker-o733.onrender.com Render web service (quizbunker-o733) → Environment:
+
+FRONTEND_URL = https://quizbunkershs.onrender.com, were already set they are correct, so no need to do anything on them?
+
+BR
+branham133
+branham133
+18 minutes ago
+Troubleshooting build-time environment variable usage
+
+Troubleshooting build-time environment variable usage
+Good — that means those were already correct. The real problem is that the admin panel has raw fetch calls that use relative URLs (/api/admin/...), which bypass setBaseUrl and hit the static site instead of the API. Let me fix those.
+
+
+2 actions
+All three raw fetch calls need the base URL prefix. I'll fix them all at once.
+
+
+10 actions
+Pushed (commit 1e84f90). Render will auto-deploy from this push.
+
+Once the deploy finishes, all three admin operations will work correctly on Render:
+
+Email test — now calls https://quizbunker-o733.onrender.com/api/admin/test-email directly
+Question upload — same fix applied
+Song upload — same fix applied
+Hard-refresh on any route will also work since the _redirects is now just the clean SPA fallback (/* /index.html 200). No further changes needed on your end — just wait for Render to finish building.
+
+
+Worked for 1 minute
+
+Ghana_SHS_Mathematics_Year1_Complete_MCQ_Bank_Weeks1-24_1785552388569.docx
+let this format the accepted by the system, how many songs can i upload now
+
+BR
+branham133
+branham133
+10 minutes ago
+
+4 actions
+The document format has two differences from what the parser expects. Let me show the comparison, fix the parser, then answer the song question.
+
+Format issues found:
+
+Document	Parser expects
+Question	Question 1: Which of the...	1. Which of the...
+Year/Subject	YEAR 1 – COMPLETE MCQ BANK (separate lines)	Year 1 Mathematics (one line)
+Week header	WEEK 1: THE REAL NUMBER SYSTEM ✓	WEEK 1: THE REAL NUMBER SYSTEM ✓
+Options	A. {...} ✓	A. {...} ✓
+Answer	ANSWER: C ✓	Answer: C ✓ (case-insensitive)
+The question format is the only real blocker — year and subject can be overridden in the upload form. Let me update the parser to accept both formats:
+
+
+5 actions
+Parser updated and API server restarted (commit 0b38256). Render will auto-deploy it too.
+
+To upload this document — since the year/subject header in the file (YEAR 1 – COMPLETE MCQ BANK) doesn't match the parser's one-line format, use the override fields in the admin upload form:
+
+Year Override: Year 1
+Subject Override: Mathematics
+The questions (Question 1: ...), options (A. ...), week headers (WEEK 1: ...), and answers (ANSWER: C) will all parse correctly now.
+
+Songs — you can upload up to 20 tracks at a time, each up to 50 MB. Just select multiple files at once in the audio upload box in admin and hit Upload.
+
+
+Worked for 1 minute
+
+Checkpoint made
+9 minutes ago
+when users are answering will all the songs automatically, and this is PWA, will songs be availabel offline too
+
+BR
+branham133
+branham133
+5 minutes ago
+
+4 actions
+Let me answer both clearly, then fix a bug this reveals.
+
+Auto-play: Songs do not start automatically — the user has to press play. Browsers block autoplay by default. Once the user starts playing, songs cycle automatically (when one ends, the next begins).
+
+Offline (PWA): The service worker uses CacheFirst for song files — up to 20 songs cached for 30 days. But they're only cached after the user plays them while online. Not pre-cached.
+
+There's actually a bug I need to fix right now. Song URLs are stored as /api/uploads/songs/filename in the database. Now that the /api/* proxy is removed from _redirects, those relative URLs won't reach the API server on Render — audio will break. Let me fix the MusicContext to prepend the API base URL:
+
+
+7 actions
+Both services running clean. Let me check if the offline caching for songs needs a fix too, given the URL change.
+
+
+2 actions
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+
+Worked for 1 minute
+when users are answering will all the songs automatically, and this is PWA, will songs be availabel offline too Agent activity Let me answer both clearly, then fix a bug this reveals. **Auto-play:** Songs do **not** start automatically — the user has to press play. Browsers block autoplay by default. Once the user starts playing, songs cycle automatically (when one ends, the next begins). **Offline (PWA):** The service worker uses `CacheFirst` for song files — up to 20 songs cached for 30 days. But they're only cached **after the user plays them** while online. Not pre-cached. --- There's actually a bug I need to fix right now. Song URLs are stored as `/api/uploads/songs/filename` in the database. Now that the `/api/*` proxy is removed from `_redirects`, those relative URLs won't reach the API server on Render — audio will break. Let me fix the MusicContext to prepend the API base URL: Agent activity Both services running clean. Let me check if the offline caching for songs needs a fix too, given the URL change. Agent activity Agent activity Agent activity
+
+Scroll to latest
+Guests can't use Agent in Starter Plan user's repls
