@@ -23,21 +23,27 @@ export default function Quiz() {
   });
   const submitSession = useSubmitQuizSession();
 
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [answers, setAnswers]       = useState<Record<number, string>>({});
+  const [revealed, setRevealed]     = useState<Record<number, boolean>>({});
   const [currentQIndex, setCurrentQIndex] = useState(0);
-  const feedbackRef = useRef<HTMLDivElement>(null);
+  const feedbackRef  = useRef<HTMLDivElement>(null);
+  const optionsRef   = useRef<HTMLDivElement>(null);
 
-  const questions = session?.questions || [];
+  const questions       = session?.questions || [];
   const currentQuestion = questions[currentQIndex];
-  const progress = questions.length > 0 ? (Object.keys(answers).length / questions.length) * 100 : 0;
-  const isComplete = Object.keys(answers).length === questions.length && questions.length > 0;
+  const progress        = questions.length > 0 ? (Object.keys(answers).length / questions.length) * 100 : 0;
+  const isComplete      = Object.keys(answers).length === questions.length && questions.length > 0;
   const isCurrentRevealed = currentQuestion ? !!revealed[currentQuestion.id] : false;
-  const isLastQuestion = currentQIndex === questions.length - 1;
+  const isLastQuestion  = currentQIndex === questions.length - 1;
 
-  // Auto-scroll to feedback panel when an answer is revealed
+  // Scroll the options pane to top whenever the question changes
   useEffect(() => {
-    if (isCurrentRevealed && feedbackRef.current) {
+    if (optionsRef.current) optionsRef.current.scrollTop = 0;
+  }, [currentQIndex]);
+
+  // Auto-scroll to feedback inside the options pane when an answer is revealed
+  useEffect(() => {
+    if (isCurrentRevealed && feedbackRef.current && optionsRef.current) {
       setTimeout(() => {
         feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 150);
@@ -51,13 +57,8 @@ export default function Quiz() {
     setRevealed(prev => ({ ...prev, [currentQuestion.id]: true }));
   };
 
-  const handleNext = () => {
-    if (currentQIndex < questions.length - 1) setCurrentQIndex(prev => prev + 1);
-  };
-
-  const handlePrev = () => {
-    if (currentQIndex > 0) setCurrentQIndex(prev => prev - 1);
-  };
+  const handleNext = () => { if (currentQIndex < questions.length - 1) setCurrentQIndex(p => p + 1); };
+  const handlePrev = () => { if (currentQIndex > 0) setCurrentQIndex(p => p - 1); };
 
   const handleSubmit = () => {
     const formattedAnswers = Object.entries(answers).map(([qId, ans]) => ({
@@ -74,11 +75,20 @@ export default function Quiz() {
   if (session.completedAt) { setLocation(`/results/${sessionId}`); return null; }
 
   return (
-    /* Natural document scroll: pt clears fixed HUD, pb clears fixed bottom nav */
-    <div className="min-h-[100dvh] bg-background text-foreground relative pt-14 pb-24">
+    /*
+     * Full-viewport flex column:
+     *   row 1 — HUD bar        (shrink-0, never scrolls)
+     *   row 2 — Question card  (shrink-0, never scrolls)
+     *   row 3 — Options pane   (flex-1, overflow-y-auto — ONLY this scrolls)
+     *   row 4 — Bottom nav     (shrink-0, never scrolls)
+     *
+     * This guarantees Option A is always the first visible item in the
+     * scrollable pane and can never be hidden behind the question card.
+     */
+    <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden relative">
       <BackgroundParticles />
 
-      {/* Logo watermark — behind everything */}
+      {/* Logo watermark — fixed, behind everything */}
       <div className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center" aria-hidden>
         <img
           src="/logo.png" alt=""
@@ -87,8 +97,8 @@ export default function Quiz() {
         />
       </div>
 
-      {/* ── Fixed HUD bar ── */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-md border-b-2 border-primary/40">
+      {/* ── Row 1: HUD bar ── */}
+      <header className="relative z-40 shrink-0 bg-background/90 backdrop-blur-md border-b-2 border-primary/40">
         <div className="max-w-lg mx-auto px-3 h-14 flex items-center gap-3">
           <div
             className="bg-primary text-white w-10 h-10 rounded-xl flex items-center justify-center font-display text-base shrink-0 border-2 border-white/40"
@@ -119,34 +129,32 @@ export default function Quiz() {
         </div>
       </header>
 
-      {/* ── Scrollable content (flows naturally below HUD) ── */}
-      <div className="relative z-10">
-        <div className="max-w-lg mx-auto px-4 py-4 flex flex-col gap-3">
-
-          {/* ── Question text — sticky so it stays visible while options scroll ── */}
-          {currentQuestion && (
-            <div
-              className="sticky top-14 z-20 rounded-2xl px-4 py-5 border-2 border-primary/60"
-              style={{
-                background: 'linear-gradient(135deg, rgb(28,14,6), rgb(38,20,8))',
-                boxShadow: '0 2px 0 hsl(22 90% 25%), 0 4px 24px rgba(0,0,0,0.7)',
-              }}
-            >
-              <div className="flex items-start gap-3">
-                <div className="bg-primary/30 text-primary border-2 border-primary/60 px-3 py-1.5 rounded-xl font-display text-base shrink-0 mt-0.5 min-w-[3rem] text-center">
-                  Q{currentQIndex + 1}
-                </div>
-                <p className="text-white font-bold text-xl leading-snug">{currentQuestion.questionText}</p>
-              </div>
+      {/* ── Row 2: Question card (never scrolls) ── */}
+      {currentQuestion && (
+        <div className="relative z-30 shrink-0 border-b-2 border-primary/30"
+          style={{
+            background: 'linear-gradient(135deg, rgb(28,14,6), rgb(38,20,8))',
+            boxShadow: '0 2px 0 hsl(22 90% 25%)',
+          }}
+        >
+          <div className="max-w-lg mx-auto px-4 py-4 flex items-start gap-3">
+            <div className="bg-primary/30 text-primary border-2 border-primary/60 px-3 py-1.5 rounded-xl font-display text-base shrink-0 mt-0.5 min-w-[3rem] text-center">
+              Q{currentQIndex + 1}
             </div>
-          )}
+            <p className="text-white font-bold text-xl leading-snug">{currentQuestion.questionText}</p>
+          </div>
+        </div>
+      )}
 
-          {/* ── Options A, B, C, D ── */}
+      {/* ── Row 3: Options — the ONLY scrollable area ── */}
+      <div ref={optionsRef} className="flex-1 overflow-y-auto relative z-10">
+        <div className="max-w-lg mx-auto px-4 py-4 flex flex-col gap-3 pb-4">
+
           {currentQuestion && (['A', 'B', 'C', 'D'] as const).map((key) => {
             const text = currentQuestion[`option${key}` as `option${'A'|'B'|'C'|'D'}`];
             const isSelected = answers[currentQuestion.id] === key;
             const rawCorrect = (currentQuestion as any).correctAnswer;
-            const rawNorm = rawCorrect ? String(rawCorrect).trim().toUpperCase() : '';
+            const rawNorm    = rawCorrect ? String(rawCorrect).trim().toUpperCase() : '';
             const correctAnswer = /^[A-D]$/.test(rawNorm) ? rawNorm : '';
             const isCorrect = isCurrentRevealed && !!correctAnswer && correctAnswer === key;
             const isWrong   = isCurrentRevealed && isSelected && !!correctAnswer && correctAnswer !== key;
@@ -195,11 +203,11 @@ export default function Quiz() {
 
           {/* ── Feedback panel ── */}
           {isCurrentRevealed && currentQuestion && (() => {
-            const rawCorrect = (currentQuestion as any).correctAnswer;
-            const rawNorm = rawCorrect ? String(rawCorrect).trim().toUpperCase() : '';
+            const rawCorrect    = (currentQuestion as any).correctAnswer;
+            const rawNorm       = rawCorrect ? String(rawCorrect).trim().toUpperCase() : '';
             const correctAnswer = /^[A-D]$/.test(rawNorm) ? rawNorm : '';
             const selectedAnswer = answers[currentQuestion.id];
-            const isRight = !!correctAnswer && selectedAnswer === correctAnswer;
+            const isRight        = !!correctAnswer && selectedAnswer === correctAnswer;
             const correctOptionText = correctAnswer
               ? (currentQuestion[`option${correctAnswer}` as `option${'A'|'B'|'C'|'D'}`] ?? '')
               : '';
@@ -242,9 +250,9 @@ export default function Quiz() {
       {/* Music player floats just above the bottom nav */}
       <MusicPlayer bottomClass="bottom-[80px]" />
 
-      {/* ── Fixed bottom navigation ── */}
+      {/* ── Row 4: Bottom navigation (never scrolls) ── */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-40 border-t-2 border-white/10 px-4 py-3 flex justify-between items-center gap-3"
+        className="relative z-40 shrink-0 border-t-2 border-white/10 px-4 py-3 flex justify-between items-center gap-3"
         style={{
           background: 'rgba(10,11,20,0.95)',
           backdropFilter: 'blur(12px)',
