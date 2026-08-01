@@ -43,7 +43,9 @@ router.get("/songs/:id/audio", async (req, res) => {
   if (!song.fileData) return res.status(404).json({ error: "Audio data not available" });
 
   const mime = song.mimeType ?? "audio/mpeg";
-  const fileSize = song.fileData.length;
+  // Decode base64 stored string back to binary
+  const buf = Buffer.from(song.fileData, "base64");
+  const fileSize = buf.length;
 
   // Support HTTP Range requests so mobile browsers can seek
   const rangeHeader = req.headers.range;
@@ -60,7 +62,7 @@ router.get("/songs/:id/audio", async (req, res) => {
       "Content-Type": mime,
       "Cache-Control": "public, max-age=86400",
     });
-    return void res.end(song.fileData.slice(start, end + 1));
+    return void res.end(buf.slice(start, end + 1));
   } else {
     res.writeHead(200, {
       "Content-Length": fileSize,
@@ -68,7 +70,7 @@ router.get("/songs/:id/audio", async (req, res) => {
       "Accept-Ranges": "bytes",
       "Cache-Control": "public, max-age=86400",
     });
-    return void res.end(song.fileData);
+    return void res.end(buf);
   }
 });
 

@@ -491,17 +491,19 @@ router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (
     const ext = path.extname(file.originalname).toLowerCase();
     const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
 
-    // Read file bytes into memory then clean up disk immediately
-    let fileData: Buffer | undefined;
+    // Read file bytes into memory, encode as base64, then clean up disk immediately.
+    // Storing as base64 text avoids all bytea binary-serialization issues.
+    let fileData: string | undefined;
     try {
-      fileData = fs.readFileSync(file.path);
+      const buf = fs.readFileSync(file.path);
+      fileData = buf.toString("base64");
     } catch (readErr) {
       req.log.warn({ err: readErr }, "Failed to read uploaded audio file from disk");
     } finally {
       fs.unlink(file.path, () => {});
     }
 
-    if (!fileData || fileData.length === 0) {
+    if (!fileData) {
       return res.status(500).json({ error: "Could not read uploaded file data" });
     }
 
