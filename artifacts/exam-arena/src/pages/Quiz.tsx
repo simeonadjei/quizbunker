@@ -123,17 +123,17 @@ export default function Quiz() {
       <div className="relative z-10">
         <div className="max-w-lg mx-auto px-4 py-4 flex flex-col gap-3">
 
-          {/* ── Question text ── */}
+          {/* ── Question text — sticky so it stays visible while options scroll ── */}
           {currentQuestion && (
             <div
-              className="rounded-2xl px-4 py-5 border-2 border-primary/50"
+              className="sticky top-14 z-20 rounded-2xl px-4 py-5 border-2 border-primary/60"
               style={{
-                background: 'linear-gradient(135deg, rgba(180,80,20,0.18), rgba(120,50,10,0.22))',
-                boxShadow: '0 0 0 1px rgba(255,120,40,0.15), 0 4px 24px rgba(0,0,0,0.5)',
+                background: 'linear-gradient(135deg, rgb(28,14,6), rgb(38,20,8))',
+                boxShadow: '0 2px 0 hsl(22 90% 25%), 0 4px 24px rgba(0,0,0,0.7)',
               }}
             >
               <div className="flex items-start gap-3">
-                <div className="bg-primary/20 text-primary border-2 border-primary/50 px-3 py-1.5 rounded-xl font-display text-base shrink-0 mt-0.5 min-w-[3rem] text-center">
+                <div className="bg-primary/30 text-primary border-2 border-primary/60 px-3 py-1.5 rounded-xl font-display text-base shrink-0 mt-0.5 min-w-[3rem] text-center">
                   Q{currentQIndex + 1}
                 </div>
                 <p className="text-white font-bold text-xl leading-snug">{currentQuestion.questionText}</p>
