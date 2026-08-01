@@ -48,10 +48,10 @@ export default function Landing() {
 
   return (
     <Layout wide>
-      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 text-center relative z-10 w-full">
+      <div className="flex-1 flex flex-col items-center px-3 sm:px-6 text-center relative z-10 w-full">
 
-        {/* ── Outer container — narrow on mobile, wide on desktop ──── */}
-        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto">
+        {/* ── Outer container — full width mobile, capped on desktop ── */}
+        <div className="w-full max-w-6xl mx-auto">
 
           {/* ── Hero ──────────────────────────────────────────────── */}
           <div className="w-full mt-10 sm:mt-14 mb-4">
@@ -102,8 +102,8 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* ── CTA buttons ──────────────────────────────────────── */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full mt-8 sm:max-w-lg sm:mx-auto lg:max-w-md">
+          {/* ── CTA buttons — full width ──────────────────────────── */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full mt-8">
             {isLoading ? null : user ? (
               <Link href="/dashboard" className="btn-game w-full py-5 text-xl justify-center">
                 Continue Playing
@@ -120,34 +120,29 @@ export default function Landing() {
             )}
           </div>
 
-          {/* ── Middle row: Quote + WhatsApp side-by-side on large screens ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 w-full mt-10">
-
-            {/* Quote */}
-            <div className="rounded-2xl px-6 py-6 relative overflow-hidden text-left"
-              style={{
-                background: 'linear-gradient(135deg, hsl(263 80% 15% / 0.85), hsl(240 60% 12% / 0.9))',
-                border: '1.5px solid hsl(263 80% 55% / 0.45)',
-                boxShadow: '0 0 30px hsl(263 80% 40% / 0.2), inset 0 1px 0 hsl(263 80% 70% / 0.1)',
-              }}
-            >
-              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full pointer-events-none"
-                style={{ background: 'hsl(263 90% 60% / 0.15)', filter: 'blur(20px)' }} />
-              <p className="font-mono text-base sm:text-lg italic leading-relaxed relative z-10"
-                style={{ color: 'hsl(263 60% 90%)', textShadow: '0 0 12px hsl(263 80% 70% / 0.4)' }}>
-                "Education is the most powerful weapon which you can use to change the world."
-              </p>
-              <p className="mt-3 text-sm font-bold tracking-widest uppercase relative z-10"
-                style={{ color: 'hsl(45 100% 65%)', textShadow: '0 0 8px hsl(45 100% 55% / 0.5)' }}>
-                — Nelson Mandela
-              </p>
-            </div>
-
-            {/* WhatsApp Share */}
-            <WhatsAppShare />
+          {/* ── Mandela Quote — bold, full-width, below buttons ───── */}
+          <div className="w-full mt-6 rounded-2xl px-6 py-6 relative overflow-hidden text-center"
+            style={{
+              background: 'linear-gradient(135deg, hsl(263 80% 15% / 0.85), hsl(240 60% 12% / 0.9))',
+              border: '2px solid hsl(263 80% 55% / 0.55)',
+              boxShadow: '0 0 30px hsl(263 80% 40% / 0.25), inset 0 1px 0 hsl(263 80% 70% / 0.1)',
+            }}
+          >
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
+              style={{ background: 'hsl(263 90% 60% / 0.18)', filter: 'blur(24px)' }} />
+            <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full pointer-events-none"
+              style={{ background: 'hsl(263 90% 50% / 0.12)', filter: 'blur(24px)' }} />
+            <p className="font-display text-xl sm:text-2xl lg:text-3xl leading-snug relative z-10"
+              style={{ color: 'hsl(263 60% 95%)', textShadow: '0 0 20px hsl(263 80% 70% / 0.5)' }}>
+              "Education is the most powerful weapon which you can use to change the world."
+            </p>
+            <p className="mt-4 text-base sm:text-lg font-bold tracking-widest uppercase relative z-10"
+              style={{ color: 'hsl(45 100% 70%)', textShadow: '0 0 10px hsl(45 100% 55% / 0.6)' }}>
+              — Nelson Mandela
+            </p>
           </div>
 
-          {/* ── Feature cards — 1 col mobile, 3 col desktop ──────── */}
+          {/* ── Feature cards — full width, 1 col mobile → 3 col desktop ── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full mt-6">
             <FeatureCard
               icon={<BookOpen className="w-6 h-6" style={{ color: 'hsl(45 100% 65%)' }} />}
@@ -172,8 +167,13 @@ export default function Landing() {
             />
           </div>
 
+          {/* ── WhatsApp Share — full width ───────────────────────── */}
+          <div className="w-full mt-5">
+            <WhatsAppShare />
+          </div>
+
           {/* ── Credits footer ──────────────────────────────────── */}
-          <footer className="w-full mt-10 mb-2 flex flex-col items-center gap-3">
+          <footer className="w-full mt-8 mb-2 flex flex-col items-center gap-3">
             <div className="h-px w-full bg-white/10 rounded-full" />
             <p className="text-sm text-center font-semibold" style={{ color: 'hsl(220 20% 65%)' }}>
               © 2026 Quiz Bunker · All rights reserved
