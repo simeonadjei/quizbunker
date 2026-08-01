@@ -1,6 +1,6 @@
 import { Layout } from '@/components/Layout';
 import { Link } from 'wouter';
-import { Trophy, Zap, BookOpen, Share2, MessageCircle } from 'lucide-react';
+import { Trophy, Zap, BookOpen, MessageCircle } from 'lucide-react';
 import { useGetCurrentUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { useState, useEffect } from 'react';
 
@@ -72,25 +72,25 @@ export default function Landing() {
               Live — Ghana Past Questions
             </div>
 
-            {/* Logo lockup — smaller so page fits at a glance */}
+            {/* Logo lockup — compact */}
             <div className="relative inline-block w-full">
               <div className="absolute inset-0 pointer-events-none"
                 style={{
-                  background: 'radial-gradient(ellipse 90% 60% at 50% 50%, hsl(32 100% 50% / 0.22), transparent 70%)',
-                  filter: 'blur(14px)',
+                  background: 'radial-gradient(ellipse 80% 50% at 50% 50%, hsl(32 100% 50% / 0.18), transparent 70%)',
+                  filter: 'blur(10px)',
                 }} />
-              <h1 className="text-game-title text-4xl sm:text-5xl lg:text-6xl leading-tight relative z-10">QUIZ</h1>
-              <h1 className="text-game-title-orange text-5xl sm:text-6xl lg:text-7xl leading-none relative z-10"
-                style={{ marginTop: '-0.04em' }}>BUNKER</h1>
-              <div className="mx-auto mt-1 h-0.5 w-32 rounded-full relative z-10"
+              <h1 className="text-game-title text-3xl sm:text-4xl lg:text-5xl leading-tight relative z-10">QUIZ</h1>
+              <h1 className="text-game-title-orange text-4xl sm:text-5xl lg:text-6xl leading-none relative z-10"
+                style={{ marginTop: '-0.03em' }}>BUNKER</h1>
+              <div className="mx-auto mt-1 h-0.5 w-24 rounded-full relative z-10"
                 style={{
                   background: 'linear-gradient(90deg, transparent, hsl(40 100% 60%), hsl(20 100% 55%), transparent)',
-                  boxShadow: '0 0 10px hsl(35 100% 55% / 0.9)',
+                  boxShadow: '0 0 8px hsl(35 100% 55% / 0.9)',
                 }} />
             </div>
 
             {/* Rolling word — below the logo */}
-            <div className="mt-2">
+            <div className="mt-1.5">
               <RollingWord />
             </div>
 
@@ -169,9 +169,22 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* ── WhatsApp Share — below quote, above credits ──────── */}
-          <div className="w-full mt-4">
-            <WhatsAppShare />
+          {/* ── WhatsApp Share — simple centered button above credits ── */}
+          <div className="w-full mt-4 flex justify-center">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`🎓 Check out Quiz Bunker — Ghana's top exam practice platform. Crush likely examinable questions! 🚀\n\n${typeof window !== 'undefined' ? window.location.origin : 'https://quizbunker.com'}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-transform hover:scale-105 active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                color: '#fff',
+                boxShadow: '0 4px 0 #075E54, 0 6px 12px rgba(18,140,126,0.3)',
+              }}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Share on WhatsApp
+            </a>
           </div>
 
           {/* ── Credits footer ──────────────────────────────────── */}
@@ -208,43 +221,6 @@ export default function Landing() {
   );
 }
 
-function WhatsAppShare() {
-  const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://quizbunker.com';
-  const message = `🎓 Hey! Check out Quiz Bunker — Ghana's top exam practice platform. Crush likely examinable questions, level by level! 🚀\n\n${shareUrl}`;
-  const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-  return (
-    <div className="rounded-2xl p-5 flex flex-col items-center gap-3 text-center justify-center"
-      style={{
-        background: 'linear-gradient(135deg, hsl(145 60% 10% / 0.85), hsl(160 50% 8% / 0.9))',
-        border: '1.5px solid hsl(145 70% 35% / 0.4)',
-        boxShadow: '0 0 24px hsl(145 70% 30% / 0.15)',
-      }}
-    >
-      <div className="flex items-center gap-2" style={{ color: '#25D366' }}>
-        <Share2 className="w-4 h-4" />
-        <span className="font-bold text-sm tracking-wide uppercase">Share with Friends</span>
-      </div>
-      <p className="text-sm leading-relaxed" style={{ color: 'hsl(145 30% 75%)' }}>
-        Know someone preparing for exams? Send them the link on WhatsApp!
-      </p>
-      <a
-        href={waUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-transform hover:scale-105 active:scale-95 w-full justify-center"
-        style={{
-          background: 'linear-gradient(180deg, #2ecc71 0%, #25D366 40%, #128C7E 100%)',
-          color: '#fff',
-          boxShadow: '0 4px 0 #075E54, 0 6px 14px rgba(18,140,126,0.4)',
-        }}
-      >
-        <MessageCircle className="w-4 h-4" />
-        Share on WhatsApp
-      </a>
-    </div>
-  );
-}
 
 function FeatureCard({ icon, title, desc, borderColor, iconBg }: {
   icon: React.ReactNode;
