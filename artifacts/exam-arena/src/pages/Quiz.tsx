@@ -1,7 +1,7 @@
 import { useGetQuizSession, useSubmitQuizSession, getGetQuizSessionQueryKey } from '@workspace/api-client-react';
 import { useRoute, useLocation } from 'wouter';
 import { useState } from 'react';
-import { Loader2, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackgroundParticles } from '@/components/BackgroundParticles';
 import { MusicPlayer } from '@/components/MusicPlayer';
@@ -45,6 +45,10 @@ export default function Quiz() {
     if (currentQIndex < questions.length - 1) setCurrentQIndex(prev => prev + 1);
   };
 
+  const handlePrev = () => {
+    if (currentQIndex > 0) setCurrentQIndex(prev => prev - 1);
+  };
+
   const handleSubmit = () => {
     const formattedAnswers = Object.entries(answers).map(([qId, ans]) => ({
       questionId: Number(qId),
@@ -62,7 +66,9 @@ export default function Quiz() {
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex flex-col relative">
       <BackgroundParticles />
-      <MusicPlayer />
+
+      {/* Music player floats above the bottom nav bar */}
+      <MusicPlayer bottomClass="bottom-20" />
 
       {/* ── Logo watermark ── */}
       <div className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center" aria-hidden>
@@ -114,27 +120,29 @@ export default function Quiz() {
         </div>
       </header>
 
-      {/* ── Question text (sticky — always visible below HUD) ── */}
+      {/* ── Question text (sticky — always visible below HUD, generous padding) ── */}
       {currentQuestion && (
         <div
-          className="sticky top-14 z-30 mt-14 px-4 py-3 border-b-2 border-white/8"
+          className="sticky top-14 z-30 mt-14 px-4 py-5 border-b-2 border-white/8"
           style={{
-            background: 'linear-gradient(180deg, rgba(10,11,20,0.97) 0%, rgba(10,11,20,0.92) 100%)',
+            background: 'linear-gradient(180deg, rgba(10,11,20,0.98) 0%, rgba(10,11,20,0.93) 100%)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
           }}
         >
           <div className="max-w-lg mx-auto flex items-start gap-3">
-            <div className="bg-primary/20 text-primary border-2 border-primary/50 px-2.5 py-1 rounded-xl font-display text-sm shrink-0 mt-0.5">
+            {/* Q-number badge — bigger */}
+            <div className="bg-primary/20 text-primary border-2 border-primary/50 px-3 py-1.5 rounded-xl font-display text-base shrink-0 mt-0.5 min-w-[3rem] text-center">
               Q{currentQIndex + 1}
             </div>
-            <p className="text-white font-bold text-base leading-snug">{currentQuestion.questionText}</p>
+            {/* Question text — bigger */}
+            <p className="text-white font-bold text-xl leading-snug">{currentQuestion.questionText}</p>
           </div>
         </div>
       )}
 
       {/* ── Scrollable options area ── */}
-      <main className="relative z-10 flex-1 px-4 pt-3 pb-32 flex flex-col gap-2.5 max-w-lg mx-auto w-full">
+      <main className="relative z-10 flex-1 px-4 pt-4 pb-36 flex flex-col gap-3 max-w-lg mx-auto w-full">
 
         {currentQuestion && (['A', 'B', 'C', 'D'] as const).map((key) => {
           const text = currentQuestion[`option${key}` as `option${'A'|'B'|'C'|'D'}`];
@@ -153,7 +161,7 @@ export default function Quiz() {
               onClick={() => handleSelect(key)}
               disabled={isCurrentRevealed}
               className={cn(
-                'relative flex flex-row items-center gap-4 rounded-2xl border-2 transition-all duration-200 py-3.5 px-4 text-left w-full',
+                'relative flex flex-row items-center gap-4 rounded-2xl border-2 transition-all duration-200 py-4 px-4 text-left w-full',
                 !isCurrentRevealed && !isSelected && 'border-white/15 bg-black/40 hover:border-white/30 hover:bg-white/5 active:scale-[0.98]',
                 !isCurrentRevealed && isSelected && `${optionStyle.selectedBg} ${optionStyle.border} ${optionStyle.shadow}`,
                 isCorrect && 'border-emerald-400 bg-emerald-500/20 shadow-[0_0_20px_hsl(152_76%_50%/0.5)]',
@@ -161,9 +169,9 @@ export default function Quiz() {
                 isCurrentRevealed && !isCorrect && !isWrong && 'border-white/10 bg-black/20 opacity-40',
               )}
             >
-              {/* Letter badge — small */}
+              {/* Letter badge — bigger */}
               <div className={cn(
-                'w-8 h-8 rounded-xl flex items-center justify-center font-display text-sm border-2 shrink-0',
+                'w-11 h-11 rounded-xl flex items-center justify-center font-display text-xl border-2 shrink-0',
                 isCorrect ? 'bg-emerald-500 text-white border-white/40' :
                 isWrong   ? 'bg-rose-500 text-white border-white/40' :
                 isSelected && !isCurrentRevealed ? `${optionStyle.badgeBg} text-white border-white/40` :
@@ -172,9 +180,9 @@ export default function Quiz() {
                 {key}
               </div>
 
-              {/* Answer text — large */}
+              {/* Answer text — bigger */}
               <span className={cn(
-                'text-lg font-bold leading-snug flex-1',
+                'text-xl font-bold leading-snug flex-1',
                 isCorrect ? 'text-emerald-200' :
                 isWrong   ? 'text-rose-200' :
                 isSelected && !isCurrentRevealed ? 'text-white' : 'text-white/80'
@@ -182,8 +190,8 @@ export default function Quiz() {
                 {text}
               </span>
 
-              {isCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
-              {isWrong   && <XCircle      className="w-5 h-5 text-rose-400 shrink-0" />}
+              {isCorrect && <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />}
+              {isWrong   && <XCircle      className="w-6 h-6 text-rose-400 shrink-0" />}
             </button>
           );
         })}
@@ -192,7 +200,6 @@ export default function Quiz() {
         {isCurrentRevealed && currentQuestion && (() => {
           const rawCorrect = (currentQuestion as any).correctAnswer;
           const rawNorm = rawCorrect ? String(rawCorrect).trim().toUpperCase() : '';
-          // Only accept A/B/C/D — ignore dots, spaces, or other DB artifacts
           const correctAnswer = /^[A-D]$/.test(rawNorm) ? rawNorm : '';
           const selectedAnswer = answers[currentQuestion.id];
           const isRight = !!correctAnswer && selectedAnswer === correctAnswer;
@@ -203,30 +210,30 @@ export default function Quiz() {
 
           return (
             <div className={cn(
-              'rounded-2xl p-4 border-l-4 animate-in slide-in-from-bottom-3 duration-300',
+              'rounded-2xl p-5 border-l-4 animate-in slide-in-from-bottom-3 duration-300',
               isRight ? 'bg-emerald-500/10 border-emerald-400' : 'bg-rose-500/10 border-rose-400'
             )}>
               {/* Result heading */}
-              <div className="flex items-center flex-wrap gap-2 mb-2">
+              <div className="flex items-center flex-wrap gap-2 mb-3">
                 {isRight
-                  ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                  : <XCircle      className="w-5 h-5 text-rose-400 shrink-0" />
+                  ? <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+                  : <XCircle      className="w-6 h-6 text-rose-400 shrink-0" />
                 }
-                <span className={cn('font-display text-base', isRight ? 'text-emerald-300' : 'text-rose-300')}>
+                <span className={cn('font-display text-lg', isRight ? 'text-emerald-300' : 'text-rose-300')}>
                   {isRight ? 'Correct!' : 'Wrong!'}
                 </span>
                 {!isRight && correctAnswer && (
-                  <span className="text-sm font-bold text-white/70">
+                  <span className="text-base font-bold text-white/70">
                     Answer: <span className="text-emerald-300">{correctAnswer}. {correctOptionText}</span>
                   </span>
                 )}
               </div>
 
-              {/* Explanation — fully visible, no overflow hidden */}
+              {/* Explanation — fully visible */}
               {feedbackText && (
-                <div className="flex items-start gap-2 mt-2">
-                  <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <p className="text-sm text-white font-semibold leading-relaxed whitespace-pre-wrap break-words">
+                <div className="flex items-start gap-2 mt-1">
+                  <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-base text-white font-semibold leading-relaxed whitespace-pre-wrap break-words">
                     {feedbackText}
                   </p>
                 </div>
@@ -246,16 +253,16 @@ export default function Quiz() {
           WebkitBackdropFilter: 'blur(12px)',
         }}
       >
+        {/* Prev — same style as Next */}
         <button
-          onClick={() => setCurrentQIndex(prev => Math.max(0, prev - 1))}
+          onClick={handlePrev}
           disabled={currentQIndex === 0}
           className={cn(
-            'px-4 py-2.5 rounded-xl border-2 font-bold text-sm transition-all',
-            currentQIndex === 0
-              ? 'border-white/10 text-white/25 bg-black/15 cursor-not-allowed'
-              : 'border-white/20 text-white bg-black/35 hover:border-white/40 active:scale-95'
+            'btn-game px-5 py-2.5 text-base flex items-center gap-1.5',
+            currentQIndex === 0 && 'opacity-35 pointer-events-none'
           )}
         >
+          <ArrowLeft className="w-4 h-4" strokeWidth={2.5} />
           Prev
         </button>
 
@@ -275,7 +282,7 @@ export default function Quiz() {
             onClick={isLastQuestion ? undefined : handleNext}
             disabled={isLastQuestion && !isComplete}
             className={cn(
-              'btn-game px-5 py-2.5 text-sm flex items-center gap-1.5',
+              'btn-game px-5 py-2.5 text-base flex items-center gap-1.5',
               isLastQuestion && !isComplete && 'opacity-40 pointer-events-none'
             )}
           >
@@ -286,7 +293,7 @@ export default function Quiz() {
             onClick={handleNext}
             disabled={currentQIndex === questions.length - 1}
             className={cn(
-              'btn-game px-5 py-2.5 text-sm flex items-center gap-1.5',
+              'btn-game px-5 py-2.5 text-base flex items-center gap-1.5',
               currentQIndex === questions.length - 1 && 'opacity-40 pointer-events-none'
             )}
           >

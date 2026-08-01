@@ -4,14 +4,19 @@ import { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 
-export function MusicPlayer() {
+interface MusicPlayerProps {
+  /** Tailwind class for bottom position, e.g. "bottom-4" or "bottom-20" */
+  bottomClass?: string;
+}
+
+export function MusicPlayer({ bottomClass = 'bottom-4' }: MusicPlayerProps) {
   const { isPlaying, nextSong, prevSong, currentSong, volume, setVolume } = useMusic();
   const [expanded, setExpanded] = useState(false);
 
   if (!currentSong) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+    <div className={cn('fixed right-4 z-50 flex flex-col items-end gap-2', bottomClass)}>
 
       {/* ── Expanded tray ─────────────────────────────────────────── */}
       {expanded && (
