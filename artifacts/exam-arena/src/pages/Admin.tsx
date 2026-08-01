@@ -474,13 +474,23 @@ function EmailTestPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: to.trim() || undefined }),
       });
-      const data = await res.json() as { ok: boolean; message?: string; error?: string };
+      // Read body as text first so an empty or non-JSON response never throws
+      const raw = await res.text();
+      let data: { ok?: boolean; message?: string; error?: string } = {};
+      try {
+        data = raw.trim() ? JSON.parse(raw) : {};
+      } catch {
+        // body was not JSON — surface the raw text so we can debug
+        setStatus('error');
+        setMessage(`Unexpected response (HTTP ${res.status}): ${raw.slice(0, 200) || '(empty body)'}`);
+        return;
+      }
       if (data.ok) {
         setStatus('ok');
         setMessage(data.message ?? 'Email sent successfully');
       } else {
         setStatus('error');
-        setMessage(data.error ?? 'Unknown error');
+        setMessage(data.error ?? `HTTP ${res.status} — unknown error`);
       }
     } catch (err) {
       setStatus('error');
