@@ -15,7 +15,7 @@ interface MusicContextType {
   setVolume: (v: number) => void;
   nextSong: () => void;
   prevSong: () => void;
-  /** Internal — used by autoplay mechanism only */
+  /** Internal — called synchronously inside a direct click/tap handler */
   _startPlayback: () => void;
 }
 
@@ -28,9 +28,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
   const [volume, setVolumeState] = useState(0.5);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isPlayingRef = useRef(false);
-  const hasStartedRef = useRef(false); // tracks whether we've ever started playback
+  const audioRef     = useRef<HTMLAudioElement | null>(null);
+  // Set to true synchronously on first play() call so the document
+  // bubbled-click listener doesn't call _startPlayback() a second time.
+  const startedRef   = useRef(false);
 
   const activeSongs = songs.filter(s => s.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
   const currentSong = activeSongs.length > 0 ? activeSongs[currentSongIndex % activeSongs.length] : null;
@@ -43,7 +44,21 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       audio.preload = 'auto';
       audioRef.current = audio;
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Drive isPlaying from real audio events (not promise callbacks) ──
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onPlay  = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    audio.addEventListener('play',  onPlay);
+    audio.addEventListener('pause', onPause);
+    return () => {
+      audio.removeEventListener('play',  onPlay);
+      audio.removeEventListener('pause', onPause);
+    };
+  }, []); // runs once; the audio element never changes
 
   // ── Auto-advance on track end ───────────────────────────────────────
   useEffect(() => {
@@ -59,33 +74,41 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
     const url = resolveUrl(currentSong.url);
-    const abs = (() => { try { return new URL(url, window.location.href).href; } catch { return url; } })();
+    // audio.src returns the absolute version; compare against both forms
+    let abs = url;
+    try { abs = new URL(url, window.location.href).href; } catch { /* keep url */ }
     if (audio.src !== url && audio.src !== abs) {
       audio.src = url;
       audio.load();
-      if (isPlayingRef.current) {
+      // If already playing (e.g. track skipped while playing) continue playback
+      if (!audio.paused) {
         audio.play().catch(() => {});
       }
     }
   }, [currentSongIndex, currentSong?.url]);
 
-  // ── Start playback (called synchronously inside a click/tap handler) ─
-  // iOS Safari requires audio.play() to be called directly inside the
-  // element's event handler — not from a document-level listener.
+  // ── Start playback — must be called synchronously inside a click/tap ─
+  // iOS Safari requires audio.play() to happen in the direct element
+  // handler's synchronous call stack.
   const _startPlayback = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    // Use audio.paused as ground truth; isPlayingRef can lag on iOS
+    if (!audio || !currentSong) return;
+    // Guard: don't call play() a second time if already playing
     if (!audio.paused) return;
-    if (currentSong && !audio.src) {
+
+    // Ensure src is set (defensive — the useEffect should have done this)
+    if (!audio.src || audio.src === window.location.href) {
       audio.src = resolveUrl(currentSong.url);
-      // Do NOT call audio.load() here — calling load() before play() in the
-      // same gesture can break iOS Safari's gesture context. play() alone
-      // starts downloading if needed.
     }
-    audio.play()
-      .then(() => { isPlayingRef.current = true; setIsPlaying(true); hasStartedRef.current = true; })
-      .catch((err) => { console.warn('[Music] play() blocked:', err); });
+
+    // Mark as started SYNCHRONOUSLY so the bubbled document-click listener
+    // (which fires after this returns) sees it and skips the duplicate call.
+    startedRef.current = true;
+
+    audio.play().catch(err => {
+      console.warn('[Music] play() blocked:', err.name, err.message);
+      startedRef.current = false; // allow retry on next gesture
+    });
   }, [currentSong]);
 
   // ── Autoplay: start on first user interaction anywhere ─────────────
@@ -93,16 +116,16 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     if (activeSongs.length === 0) return;
 
     const tryStart = () => {
-      if (hasStartedRef.current) return;
+      if (startedRef.current) return; // already playing or a direct tap just fired
       _startPlayback();
     };
 
     // Try immediately (works on desktop when browser allows autoplay)
     tryStart();
 
-    // Fallback: listen for click/keydown only — NOT touchstart.
-    // touchstart + click both fire for the same tap; double-calling play()
-    // within the same gesture can confuse iOS Safari and block both calls.
+    // Fallback: pick up the first click/keydown anywhere on the page.
+    // NOT touchstart — firing touchstart + click for the same tap causes
+    // a double play() call on iOS Safari which blocks both.
     document.addEventListener('click',   tryStart, { passive: true });
     document.addEventListener('keydown', tryStart, { passive: true });
 
@@ -114,21 +137,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   const nextSong = useCallback(() => {
     setCurrentSongIndex(prev => (prev + 1) % (activeSongs.length || 1));
-    // Ensure playing continues
-    setTimeout(() => {
-      if (audioRef.current && isPlayingRef.current) {
-        audioRef.current.play().catch(() => {});
-      }
-    }, 60);
   }, [activeSongs.length]);
 
   const prevSong = useCallback(() => {
     setCurrentSongIndex(prev => (prev - 1 + (activeSongs.length || 1)) % (activeSongs.length || 1));
-    setTimeout(() => {
-      if (audioRef.current && isPlayingRef.current) {
-        audioRef.current.play().catch(() => {});
-      }
-    }, 60);
   }, [activeSongs.length]);
 
   const setVolume = useCallback((v: number) => {
@@ -149,7 +161,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             fetch(url).then(r => { if (r.ok) cache.put(url, r); }).catch(() => {});
           }
         }
-      } catch {}
+      } catch { /* ignore */ }
     })();
   }, [activeSongs.length]);
 
