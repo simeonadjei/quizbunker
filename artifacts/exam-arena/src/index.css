@@ -197,41 +197,45 @@
 .btn-game {
   @apply inline-flex items-center justify-center gap-2 font-display rounded-2xl text-white font-bold cursor-pointer select-none;
   background: linear-gradient(180deg, hsl(36 100% 60%) 0%, hsl(32 95% 48%) 60%, hsl(28 90% 40%) 100%);
-  border: 2.5px solid rgba(255, 255, 255, 0.45);
+  border: 3px solid rgba(255, 255, 255, 0.45);
   box-shadow: 0 6px 0 hsl(22 90% 30%), 0 8px 16px rgba(0,0,0,0.4);
   transition: transform 0.08s, box-shadow 0.08s;
-  padding: 0.65rem 1.5rem;
-  font-size: 1rem;
+  padding: 0.75rem 1.75rem;
+  font-size: 1.125rem;
+  /* own GPU layer — prevents blur from sibling filter: drop-shadow on title */
+  transform: translateZ(0);
 }
-.btn-game:hover  { transform: translateY(-2px); box-shadow: 0 8px 0 hsl(22 90% 30%), 0 10px 20px rgba(0,0,0,0.4); }
-.btn-game:active { transform: translateY(4px);  box-shadow: 0 2px 0 hsl(22 90% 30%), 0 4px 8px rgba(0,0,0,0.3); }
+.btn-game:hover  { transform: translateY(-2px) translateZ(0); box-shadow: 0 8px 0 hsl(22 90% 30%), 0 10px 20px rgba(0,0,0,0.4); }
+.btn-game:active { transform: translateY(4px)  translateZ(0); box-shadow: 0 2px 0 hsl(22 90% 30%), 0 4px 8px rgba(0,0,0,0.3); }
 
 /* Secondary teal button */
 .btn-game-secondary {
   @apply inline-flex items-center justify-center gap-2 font-display rounded-2xl text-white font-bold cursor-pointer select-none;
   background: linear-gradient(180deg, hsl(175 80% 50%) 0%, hsl(175 80% 38%) 100%);
-  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 6px 0 hsl(175 80% 22%), 0 8px 16px rgba(0,0,0,0.4);
   transition: transform 0.08s, box-shadow 0.08s;
-  padding: 0.65rem 1.5rem;
-  font-size: 1rem;
+  padding: 0.75rem 1.75rem;
+  font-size: 1.125rem;
+  transform: translateZ(0);
 }
-.btn-game-secondary:hover  { transform: translateY(-2px); box-shadow: 0 8px 0 hsl(175 80% 22%), 0 10px 20px rgba(0,0,0,0.4); }
-.btn-game-secondary:active { transform: translateY(4px);  box-shadow: 0 2px 0 hsl(175 80% 22%), 0 4px 8px rgba(0,0,0,0.3); }
+.btn-game-secondary:hover  { transform: translateY(-2px) translateZ(0); box-shadow: 0 8px 0 hsl(175 80% 22%), 0 10px 20px rgba(0,0,0,0.4); }
+.btn-game-secondary:active { transform: translateY(4px)  translateZ(0); box-shadow: 0 2px 0 hsl(175 80% 22%), 0 4px 8px rgba(0,0,0,0.3); }
 
 /* Ghost / outline button */
 .btn-game-ghost {
   @apply inline-flex items-center justify-center gap-2 font-display rounded-2xl font-bold cursor-pointer select-none;
   background: rgba(255,255,255,0.08);
-  border: 2.5px solid rgba(255,255,255,0.3);
+  border: 3px solid rgba(255,255,255,0.3);
   box-shadow: 0 4px 0 rgba(0,0,0,0.25);
   color: #fff;
   transition: transform 0.08s, box-shadow 0.08s, background 0.15s;
-  padding: 0.65rem 1.5rem;
-  font-size: 1rem;
+  padding: 0.75rem 1.75rem;
+  font-size: 1.125rem;
+  transform: translateZ(0);
 }
-.btn-game-ghost:hover  { background: rgba(255,255,255,0.15); transform: translateY(-1px); }
-.btn-game-ghost:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+.btn-game-ghost:hover  { background: rgba(255,255,255,0.15); transform: translateY(-1px) translateZ(0); }
+.btn-game-ghost:active { transform: translateY(3px) translateZ(0); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
 
 /* Game card panel — no backdrop-filter: it creates GPU compositing layers
    that mobile Chrome composites above portals regardless of z-index.

@@ -31,9 +31,9 @@ function RollingWord() {
   }, []);
 
   return (
-    <div className="h-9 flex items-center justify-center overflow-hidden">
+    <div className="h-12 flex items-center justify-center overflow-hidden">
       <span
-        className="font-display text-2xl tracking-widest"
+        className="font-display text-3xl tracking-widest"
         style={{
           display: 'inline-block',
           color: 'hsl(45 100% 65%)',
@@ -54,13 +54,13 @@ export default function Landing() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center px-7 text-center relative z-10 max-w-md mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center px-6 text-center relative z-10 max-w-md mx-auto w-full">
 
         {/* ── Hero ─────────────────────────────────────────────────── */}
-        <div className="w-full mt-8 mb-2">
+        <div className="w-full mt-12 mb-4">
 
           {/* Live badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/50 font-bold text-xs uppercase tracking-widest mb-6"
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/50 font-bold text-sm uppercase tracking-widest mb-8"
             style={{ color: 'hsl(36 100% 80%)' }}>
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
@@ -80,8 +80,8 @@ export default function Landing() {
                 background: 'radial-gradient(ellipse 90% 60% at 50% 50%, hsl(32 100% 50% / 0.22), transparent 70%)',
                 filter: 'blur(18px)',
               }} />
-            <h1 className="text-game-title text-5xl sm:text-6xl leading-tight relative z-10">QUIZ</h1>
-            <h1 className="text-game-title-orange text-6xl sm:text-7xl leading-none relative z-10"
+            <h1 className="text-game-title text-6xl sm:text-7xl leading-tight relative z-10">QUIZ</h1>
+            <h1 className="text-game-title-orange text-7xl sm:text-8xl leading-none relative z-10"
               style={{ marginTop: '-0.05em' }}>BUNKER</h1>
             {/* Bottom fire line */}
             <div className="mx-auto mt-1 h-1 w-40 rounded-full relative z-10"
@@ -92,7 +92,7 @@ export default function Landing() {
           </div>
 
           {/* Tagline */}
-          <p className="font-bold text-base leading-relaxed mt-5"
+          <p className="font-bold text-lg leading-relaxed mt-6"
             style={{ color: 'hsl(210 80% 95%)', textShadow: '0 0 20px hsl(210 80% 70% / 0.4)' }}>
             Ghana's top exam practice platform.<br />
             <span style={{
@@ -103,17 +103,17 @@ export default function Landing() {
         </div>
 
         {/* ── CTA ──────────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-3 w-full mt-8">
+        <div className="flex flex-col gap-4 w-full mt-10">
           {isLoading ? null : user ? (
-            <Link href="/dashboard" className="btn-game w-full py-4 text-lg justify-center">
+            <Link href="/dashboard" className="btn-game w-full py-5 text-xl justify-center">
               Continue Playing
             </Link>
           ) : (
             <>
-              <Link href="/register" className="btn-game w-full py-4 text-lg justify-center">
+              <Link href="/register" className="btn-game w-full py-5 text-xl justify-center">
                 Create Free Account
               </Link>
-              <Link href="/login" className="btn-game-secondary w-full py-3 text-base justify-center">
+              <Link href="/login" className="btn-game-secondary w-full py-4 text-lg justify-center">
                 I Already Have an Account
               </Link>
             </>
@@ -121,7 +121,7 @@ export default function Landing() {
         </div>
 
         {/* ── Ancient Quote ─────────────────────────────────────────── */}
-        <div className="w-full mt-10 rounded-2xl px-5 py-5 relative overflow-hidden"
+        <div className="w-full mt-12 rounded-2xl px-6 py-6 relative overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, hsl(263 80% 15% / 0.85), hsl(240 60% 12% / 0.9))',
             border: '1.5px solid hsl(263 80% 55% / 0.45)',
@@ -132,7 +132,7 @@ export default function Landing() {
           <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full pointer-events-none"
             style={{ background: 'hsl(263 90% 60% / 0.15)', filter: 'blur(20px)' }} />
 
-          <p className="font-mono text-sm italic leading-relaxed relative z-10"
+          <p className="font-mono text-base italic leading-relaxed relative z-10"
             style={{ color: 'hsl(263 60% 90%)', textShadow: '0 0 12px hsl(263 80% 70% / 0.4)' }}>
             "Education is the most powerful weapon which you can use to change the world."
           </p>
@@ -143,7 +143,7 @@ export default function Landing() {
         </div>
 
         {/* ── Feature list ─────────────────────────────────────────── */}
-        <div className="flex flex-col gap-5 w-full mt-8">
+        <div className="flex flex-col gap-5 w-full mt-12">
           <FeatureCard
             icon={<BookOpen className="w-6 h-6" style={{ color: 'hsl(45 100% 65%)' }} />}
             title="4,800+ Questions"
@@ -210,7 +210,7 @@ function WhatsAppShare() {
   const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
   return (
-    <div className="w-full mt-8 rounded-2xl p-5 flex flex-col items-center gap-3 text-center"
+    <div className="w-full mt-12 rounded-2xl p-6 flex flex-col items-center gap-4 text-center"
       style={{
         background: 'linear-gradient(135deg, hsl(145 60% 10% / 0.85), hsl(160 50% 8% / 0.9))',
         border: '1.5px solid hsl(145 70% 35% / 0.4)',
@@ -218,10 +218,10 @@ function WhatsAppShare() {
       }}
     >
       <div className="flex items-center gap-2" style={{ color: '#25D366' }}>
-        <Share2 className="w-4 h-4" />
-        <span className="font-bold text-sm tracking-wide uppercase">Share with Friends</span>
+        <Share2 className="w-5 h-5" />
+        <span className="font-bold text-base tracking-wide uppercase">Share with Friends</span>
       </div>
-      <p className="text-xs leading-relaxed" style={{ color: 'hsl(145 30% 75%)' }}>
+      <p className="text-sm leading-relaxed" style={{ color: 'hsl(145 30% 75%)' }}>
         Know someone preparing for exams? Send them the link on WhatsApp!
       </p>
       <a
@@ -254,13 +254,13 @@ function FeatureCard({ icon, title, desc, borderColor, iconBg }: {
       className="card-game p-5 flex items-start gap-4 text-left border-l-4"
       style={{ borderLeftColor: borderColor }}
     >
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-white/20"
+      <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 border border-white/20"
         style={{ background: iconBg }}>
         {icon}
       </div>
       <div className="pt-0.5">
-        <h3 className="font-display text-base mb-1" style={{ color: '#ffffff' }}>{title}</h3>
-        <p className="text-sm leading-relaxed" style={{ color: 'hsl(220 30% 82%)' }}>{desc}</p>
+        <h3 className="font-display text-lg mb-1.5" style={{ color: '#ffffff' }}>{title}</h3>
+        <p className="text-base leading-relaxed" style={{ color: 'hsl(220 30% 82%)' }}>{desc}</p>
       </div>
     </div>
   );
