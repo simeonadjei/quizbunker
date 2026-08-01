@@ -1,10 +1,56 @@
 import { useGetQuizSession, useSubmitQuizSession, getGetQuizSessionQueryKey } from '@workspace/api-client-react';
+import type { QuizSessionDetail } from '@workspace/api-client-react';
 import { useRoute, useLocation } from 'wouter';
-import { useState, useRef, useEffect } from 'react';
-import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackgroundParticles } from '@/components/BackgroundParticles';
 import { MusicPlayer } from '@/components/MusicPlayer';
+
+// ─── Offline session cache ────────────────────────────────────────────────────
+// Keyed by session ID. Stores the full QuizSessionDetail so the quiz is
+// playable offline after the first successful online load.
+
+const CACHE_PREFIX = 'qb_session_';
+const ANSWERS_PREFIX = 'qb_answers_';
+
+function cacheSession(id: number, data: QuizSessionDetail) {
+  try {
+    localStorage.setItem(`${CACHE_PREFIX}${id}`, JSON.stringify(data));
+  } catch {}
+}
+
+function getCachedSession(id: number): QuizSessionDetail | null {
+  try {
+    const raw = localStorage.getItem(`${CACHE_PREFIX}${id}`);
+    return raw ? (JSON.parse(raw) as QuizSessionDetail) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveAnswersLocally(id: number, answers: Record<number, string>) {
+  try {
+    localStorage.setItem(`${ANSWERS_PREFIX}${id}`, JSON.stringify(answers));
+  } catch {}
+}
+
+function getLocalAnswers(id: number): Record<number, string> {
+  try {
+    const raw = localStorage.getItem(`${ANSWERS_PREFIX}${id}`);
+    return raw ? (JSON.parse(raw) as Record<number, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function clearLocalAnswers(id: number) {
+  try {
+    localStorage.removeItem(`${ANSWERS_PREFIX}${id}`);
+  } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const OPTION_STYLES = {
   A: { selectedBg: 'bg-cyan-500/25',   border: 'border-cyan-400',   shadow: 'shadow-[0_0_18px_hsl(189_95%_52%/0.4)]', badgeBg: 'bg-cyan-500'   },
@@ -18,16 +64,59 @@ export default function Quiz() {
   const sessionId = Number(params?.sessionId);
   const [, setLocation] = useLocation();
 
-  const { data: session, isLoading, error } = useGetQuizSession(sessionId, {
-    query: { enabled: !!sessionId, queryKey: getGetQuizSessionQueryKey(sessionId) },
+  // ── Fetch with offline fallback ──────────────────────────────────────────
+  const { data: networkSession, isLoading, error } = useGetQuizSession(sessionId, {
+    query: {
+      enabled: !!sessionId,
+      queryKey: getGetQuizSessionQueryKey(sessionId),
+      // Keep stale data visible while revalidating — avoids flash on reconnect
+      staleTime: 60_000,
+      retry: 1,
+    },
   });
+
+  const [offlineMode, setOfflineMode] = useState(false);
+  const [session, setSession] = useState<QuizSessionDetail | null>(null);
+
+  // Sync session: prefer live network data; fall back to cache on error
+  useEffect(() => {
+    if (networkSession) {
+      setSession(networkSession);
+      setOfflineMode(false);
+      cacheSession(sessionId, networkSession);
+    } else if (error && !networkSession) {
+      const cached = getCachedSession(sessionId);
+      if (cached) {
+        setSession(cached);
+        setOfflineMode(true);
+      }
+    }
+  }, [networkSession, error, sessionId]);
+
   const submitSession = useSubmitQuizSession();
 
-  const [answers, setAnswers]       = useState<Record<number, string>>({});
-  const [revealed, setRevealed]     = useState<Record<number, boolean>>({});
+  // Initialise answers from both network session and any locally-saved progress
+  const [answers, setAnswers] = useState<Record<number, string>>(() => getLocalAnswers(sessionId));
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [submitOfflineError, setSubmitOfflineError] = useState(false);
   const feedbackRef  = useRef<HTMLDivElement>(null);
   const optionsRef   = useRef<HTMLDivElement>(null);
+
+  // Merge server-returned answers on session load (don't clobber local answers)
+  useEffect(() => {
+    if (!session?.answers) return;
+    const serverAnswers: Record<number, string> = {};
+    const serverRevealed: Record<number, boolean> = {};
+    for (const a of session.answers) {
+      if (a.selectedAnswer) {
+        serverAnswers[a.questionId] = a.selectedAnswer;
+        serverRevealed[a.questionId] = true;
+      }
+    }
+    setAnswers(prev => ({ ...serverAnswers, ...prev }));
+    setRevealed(prev => ({ ...serverRevealed, ...prev }));
+  }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const questions       = session?.questions || [];
   const currentQuestion = questions[currentQIndex];
@@ -50,28 +139,44 @@ export default function Quiz() {
     }
   }, [isCurrentRevealed, currentQIndex]);
 
-  const handleSelect = (answer: string) => {
+  const handleSelect = useCallback((answer: string) => {
     if (session?.completedAt) return;
+    if (!currentQuestion) return;
     if (answers[currentQuestion.id]) return;
-    setAnswers(prev => ({ ...prev, [currentQuestion.id]: answer }));
+    const next = { ...answers, [currentQuestion.id]: answer };
+    setAnswers(next);
     setRevealed(prev => ({ ...prev, [currentQuestion.id]: true }));
-  };
+    // Persist locally so progress survives an offline disconnect
+    saveAnswersLocally(sessionId, next);
+  }, [session?.completedAt, currentQuestion, answers, sessionId]);
 
   const handleNext = () => { if (currentQIndex < questions.length - 1) setCurrentQIndex(p => p + 1); };
   const handlePrev = () => { if (currentQIndex > 0) setCurrentQIndex(p => p - 1); };
 
   const handleSubmit = () => {
+    if (offlineMode) {
+      setSubmitOfflineError(true);
+      return;
+    }
     const formattedAnswers = Object.entries(answers).map(([qId, ans]) => ({
       questionId: Number(qId),
       selectedAnswer: ans,
     }));
     submitSession.mutate({ sessionId, data: { answers: formattedAnswers } }, {
-      onSuccess: () => setLocation(`/results/${sessionId}`),
+      onSuccess: () => {
+        clearLocalAnswers(sessionId);
+        setLocation(`/results/${sessionId}`);
+      },
     });
   };
 
-  if (isLoading) return <LoadingScreen />;
-  if (error || !session) return <ErrorScreen />;
+  // ── Loading / error states ───────────────────────────────────────────────
+  if (isLoading && !session) return <LoadingScreen />;
+
+  if ((error || !session) && !session) return <ErrorScreen />;
+
+  if (!session) return <LoadingScreen />;
+
   if (session.completedAt) { setLocation(`/results/${sessionId}`); return null; }
 
   return (
@@ -96,6 +201,24 @@ export default function Quiz() {
           style={{ opacity: 0.055, filter: 'blur(1px) saturate(0.3)' }}
         />
       </div>
+
+      {/* ── Offline banner ── */}
+      {offlineMode && (
+        <div className="relative z-50 shrink-0 flex items-center justify-center gap-2 py-1.5 px-4 text-xs font-bold"
+          style={{ background: 'rgba(234,179,8,0.15)', borderBottom: '1px solid rgba(234,179,8,0.4)' }}>
+          <WifiOff className="w-3.5 h-3.5 text-yellow-400" />
+          <span className="text-yellow-300">Offline — continuing from cache. Reconnect to submit.</span>
+        </div>
+      )}
+
+      {/* ── Submit-while-offline error ── */}
+      {submitOfflineError && (
+        <div className="relative z-50 shrink-0 flex items-center justify-center gap-2 py-1.5 px-4 text-xs font-bold"
+          style={{ background: 'rgba(239,68,68,0.15)', borderBottom: '1px solid rgba(239,68,68,0.4)' }}>
+          <WifiOff className="w-3.5 h-3.5 text-red-400" />
+          <span className="text-red-300">No connection — your answers are saved. Reconnect then submit.</span>
+        </div>
+      )}
 
       {/* ── Row 1: HUD bar ── */}
       <header className="relative z-40 shrink-0 bg-background/90 backdrop-blur-md border-b-2 border-primary/40">
@@ -275,11 +398,16 @@ export default function Quiz() {
           <button
             onClick={handleSubmit}
             disabled={submitSession.isPending}
-            className="btn-game-accent flex-1 py-2.5 text-base flex items-center justify-center gap-2"
+            className={cn(
+              'btn-game-accent flex-1 py-2.5 text-base flex items-center justify-center gap-2',
+              offlineMode && 'opacity-60'
+            )}
           >
             {submitSession.isPending
               ? <Loader2 className="w-5 h-5 animate-spin" />
-              : <><Sparkles className="w-4 h-4" /> Submit &amp; See Results</>
+              : offlineMode
+                ? <><WifiOff className="w-4 h-4" /> Reconnect to Submit</>
+                : <><Sparkles className="w-4 h-4" /> Submit &amp; See Results</>
             }
           </button>
         ) : isCurrentRevealed ? (

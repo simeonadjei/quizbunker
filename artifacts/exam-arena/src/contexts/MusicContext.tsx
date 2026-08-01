@@ -29,9 +29,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [volume, setVolumeState] = useState(0.5);
 
   const audioRef     = useRef<HTMLAudioElement | null>(null);
-  // Set to true synchronously on first play() call so the document
-  // bubbled-click listener doesn't call _startPlayback() a second time.
   const startedRef   = useRef(false);
+
+  // Blob URL cache: network URL → object URL (works offline after first load)
+  const blobUrlsRef  = useRef<Map<string, string>>(new Map());
 
   const activeSongs = songs.filter(s => s.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
   const currentSong = activeSongs.length > 0 ? activeSongs[currentSongIndex % activeSongs.length] : null;
@@ -46,7 +47,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Drive isPlaying from real audio events (not promise callbacks) ──
+  // ── Drive isPlaying from real audio events ──────────────────────────
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -58,7 +59,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('play',  onPlay);
       audio.removeEventListener('pause', onPause);
     };
-  }, []); // runs once; the audio element never changes
+  }, []);
 
   // ── Auto-advance on track end ───────────────────────────────────────
   useEffect(() => {
@@ -69,67 +70,85 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     return () => audio.removeEventListener('ended', onEnded);
   }, [activeSongs.length]);
 
-  // ── Track the URL we last loaded so we can detect song changes ────
+  // ── Pre-fetch all songs as blob URLs (enables offline playback) ─────
+  // Each song is fetched once and stored as an in-memory blob URL.
+  // After the first online load the audio plays from memory — no network needed.
+  useEffect(() => {
+    if (activeSongs.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const song of activeSongs) {
+        if (cancelled) break;
+        const networkUrl = resolveUrl(song.url);
+        if (blobUrlsRef.current.has(networkUrl)) continue; // already cached
+        try {
+          const res = await fetch(networkUrl, { cache: 'force-cache' });
+          if (!res.ok || cancelled) continue;
+          const blob = await res.blob();
+          if (!cancelled) {
+            blobUrlsRef.current.set(networkUrl, URL.createObjectURL(blob));
+          }
+        } catch {
+          // offline or fetch failed — will retry next time the component re-mounts
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [activeSongs.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Resolve playback URL: prefer cached blob, fall back to network ──
+  const resolvePlaybackUrl = useCallback((networkUrl: string) => {
+    return blobUrlsRef.current.get(networkUrl) ?? networkUrl;
+  }, []);
+
+  // ── Track the URL we last loaded ────────────────────────────────────
   const loadedUrlRef = useRef<string>('');
 
   // ── When the track changes while already playing, swap src + resume ─
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
-    const url = resolveUrl(currentSong.url);
-    if (loadedUrlRef.current === url) return; // same track, nothing to do
-    // Only auto-swap if already playing (e.g. auto-advance / manual skip).
-    // On first play the gesture handler (_startPlayback) owns src assignment —
-    // doing it here would break iOS Safari's autoplay policy.
+    const networkUrl = resolveUrl(currentSong.url);
+    if (loadedUrlRef.current === networkUrl) return;
     if (!audio.paused) {
-      loadedUrlRef.current = url;
-      audio.src = url;
+      loadedUrlRef.current = networkUrl;
+      audio.src = resolvePlaybackUrl(networkUrl);
       audio.play().catch(() => {});
     }
-    // If paused, _startPlayback will set the src when the next gesture fires.
-  }, [currentSongIndex, currentSong?.url]);
+  }, [currentSongIndex, currentSong?.url, resolvePlaybackUrl]);
 
   // ── Start playback — must be called synchronously inside a click/tap ─
-  // iOS Safari requires BOTH audio.src assignment AND audio.play() to happen
-  // in the same synchronous user-gesture call stack. Setting src in a
-  // useEffect and calling play() here counts as two separate gestures on iOS
-  // and gets blocked. Always do both here.
   const _startPlayback = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
-    if (!audio.paused) return; // already playing
+    if (!audio.paused) return;
 
-    const url = resolveUrl(currentSong.url);
+    const networkUrl = resolveUrl(currentSong.url);
+    const playUrl = resolvePlaybackUrl(networkUrl);
 
-    // Assign src inside the gesture handler — required for iOS Safari.
-    audio.src = url;
-    loadedUrlRef.current = url;
-
-    // Mark as started SYNCHRONOUSLY so the bubbled document-click listener
-    // (which fires after this returns) sees it and skips the duplicate call.
+    audio.src = playUrl;
+    loadedUrlRef.current = networkUrl;
     startedRef.current = true;
 
     audio.play().catch(err => {
       console.warn('[Music] play() blocked:', err.name, err.message);
-      startedRef.current = false; // allow retry on next gesture
+      startedRef.current = false;
     });
-  }, [currentSong]);
+  }, [currentSong, resolvePlaybackUrl]);
 
-  // ── Autoplay: start on first user interaction anywhere ─────────────
+  // ── Autoplay: start on first user interaction ───────────────────────
   useEffect(() => {
     if (activeSongs.length === 0) return;
 
     const tryStart = () => {
-      if (startedRef.current) return; // already playing or a direct tap just fired
+      if (startedRef.current) return;
       _startPlayback();
     };
 
-    // Try immediately (works on desktop when browser allows autoplay)
     tryStart();
 
-    // Fallback: pick up the first click/keydown anywhere on the page.
-    // NOT touchstart — firing touchstart + click for the same tap causes
-    // a double play() call on iOS Safari which blocks both.
     document.addEventListener('click',   tryStart, { passive: true });
     document.addEventListener('keydown', tryStart, { passive: true });
 
@@ -151,23 +170,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     setVolumeState(v);
     if (audioRef.current) audioRef.current.volume = v;
   }, []);
-
-  // ── Pre-warm audio cache (Cache Storage API) ───────────────────────
-  useEffect(() => {
-    if (activeSongs.length === 0 || !('caches' in window)) return;
-    (async () => {
-      try {
-        const cache = await caches.open('audio-cache');
-        for (const song of activeSongs) {
-          const url = resolveUrl(song.url);
-          const cached = await cache.match(url).catch(() => null);
-          if (!cached) {
-            fetch(url).then(r => { if (r.ok) cache.put(url, r); }).catch(() => {});
-          }
-        }
-      } catch { /* ignore */ }
-    })();
-  }, [activeSongs.length]);
 
   return (
     <MusicContext.Provider value={{ isPlaying, currentSong, volume, setVolume, nextSong, prevSong, _startPlayback }}>
