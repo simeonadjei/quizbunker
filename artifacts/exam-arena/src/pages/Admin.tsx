@@ -8,6 +8,9 @@ import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 
+// Prepend the API base URL for direct fetch calls (cross-origin on Render)
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+
 export default function AdminPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
@@ -302,7 +305,7 @@ function QuestionUploader() {
     if (subject) formData.append("subject", subject);
 
     try {
-      const res = await fetch('/api/admin/questions/upload', {
+      const res = await fetch(`${API_BASE}/api/admin/questions/upload`, {
         method: 'POST',
         body: formData,
         credentials: "include"
@@ -384,7 +387,7 @@ function SongManager() {
     }
 
     try {
-      const res = await fetch('/api/admin/songs', {
+      const res = await fetch(`${API_BASE}/api/admin/songs`, {
         method: 'POST',
         body: formData,
         credentials: "include"
@@ -468,7 +471,7 @@ function EmailTestPanel() {
     setStatus('loading');
     setMessage('');
     try {
-      const res = await fetch('/api/admin/test-email', {
+      const res = await fetch(`${API_BASE}/api/admin/test-email`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
