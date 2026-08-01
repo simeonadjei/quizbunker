@@ -38,11 +38,11 @@ export function MusicPlayer() {
           WebkitBackdropFilter: 'blur(8px)',
         }}
       >
-        {/* Down-right pointing finger */}
+        {/* Pointing finger */}
         <span className="text-xl leading-none" style={{ transform: 'rotate(30deg)', display: 'inline-block' }}>
           👇
         </span>
-        <span>Turn on music &amp; adjust volume</span>
+        <span>Click on play to listen to music</span>
       </div>
 
       {/* ── Player card ────────────────────────────────────────────── */}
