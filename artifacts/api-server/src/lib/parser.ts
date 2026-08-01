@@ -95,8 +95,10 @@ export function parseQuestionText(
       continue;
     }
 
-    // Parse question start: "1. Question text here"
-    const questionMatch = line.match(/^(\d+)\.\s+(.+)$/);
+    // Parse question start: "1. Question text here" OR "Question 1: text"
+    const questionMatch =
+      line.match(/^(\d+)\.\s+(.+)$/) ||
+      line.match(/^Question\s+(\d+)\s*[:.]\s+(.+)$/i);
     if (questionMatch) {
       saveCurrentQuestion();
       current = {
