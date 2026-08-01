@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type PaymentInitInputPlan = typeof PaymentInitInputPlan[keyof typeof PaymentInitInputPlan];
+export type MomoPaymentInputPlan = typeof MomoPaymentInputPlan[keyof typeof MomoPaymentInputPlan];
 
 
-export const PaymentInitInputPlan = {
+export const MomoPaymentInputPlan = {
   monthly: 'monthly',
   semester: 'semester',
   yearly: 'yearly',

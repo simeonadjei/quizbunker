@@ -158,9 +158,20 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const verificationToken = crypto.randomBytes(32).toString("hex");
 
+  // Grant a 2-day free trial automatically on registration
+  const trialEnd = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
   const [user] = await db
     .insert(usersTable)
-    .values({ email: email.toLowerCase(), name, passwordHash, verificationToken, emailVerified: false })
+    .values({
+      email: email.toLowerCase(),
+      name,
+      passwordHash,
+      verificationToken,
+      emailVerified: false,
+      subscriptionPlan: "trial",
+      subscriptionEnd: trialEnd,
+    })
     .returning();
 
   // Detect origin for verification link — prefer FRONTEND_URL (set in production env)

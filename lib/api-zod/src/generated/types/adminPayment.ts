@@ -18,6 +18,8 @@ export interface AdminPayment {
   status: string;
   reference: string;
   /** @nullable */
+  userTxId?: string | null;
+  /** @nullable */
   startDate?: string | null;
   /** @nullable */
   endDate?: string | null;

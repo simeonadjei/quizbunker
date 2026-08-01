@@ -19,7 +19,7 @@ tags:
   - name: songs
     description: Background music
   - name: payments
-    description: Paystack payments
+    description: Payments
   - name: admin
     description: Admin operations
 
@@ -333,49 +333,30 @@ paths:
                   $ref: "#/components/schemas/Song"
 
   # ── Payments ──────────────────────────────────────────────────────────────
-  /payments/initialize:
+  /payments/submit:
     post:
-      operationId: initializePayment
+      operationId: submitMomoPayment
       tags: [payments]
-      summary: Initialize a Paystack payment
+      summary: Submit a MoMo payment for manual verification
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PaymentInitInput"
+              $ref: "#/components/schemas/MomoPaymentInput"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PaymentInitResponse"
+                $ref: "#/components/schemas/MomoPaymentResponse"
         "400":
           description: Bad request
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
-  /payments/verify/{reference}:
-    get:
-      operationId: verifyPayment
-      tags: [payments]
-      summary: Verify a Paystack payment
-      parameters:
-        - name: reference
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PaymentVerifyResponse"
 
   /payments/status:
     get:
@@ -601,6 +582,62 @@ paths:
                 items:
                   $ref: "#/components/schemas/AdminPayment"
 
+  /admin/payments/{id}/verify:
+    post:
+      operationId: verifyMomoPayment
+      tags: [admin]
+      summary: Admin verifies a pending MoMo payment by entering the txId they received
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MomoVerifyInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MomoVerifyResponse"
+        "404":
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/subscribe:
+    post:
+      operationId: adminSubscribeUser
+      tags: [admin]
+      summary: Manually subscribe a user to any plan and optionally generate a password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminSubscribeInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSubscribeResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -669,7 +706,7 @@ components:
           type: string
         subscriptionPlan:
           type: string
-          enum: [none, monthly, semester, yearly]
+          enum: [none, trial, monthly, semester, yearly]
         subscriptionEnd:
           type: ["string", "null"]
         semesterStart:
@@ -887,35 +924,27 @@ components:
             type: integer
 
     # ── Payments ──────────────────────────────────────────────────────────────
-    PaymentInitInput:
+    MomoPaymentInput:
       type: object
-      required: [plan]
+      required: [plan, txId]
       properties:
         plan:
           type: string
           enum: [monthly, semester, yearly]
+        txId:
+          type: string
+          minLength: 1
         semesterStart:
           type: ["string", "null"]
 
-    PaymentInitResponse:
+    MomoPaymentResponse:
       type: object
-      required: [authorizationUrl, reference]
+      required: [message, reference]
       properties:
-        authorizationUrl:
+        message:
           type: string
         reference:
           type: string
-
-    PaymentVerifyResponse:
-      type: object
-      required: [success, plan]
-      properties:
-        success:
-          type: boolean
-        plan:
-          type: string
-        subscriptionEnd:
-          type: ["string", "null"]
 
     SubscriptionStatus:
       type: object
@@ -1040,9 +1069,51 @@ components:
           type: string
         reference:
           type: string
+        userTxId:
+          type: ["string", "null"]
         startDate:
           type: ["string", "null"]
         endDate:
           type: ["string", "null"]
         createdAt:
           type: string
+
+    MomoVerifyInput:
+      type: object
+      required: [txId]
+      properties:
+        txId:
+          type: string
+          minLength: 1
+
+    MomoVerifyResponse:
+      type: object
+      required: [match, message]
+      properties:
+        match:
+          type: boolean
+        message:
+          type: string
+
+    AdminSubscribeInput:
+      type: object
+      required: [email, plan]
+      properties:
+        email:
+          type: string
+        plan:
+          type: string
+          enum: [trial, monthly, semester, yearly]
+        months:
+          type: integer
+        generatePassword:
+          type: boolean
+
+    AdminSubscribeResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        generatedPassword:
+          type: ["string", "null"]

@@ -35,7 +35,7 @@ export const RegisterUserResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
   "name": zod.string(),
-  "subscriptionPlan": zod.enum(['none', 'monthly', 'semester', 'yearly']),
+  "subscriptionPlan": zod.enum(['none', 'trial', 'monthly', 'semester', 'yearly']),
   "subscriptionEnd": zod.string().nullish(),
   "semesterStart": zod.string().nullish()
 })
@@ -56,7 +56,7 @@ export const LoginUserResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
   "name": zod.string(),
-  "subscriptionPlan": zod.enum(['none', 'monthly', 'semester', 'yearly']),
+  "subscriptionPlan": zod.enum(['none', 'trial', 'monthly', 'semester', 'yearly']),
   "subscriptionEnd": zod.string().nullish(),
   "semesterStart": zod.string().nullish()
 })
@@ -119,7 +119,7 @@ export const GetCurrentUserResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
   "name": zod.string(),
-  "subscriptionPlan": zod.enum(['none', 'monthly', 'semester', 'yearly']),
+  "subscriptionPlan": zod.enum(['none', 'trial', 'monthly', 'semester', 'yearly']),
   "subscriptionEnd": zod.string().nullish(),
   "semesterStart": zod.string().nullish()
 })
@@ -304,30 +304,20 @@ export const ListSongsResponse = zod.array(ListSongsResponseItem)
 
 
 /**
- * @summary Initialize a Paystack payment
+ * @summary Submit a MoMo payment for manual verification
  */
-export const InitializePaymentBody = zod.object({
+
+
+
+export const SubmitMomoPaymentBody = zod.object({
   "plan": zod.enum(['monthly', 'semester', 'yearly']),
+  "txId": zod.string().min(1),
   "semesterStart": zod.string().nullish()
 })
 
-export const InitializePaymentResponse = zod.object({
-  "authorizationUrl": zod.string(),
+export const SubmitMomoPaymentResponse = zod.object({
+  "message": zod.string(),
   "reference": zod.string()
-})
-
-
-/**
- * @summary Verify a Paystack payment
- */
-export const VerifyPaymentParams = zod.object({
-  "reference": zod.coerce.string()
-})
-
-export const VerifyPaymentResponse = zod.object({
-  "success": zod.boolean(),
-  "plan": zod.string(),
-  "subscriptionEnd": zod.string().nullish()
 })
 
 
@@ -521,10 +511,47 @@ export const ListAdminPaymentsResponseItem = zod.object({
   "amount": zod.number(),
   "status": zod.string(),
   "reference": zod.string(),
+  "userTxId": zod.string().nullish(),
   "startDate": zod.string().nullish(),
   "endDate": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListAdminPaymentsResponse = zod.array(ListAdminPaymentsResponseItem)
+
+
+/**
+ * @summary Admin verifies a pending MoMo payment by entering the txId they received
+ */
+export const VerifyMomoPaymentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const VerifyMomoPaymentBody = zod.object({
+  "txId": zod.string().min(1)
+})
+
+export const VerifyMomoPaymentResponse = zod.object({
+  "match": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Manually subscribe a user to any plan and optionally generate a password
+ */
+export const AdminSubscribeUserBody = zod.object({
+  "email": zod.string(),
+  "plan": zod.enum(['trial', 'monthly', 'semester', 'yearly']),
+  "months": zod.number().optional(),
+  "generatePassword": zod.boolean().optional()
+})
+
+export const AdminSubscribeUserResponse = zod.object({
+  "message": zod.string(),
+  "generatedPassword": zod.string().nullish()
+})
 
 

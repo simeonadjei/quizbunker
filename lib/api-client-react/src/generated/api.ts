@@ -24,6 +24,8 @@ import type {
   AdminLoginInput,
   AdminPayment,
   AdminStats,
+  AdminSubscribeInput,
+  AdminSubscribeResponse,
   AuthResponse,
   ErrorResponse,
   ForgotPasswordInput,
@@ -32,9 +34,10 @@ import type {
   ListQuestionsParams,
   LoginInput,
   MessageResponse,
-  PaymentInitInput,
-  PaymentInitResponse,
-  PaymentVerifyResponse,
+  MomoPaymentInput,
+  MomoPaymentResponse,
+  MomoVerifyInput,
+  MomoVerifyResponse,
   Question,
   QuestionFilters,
   QuestionUploadInput,
@@ -1189,36 +1192,36 @@ export function useListSongs<TData = Awaited<ReturnType<typeof listSongs>>, TErr
 
 
 
-export const getInitializePaymentUrl = () => {
+export const getSubmitMomoPaymentUrl = () => {
 
 
 
 
-  return `/api/payments/initialize`
+  return `/api/payments/submit`
 }
 
 /**
- * @summary Initialize a Paystack payment
+ * @summary Submit a MoMo payment for manual verification
  */
-export const initializePayment = async (paymentInitInput: PaymentInitInput, options?: RequestInit): Promise<PaymentInitResponse> => {
+export const submitMomoPayment = async (momoPaymentInput: MomoPaymentInput, options?: RequestInit): Promise<MomoPaymentResponse> => {
 
-  return customFetch<PaymentInitResponse>(getInitializePaymentUrl(),
+  return customFetch<MomoPaymentResponse>(getSubmitMomoPaymentUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(paymentInitInput)
+    body: JSON.stringify(momoPaymentInput)
   }
 );}
 
 
 
 
-export const getInitializePaymentMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initializePayment>>, TError,{data: BodyType<PaymentInitInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof initializePayment>>, TError,{data: BodyType<PaymentInitInput>}, TContext> => {
+export const getSubmitMomoPaymentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitMomoPayment>>, TError,{data: BodyType<MomoPaymentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitMomoPayment>>, TError,{data: BodyType<MomoPaymentInput>}, TContext> => {
 
-const mutationKey = ['initializePayment'];
+const mutationKey = ['submitMomoPayment'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1228,10 +1231,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof initializePayment>>, {data: BodyType<PaymentInitInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitMomoPayment>>, {data: BodyType<MomoPaymentInput>}> = (props) => {
           const {data} = props ?? {};
 
-          return  initializePayment(data,requestOptions)
+          return  submitMomoPayment(data,requestOptions)
         }
 
 
@@ -1241,100 +1244,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type InitializePaymentMutationResult = NonNullable<Awaited<ReturnType<typeof initializePayment>>>
-    export type InitializePaymentMutationBody = BodyType<PaymentInitInput>
-    export type InitializePaymentMutationError = ErrorType<ErrorResponse>
+    export type SubmitMomoPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof submitMomoPayment>>>
+    export type SubmitMomoPaymentMutationBody = BodyType<MomoPaymentInput>
+    export type SubmitMomoPaymentMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Initialize a Paystack payment
+ * @summary Submit a MoMo payment for manual verification
  */
-export const useInitializePayment = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initializePayment>>, TError,{data: BodyType<PaymentInitInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useSubmitMomoPayment = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitMomoPayment>>, TError,{data: BodyType<MomoPaymentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof initializePayment>>,
+        Awaited<ReturnType<typeof submitMomoPayment>>,
         TError,
-        {data: BodyType<PaymentInitInput>},
+        {data: BodyType<MomoPaymentInput>},
         TContext
       > => {
-      return useMutation(getInitializePaymentMutationOptions(options));
+      return useMutation(getSubmitMomoPaymentMutationOptions(options));
     }
-
-export const getVerifyPaymentUrl = (reference: string,) => {
-
-
-
-
-  return `/api/payments/verify/${reference}`
-}
-
-/**
- * @summary Verify a Paystack payment
- */
-export const verifyPayment = async (reference: string, options?: RequestInit): Promise<PaymentVerifyResponse> => {
-
-  return customFetch<PaymentVerifyResponse>(getVerifyPaymentUrl(reference),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getVerifyPaymentQueryKey = (reference: string,) => {
-    return [
-    `/api/payments/verify/${reference}`
-    ] as const;
-    }
-
-
-export const getVerifyPaymentQueryOptions = <TData = Awaited<ReturnType<typeof verifyPayment>>, TError = ErrorType<unknown>>(reference: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof verifyPayment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getVerifyPaymentQueryKey(reference);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof verifyPayment>>> = ({ signal }) => verifyPayment(reference, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: reference !== null && reference !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof verifyPayment>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type VerifyPaymentQueryResult = NonNullable<Awaited<ReturnType<typeof verifyPayment>>>
-export type VerifyPaymentQueryError = ErrorType<unknown>
-
-
-/**
- * @summary Verify a Paystack payment
- */
-
-export function useVerifyPayment<TData = Awaited<ReturnType<typeof verifyPayment>>, TError = ErrorType<unknown>>(
- reference: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof verifyPayment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getVerifyPaymentQueryOptions(reference,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
 
 export const getGetPaymentStatusUrl = () => {
 
@@ -2227,4 +2153,145 @@ export function useListAdminPayments<TData = Awaited<ReturnType<typeof listAdmin
 
 
 
+
+export const getVerifyMomoPaymentUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/payments/${id}/verify`
+}
+
+/**
+ * @summary Admin verifies a pending MoMo payment by entering the txId they received
+ */
+export const verifyMomoPayment = async (id: number,
+    momoVerifyInput: MomoVerifyInput, options?: RequestInit): Promise<MomoVerifyResponse> => {
+
+  return customFetch<MomoVerifyResponse>(getVerifyMomoPaymentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(momoVerifyInput)
+  }
+);}
+
+
+
+
+export const getVerifyMomoPaymentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyMomoPayment>>, TError,{id: number;data: BodyType<MomoVerifyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyMomoPayment>>, TError,{id: number;data: BodyType<MomoVerifyInput>}, TContext> => {
+
+const mutationKey = ['verifyMomoPayment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyMomoPayment>>, {id: number;data: BodyType<MomoVerifyInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  verifyMomoPayment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyMomoPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof verifyMomoPayment>>>
+    export type VerifyMomoPaymentMutationBody = BodyType<MomoVerifyInput>
+    export type VerifyMomoPaymentMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Admin verifies a pending MoMo payment by entering the txId they received
+ */
+export const useVerifyMomoPayment = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyMomoPayment>>, TError,{id: number;data: BodyType<MomoVerifyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyMomoPayment>>,
+        TError,
+        {id: number;data: BodyType<MomoVerifyInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyMomoPaymentMutationOptions(options));
+    }
+
+export const getAdminSubscribeUserUrl = () => {
+
+
+
+
+  return `/api/admin/subscribe`
+}
+
+/**
+ * @summary Manually subscribe a user to any plan and optionally generate a password
+ */
+export const adminSubscribeUser = async (adminSubscribeInput: AdminSubscribeInput, options?: RequestInit): Promise<AdminSubscribeResponse> => {
+
+  return customFetch<AdminSubscribeResponse>(getAdminSubscribeUserUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminSubscribeInput)
+  }
+);}
+
+
+
+
+export const getAdminSubscribeUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSubscribeUser>>, TError,{data: BodyType<AdminSubscribeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSubscribeUser>>, TError,{data: BodyType<AdminSubscribeInput>}, TContext> => {
+
+const mutationKey = ['adminSubscribeUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSubscribeUser>>, {data: BodyType<AdminSubscribeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminSubscribeUser(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSubscribeUserMutationResult = NonNullable<Awaited<ReturnType<typeof adminSubscribeUser>>>
+    export type AdminSubscribeUserMutationBody = BodyType<AdminSubscribeInput>
+    export type AdminSubscribeUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Manually subscribe a user to any plan and optionally generate a password
+ */
+export const useAdminSubscribeUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSubscribeUser>>, TError,{data: BodyType<AdminSubscribeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSubscribeUser>>,
+        TError,
+        {data: BodyType<AdminSubscribeInput>},
+        TContext
+      > => {
+      return useMutation(getAdminSubscribeUserMutationOptions(options));
+    }
 

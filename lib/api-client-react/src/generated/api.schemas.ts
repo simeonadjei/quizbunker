@@ -40,6 +40,7 @@ export type UserSubscriptionPlan = typeof UserSubscriptionPlan[keyof typeof User
 
 export const UserSubscriptionPlan = {
   none: 'none',
+  trial: 'trial',
   monthly: 'monthly',
   semester: 'semester',
   yearly: 'yearly',
@@ -171,31 +172,26 @@ export interface SongReorderInput {
   songIds: number[];
 }
 
-export type PaymentInitInputPlan = typeof PaymentInitInputPlan[keyof typeof PaymentInitInputPlan];
+export type MomoPaymentInputPlan = typeof MomoPaymentInputPlan[keyof typeof MomoPaymentInputPlan];
 
 
-export const PaymentInitInputPlan = {
+export const MomoPaymentInputPlan = {
   monthly: 'monthly',
   semester: 'semester',
   yearly: 'yearly',
 } as const;
 
-export interface PaymentInitInput {
-  plan: PaymentInitInputPlan;
+export interface MomoPaymentInput {
+  plan: MomoPaymentInputPlan;
+  /** @minLength 1 */
+  txId: string;
   /** @nullable */
   semesterStart?: string | null;
 }
 
-export interface PaymentInitResponse {
-  authorizationUrl: string;
+export interface MomoPaymentResponse {
+  message: string;
   reference: string;
-}
-
-export interface PaymentVerifyResponse {
-  success: boolean;
-  plan: string;
-  /** @nullable */
-  subscriptionEnd?: string | null;
 }
 
 export interface SubscriptionStatus {
@@ -271,10 +267,45 @@ export interface AdminPayment {
   status: string;
   reference: string;
   /** @nullable */
+  userTxId?: string | null;
+  /** @nullable */
   startDate?: string | null;
   /** @nullable */
   endDate?: string | null;
   createdAt: string;
+}
+
+export interface MomoVerifyInput {
+  /** @minLength 1 */
+  txId: string;
+}
+
+export interface MomoVerifyResponse {
+  match: boolean;
+  message: string;
+}
+
+export type AdminSubscribeInputPlan = typeof AdminSubscribeInputPlan[keyof typeof AdminSubscribeInputPlan];
+
+
+export const AdminSubscribeInputPlan = {
+  trial: 'trial',
+  monthly: 'monthly',
+  semester: 'semester',
+  yearly: 'yearly',
+} as const;
+
+export interface AdminSubscribeInput {
+  email: string;
+  plan: AdminSubscribeInputPlan;
+  months?: number;
+  generatePassword?: boolean;
+}
+
+export interface AdminSubscribeResponse {
+  message: string;
+  /** @nullable */
+  generatedPassword?: string | null;
 }
 
 export type ListQuestionsParams = {

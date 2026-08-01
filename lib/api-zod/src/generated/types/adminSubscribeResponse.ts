@@ -6,9 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PaymentVerifyResponse {
-  success: boolean;
-  plan: string;
+export interface AdminSubscribeResponse {
+  message: string;
   /** @nullable */
-  subscriptionEnd?: string | null;
+  generatedPassword?: string | null;
 }

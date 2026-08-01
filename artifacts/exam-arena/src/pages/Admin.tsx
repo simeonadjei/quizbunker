@@ -1,9 +1,29 @@
 import { useState } from 'react';
-import { useAdminLogin, useGetAdminStats, useListAdminUsers, useListSongs, useUpdateSong, useDeleteSong, useListAdminActivity, useListAdminPayments, getGetAdminStatsQueryKey, getListSongsQueryKey, getListAdminUsersQueryKey, getListAdminActivityQueryKey, getListAdminPaymentsQueryKey } from '@workspace/api-client-react';
+import {
+  useAdminLogin,
+  useGetAdminStats,
+  useListAdminUsers,
+  useListSongs,
+  useUpdateSong,
+  useDeleteSong,
+  useListAdminActivity,
+  useListAdminPayments,
+  useVerifyMomoPayment,
+  useAdminSubscribeUser,
+  getGetAdminStatsQueryKey,
+  getListSongsQueryKey,
+  getListAdminUsersQueryKey,
+  getListAdminActivityQueryKey,
+  getListAdminPaymentsQueryKey,
+  type AdminSubscribeInputPlan,
+} from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, CheckCircle, ShieldAlert, Activity, CreditCard, RefreshCw, Mail, Lock } from 'lucide-react';
+import {
+  Loader2, Upload, Trash2, CheckCircle, ShieldAlert, Activity,
+  CreditCard, RefreshCw, Mail, Lock, UserPlus, CheckCircle2, XCircle,
+} from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,7 +33,7 @@ const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 
 export default function AdminPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
+
   if (!isAuthenticated) {
     return <AdminLogin onLogin={() => setIsAuthenticated(true)} />;
   }
@@ -35,19 +55,244 @@ export default function AdminPortal() {
             LOCK SCREEN
           </button>
         </header>
-        
+
         <StatsPanel />
         <EmailTestPanel />
-        
+        <PendingPaymentsPanel />
+        <ManualSubscribePanel />
+
         <div className="grid md:grid-cols-2 gap-8">
           <QuestionUploader />
           <SongManager />
         </div>
-        
+
         <UsersPanel />
         <ActivityPanel />
         <PaymentsPanel />
       </div>
+    </div>
+  );
+}
+
+// ── Pending Payments Verification ─────────────────────────────────────────────
+
+function PendingPaymentsPanel() {
+  const queryClient = useQueryClient();
+  const { data: payments = [], isFetching } = useListAdminPayments({
+    query: { queryKey: getListAdminPaymentsQueryKey() }
+  });
+  const verify = useVerifyMomoPayment();
+  const { toast } = useToast();
+  const [txInputs, setTxInputs] = useState<Record<number, string>>({});
+  const [verifying, setVerifying] = useState<Record<number, boolean>>({});
+
+  const pending = payments.filter(p => p.status === 'pending' || p.status === 'mismatch');
+
+  const handleVerify = async (paymentId: number) => {
+    const txId = (txInputs[paymentId] ?? '').trim();
+    if (!txId) {
+      toast({ title: 'Enter transaction ID', description: 'Type the ID from your MoMo.', variant: 'destructive' });
+      return;
+    }
+    setVerifying(v => ({ ...v, [paymentId]: true }));
+    verify.mutate(
+      { id: paymentId, data: { txId } },
+      {
+        onSuccess: (result) => {
+          if (result.match) {
+            toast({ title: '✅ Verified!', description: result.message });
+          } else {
+            toast({ title: '❌ Mismatch', description: result.message, variant: 'destructive' });
+          }
+          queryClient.invalidateQueries({ queryKey: getListAdminPaymentsQueryKey() });
+          setTxInputs(v => { const n = { ...v }; delete n[paymentId]; return n; });
+        },
+        onError: () => toast({ title: 'Error', description: 'Verification failed.', variant: 'destructive' }),
+        onSettled: () => setVerifying(v => ({ ...v, [paymentId]: false })),
+      }
+    );
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2">
+          <CreditCard className="w-5 h-5" /> PENDING PAYMENTS
+          {pending.length > 0 && (
+            <span className="text-xs bg-yellow-400/20 text-yellow-400 border border-yellow-400/30 px-2 py-0.5 rounded">
+              {pending.length} awaiting
+            </span>
+          )}
+        </h2>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => queryClient.invalidateQueries({ queryKey: getListAdminPaymentsQueryKey() })}
+          className="text-zinc-500 hover:text-zinc-300"
+        >
+          {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+        </Button>
+      </div>
+
+      {pending.length === 0 ? (
+        <div className="rounded border border-zinc-800 px-4 py-8 text-center text-zinc-600 text-sm">
+          No pending payments.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {pending.map(p => (
+            <div key={p.id} className="rounded border border-yellow-500/20 bg-zinc-900 p-4">
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs mb-3">
+                <span className="text-zinc-400"><span className="text-zinc-600">USER:</span> {p.userName ?? '—'} ({p.userEmail ?? '—'})</span>
+                <span className="text-zinc-400"><span className="text-zinc-600">PLAN:</span> <span className="text-yellow-400 uppercase">{p.plan}</span></span>
+                <span className="text-zinc-400"><span className="text-zinc-600">AMOUNT:</span> GHS {((p.amount ?? 0) / 100).toFixed(2)}</span>
+                <span className="text-zinc-400"><span className="text-zinc-600">DATE:</span> {format(new Date(p.createdAt), 'MM-dd HH:mm')}</span>
+                {p.status === 'mismatch' && (
+                  <span className="text-red-400 font-bold">MISMATCH — user re-notified</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-zinc-600 text-xs shrink-0">USER'S TX ID:</span>
+                <span className="font-mono font-bold text-cyan-400 text-sm">{p.userTxId ?? '(not provided)'}</span>
+              </div>
+              <p className="text-zinc-600 text-xs mb-3">Check your MoMo and enter the transaction ID you received below:</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Your MoMo transaction ID"
+                  value={txInputs[p.id] ?? ''}
+                  onChange={e => setTxInputs(v => ({ ...v, [p.id]: e.target.value.toUpperCase() }))}
+                  className="flex-1 bg-black border border-zinc-700 text-zinc-300 font-mono text-sm rounded px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-yellow-500"
+                />
+                <button
+                  onClick={() => handleVerify(p.id)}
+                  disabled={verifying[p.id]}
+                  className="px-4 py-2 bg-yellow-700 hover:bg-yellow-600 text-white text-sm font-bold rounded flex items-center gap-2 disabled:opacity-50 shrink-0"
+                >
+                  {verifying[p.id]
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <CheckCircle2 className="w-4 h-4" />}
+                  Verify
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Manual Subscribe ───────────────────────────────────────────────────────────
+
+function ManualSubscribePanel() {
+  const subscribeUser = useAdminSubscribeUser();
+  const { toast } = useToast();
+  const [email, setEmail] = useState('');
+  const [plan, setPlan] = useState<AdminSubscribeInputPlan>('monthly');
+  const [months, setMonths] = useState('');
+  const [genPassword, setGenPassword] = useState(false);
+  const [result, setResult] = useState<{ message: string; generatedPassword?: string | null } | null>(null);
+
+  const handleSubmit = () => {
+    if (!email.trim()) {
+      toast({ title: 'Email required', variant: 'destructive' });
+      return;
+    }
+    subscribeUser.mutate(
+      {
+        data: {
+          email: email.trim().toLowerCase(),
+          plan,
+          months: months ? parseInt(months, 10) : undefined,
+          generatePassword: genPassword,
+        },
+      },
+      {
+        onSuccess: (res) => {
+          setResult(res);
+          setEmail('');
+          setMonths('');
+          setGenPassword(false);
+          toast({ title: '✅ Subscribed', description: res.message });
+        },
+        onError: () => toast({ title: 'Error', description: 'Could not subscribe user.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 p-6">
+      <h2 className="text-xl font-bold text-green-400 flex items-center gap-2 mb-4">
+        <UserPlus className="w-5 h-5" /> MANUAL SUBSCRIBE
+      </h2>
+      <p className="text-zinc-500 text-xs mb-4">
+        Subscribe any user directly. Optionally generate a new password (useful for accounts you're creating on behalf of someone).
+      </p>
+
+      <div className="grid md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="text-xs text-zinc-500 uppercase tracking-wider block mb-1">User Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="user@example.com"
+            className="w-full bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-green-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-zinc-500 uppercase tracking-wider block mb-1">Plan</label>
+          <select
+            value={plan}
+            onChange={e => setPlan(e.target.value as AdminSubscribeInputPlan)}
+            className="w-full bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 focus:outline-none focus:border-green-500"
+          >
+            <option value="trial">Trial (2 days)</option>
+            <option value="monthly">Monthly (1 month)</option>
+            <option value="semester">Semester (4 months)</option>
+            <option value="yearly">Yearly (12 months)</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-zinc-500 uppercase tracking-wider block mb-1">Custom Duration (months) — optional</label>
+          <input
+            type="number"
+            min="1"
+            max="120"
+            value={months}
+            onChange={e => setMonths(e.target.value)}
+            placeholder="Leave blank to use plan default"
+            className="w-full bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-green-500"
+          />
+        </div>
+        <div className="flex items-center gap-3 mt-5">
+          <Switch checked={genPassword} onCheckedChange={setGenPassword} />
+          <span className="text-zinc-400 text-sm">Generate &amp; email new password</span>
+        </div>
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={subscribeUser.isPending}
+        className="px-5 py-2 bg-green-800 hover:bg-green-700 text-white text-sm font-bold rounded flex items-center gap-2 disabled:opacity-50"
+      >
+        {subscribeUser.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+        Subscribe User
+      </button>
+
+      {result && (
+        <div className="mt-4 p-4 bg-black border border-green-500/30 text-green-400 text-sm space-y-1 rounded">
+          <div><CheckCircle className="w-4 h-4 inline mr-2" />SUCCESS</div>
+          <div>{result.message}</div>
+          {result.generatedPassword && (
+            <div className="mt-2 text-cyan-400">
+              GENERATED PASSWORD: <span className="font-mono font-bold text-lg">{result.generatedPassword}</span>
+              <span className="text-zinc-500 text-xs ml-2">(sent to user via email)</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -143,7 +388,7 @@ function ActivityPanel() {
   );
 }
 
-// ── Payments Panel ────────────────────────────────────────────────────────────
+// ── Payments Panel (history) ──────────────────────────────────────────────────
 
 function PaymentsPanel() {
   const queryClient = useQueryClient();
@@ -154,6 +399,7 @@ function PaymentsPanel() {
   const STATUS_COLORS: Record<string, string> = {
     success: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
     pending: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
+    mismatch: 'bg-red-500/20 text-red-400 border border-red-500/30',
     failed: 'bg-red-500/20 text-red-400 border border-red-500/30',
   };
 
@@ -163,10 +409,10 @@ function PaymentsPanel() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-red-500 flex items-center gap-2">
-          <CreditCard className="w-5 h-5" /> PAYMENTS
+          <CreditCard className="w-5 h-5" /> ALL PAYMENTS
           {total > 0 && (
             <span className="text-xs text-emerald-400 font-normal ml-2">
-              Total collected: GHS {(total / 100).toFixed(2)}
+              Total verified: GHS {(total / 100).toFixed(2)}
             </span>
           )}
         </h2>
@@ -188,7 +434,7 @@ function PaymentsPanel() {
               <th className="px-4 py-3 font-normal">PLAN</th>
               <th className="px-4 py-3 font-normal">AMOUNT</th>
               <th className="px-4 py-3 font-normal">STATUS</th>
-              <th className="px-4 py-3 font-normal">REFERENCE</th>
+              <th className="px-4 py-3 font-normal">USER TX ID</th>
               <th className="px-4 py-3 font-normal">EXPIRES</th>
             </tr>
           </thead>
@@ -212,7 +458,7 @@ function PaymentsPanel() {
                     {p.status.toUpperCase()}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-zinc-600 font-mono text-[10px]">{p.reference}</td>
+                <td className="px-4 py-2.5 text-cyan-400 font-mono text-[10px]">{p.userTxId ?? '—'}</td>
                 <td className="px-4 py-2.5 text-zinc-500">
                   {p.endDate ? format(new Date(p.endDate), 'yyyy-MM-dd') : '—'}
                 </td>
@@ -244,24 +490,24 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
       <form onSubmit={handleSubmit} className="border border-red-500/50 p-8 bg-zinc-950 w-full max-w-sm rounded font-mono shadow-[0_0_30px_-5px_rgba(239,68,68,0.3)]">
         <ShieldAlert className="w-12 h-12 text-red-500 mx-auto mb-6" />
         <h2 className="text-red-500 text-center mb-6 text-xl">AUTHENTICATION REQUIRED</h2>
-        <Input 
-          type="email" 
+        <Input
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="bg-black border-red-500/30 text-red-500 focus-visible:ring-red-500 rounded-none mb-3"
           placeholder="ADMIN EMAIL"
           autoComplete="email"
         />
-        <Input 
-          type="password" 
+        <Input
+          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="bg-black border-red-500/30 text-red-500 focus-visible:ring-red-500 rounded-none mb-4"
           placeholder="ENTER PASSKEY"
           autoComplete="current-password"
         />
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full bg-red-950 hover:bg-red-900 text-red-500 border border-red-500 rounded-none"
           disabled={login.isPending}
         >
@@ -274,7 +520,7 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
 function StatsPanel() {
   const { data: stats } = useGetAdminStats({ query: { enabled: true, queryKey: getGetAdminStatsQueryKey() } });
-  
+
   if (!stats) return null;
 
   return (
@@ -302,7 +548,7 @@ function QuestionUploader() {
   const [year, setYear] = useState('');
   const [subject, setSubject] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{ inserted: number; skipped: number; errors?: string[] } | null>(null);
 
   const handleUpload = async () => {
     if (!file) return;
@@ -321,14 +567,12 @@ function QuestionUploader() {
         credentials: "include"
       });
       const data = await res.json();
-      
       if (!res.ok) throw new Error(data.error || 'Upload failed');
-      
       setResult(data);
       toast({ title: "Upload Complete" });
       setFile(null);
-    } catch (e: any) {
-      toast({ title: "Upload Failed", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Upload Failed", description: (e as Error).message, variant: "destructive" });
     } finally {
       setIsUploading(false);
     }
@@ -337,13 +581,13 @@ function QuestionUploader() {
   return (
     <div className="bg-zinc-900 border border-zinc-800 p-6">
       <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Upload className="w-5 h-5" /> BULK INGEST QUESTIONS</h3>
-      
+
       <div className="space-y-4">
         <div>
           <label className="text-xs text-zinc-500">FILE (.docx, .txt)</label>
           <Input type="file" accept=".docx,.txt" onChange={(e) => setFile(e.target.files?.[0] || null)} className="bg-black border-zinc-700 mt-1" />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-zinc-500">YEAR OVERRIDE (OPTIONAL)</label>
@@ -355,8 +599,8 @@ function QuestionUploader() {
           </div>
         </div>
 
-        <Button 
-          onClick={handleUpload} 
+        <Button
+          onClick={handleUpload}
           disabled={!file || isUploading}
           className="w-full bg-blue-900 hover:bg-blue-800 text-blue-400 border border-blue-500 rounded-none"
         >
@@ -368,8 +612,8 @@ function QuestionUploader() {
             <div><CheckCircle className="w-4 h-4 inline mr-2" /> SUCCESS</div>
             <div>INSERTED: {result.inserted}</div>
             <div>SKIPPED: {result.skipped}</div>
-            {result.errors?.length > 0 && (
-              <div className="text-red-400 mt-2 text-xs">ERRORS: {result.errors.length} (See console)</div>
+            {(result.errors?.length ?? 0) > 0 && (
+              <div className="text-red-400 mt-2 text-xs">ERRORS: {result.errors!.length} (See console)</div>
             )}
           </div>
         )}
@@ -383,7 +627,7 @@ function SongManager() {
   const updateSong = useUpdateSong();
   const deleteSong = useDeleteSong();
   const { toast } = useToast();
-  
+
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -403,12 +647,12 @@ function SongManager() {
         credentials: "include"
       });
       if (!res.ok) throw new Error('Upload failed');
-      
+
       toast({ title: `${files.length} Track${files.length > 1 ? 's' : ''} Added` });
       setFiles([]);
       refetch();
-    } catch (e: any) {
-      toast({ title: "Upload Failed", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Upload Failed", description: (e as Error).message, variant: "destructive" });
     } finally {
       setIsUploading(false);
     }
@@ -417,16 +661,16 @@ function SongManager() {
   return (
     <div className="bg-zinc-900 border border-zinc-800 p-6 flex flex-col h-full">
       <h3 className="text-xl font-bold mb-4">AUDIO SUBSYSTEM</h3>
-      
+
       <div className="space-y-4 mb-8">
         <div>
           <label className="text-xs text-zinc-500">AUDIO FILES (select multiple)</label>
-          <Input 
-            type="file" 
-            accept="audio/*" 
+          <Input
+            type="file"
+            accept="audio/*"
             multiple
-            onChange={(e) => setFiles(Array.from(e.target.files || []))} 
-            className="bg-black border-zinc-700 mt-1 p-1 text-sm" 
+            onChange={(e) => setFiles(Array.from(e.target.files || []))}
+            className="bg-black border-zinc-700 mt-1 p-1 text-sm"
           />
           {files.length > 0 && (
             <div className="mt-2 space-y-1">
@@ -440,8 +684,8 @@ function SongManager() {
             </div>
           )}
         </div>
-        <Button 
-          onClick={handleUpload} 
+        <Button
+          onClick={handleUpload}
           disabled={files.length === 0 || isUploading}
           className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-none border border-zinc-600"
         >
@@ -454,11 +698,11 @@ function SongManager() {
           <div key={song.id} className="flex items-center justify-between p-2 border-b border-zinc-900 hover:bg-zinc-900/50">
             <span className="text-sm truncate mr-4">{song.title}</span>
             <div className="flex items-center gap-4 shrink-0">
-              <Switch 
-                checked={song.isActive} 
-                onCheckedChange={(v) => updateSong.mutate({ id: song.id, data: { isActive: v } }, { onSuccess: () => refetch() })} 
+              <Switch
+                checked={song.isActive}
+                onCheckedChange={(v) => updateSong.mutate({ id: song.id, data: { isActive: v } }, { onSuccess: () => refetch() })}
               />
-              <button 
+              <button
                 onClick={() => deleteSong.mutate({ id: song.id }, { onSuccess: () => refetch() })}
                 className="text-red-500 hover:text-red-400"
               >
@@ -487,13 +731,11 @@ function EmailTestPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: to.trim() || undefined }),
       });
-      // Read body as text first so an empty or non-JSON response never throws
       const raw = await res.text();
       let data: { ok?: boolean; message?: string; error?: string } = {};
       try {
         data = raw.trim() ? JSON.parse(raw) : {};
       } catch {
-        // body was not JSON — surface the raw text so we can debug
         setStatus('error');
         setMessage(`Unexpected response (HTTP ${res.status}): ${raw.slice(0, 200) || '(empty body)'}`);
         return;
@@ -503,7 +745,6 @@ function EmailTestPanel() {
         setMessage(data.message ?? 'Email sent successfully');
       } else {
         setStatus('error');
-        // Include raw body for debugging when shape doesn't match
         const detail = data.error ?? `HTTP ${res.status} — unexpected response: ${raw.slice(0, 300)}`;
         setMessage(detail);
       }
@@ -519,7 +760,7 @@ function EmailTestPanel() {
         <Mail className="w-5 h-5" /> EMAIL DIAGNOSTICS
       </h2>
       <p className="text-zinc-500 text-xs mb-4">
-        Sends a test email via SMTP and shows the exact error if it fails. Leave blank to send to the admin email.
+        Sends a test email via Brevo and shows the exact error if it fails.
       </p>
       <div className="flex gap-2 items-center">
         <input

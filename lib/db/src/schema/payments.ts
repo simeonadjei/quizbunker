@@ -10,6 +10,7 @@ export const paymentsTable = pgTable("payments", {
   amount: integer("amount").notNull(),
   reference: text("reference").notNull().unique(),
   status: text("status").notNull().default("pending"),
+  userTxId: text("user_tx_id"),       // transaction ID submitted by the user
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
   semesterStart: timestamp("semester_start"),

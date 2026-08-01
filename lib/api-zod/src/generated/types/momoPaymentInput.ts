@@ -5,10 +5,12 @@
  * Exam Arena API
  * OpenAPI spec version: 0.1.0
  */
-import type { PaymentInitInputPlan } from './paymentInitInputPlan';
+import type { MomoPaymentInputPlan } from './momoPaymentInputPlan';
 
-export interface PaymentInitInput {
-  plan: PaymentInitInputPlan;
+export interface MomoPaymentInput {
+  plan: MomoPaymentInputPlan;
+  /** @minLength 1 */
+  txId: string;
   /** @nullable */
   semesterStart?: string | null;
 }

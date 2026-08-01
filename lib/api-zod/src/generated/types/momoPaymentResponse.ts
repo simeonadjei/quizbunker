@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PaymentInitResponse {
-  authorizationUrl: string;
+export interface MomoPaymentResponse {
+  message: string;
   reference: string;
 }

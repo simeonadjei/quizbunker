@@ -2,6 +2,8 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { db, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable } from "@workspace/db";
 import { eq, desc, count, gt } from "drizzle-orm";
 import { parseQuestionText } from "../lib/parser";
@@ -62,13 +64,26 @@ function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   next();
 }
 
+const PLAN_MONTHS: Record<string, number> = {
+  trial:    0,   // handled specially
+  monthly:  1,
+  semester: 4,
+  yearly:   12,
+};
+
+const PLAN_AMOUNTS: Record<string, number> = {
+  trial:    0,
+  monthly:  1000,
+  semester: 3000,
+  yearly:   5000,
+};
+
 // POST /admin/auth
 router.post("/admin/auth", async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
   const adminPassword = process.env.ADMIN_PASSWORD;
   const adminEmail = process.env.ADMIN_EMAIL;
 
-  // Check password always; check email only if ADMIN_EMAIL is set
   const passwordOk = adminPassword && password === adminPassword;
   const emailOk = !adminEmail || (email && email.toLowerCase() === adminEmail.toLowerCase());
 
@@ -76,20 +91,18 @@ router.post("/admin/auth", async (req, res) => {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
-  // Regenerate session on privilege escalation to prevent session fixation
   await new Promise<void>((resolve, reject) =>
     req.session.regenerate((err) => (err ? reject(err) : resolve())),
   );
   req.session.isAdmin = true;
 
-  // Log admin login
   const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim() || req.socket?.remoteAddress || null;
   db.insert(activityLogsTable).values({ type: "admin_login", userEmail: email ?? null, ip }).catch(() => {});
 
   return res.json({ message: "Authenticated" });
 });
 
-// POST /admin/test-email — sends a test email via Brevo and returns success or the exact error
+// POST /admin/test-email
 router.post("/admin/test-email", requireAdmin, async (req, res) => {
   if (!isEmailConfigured()) {
     return res.status(400).json({
@@ -115,6 +128,248 @@ router.post("/admin/test-email", requireAdmin, async (req, res) => {
     return res.status(500).json({ ok: false, error: result.error });
   }
   return res.json({ ok: true, message: `Test email sent to ${to}` });
+});
+
+// POST /admin/payments/:id/verify — admin enters the txId they received, compare with user's
+router.post("/admin/payments/:id/verify", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  const { txId } = req.body as { txId?: string };
+
+  if (!txId?.trim()) {
+    return res.status(400).json({ error: "txId is required" });
+  }
+
+  const adminTxId = txId.trim().toUpperCase();
+
+  const [payment] = await db
+    .select({
+      id: paymentsTable.id,
+      userId: paymentsTable.userId,
+      plan: paymentsTable.plan,
+      amount: paymentsTable.amount,
+      status: paymentsTable.status,
+      userTxId: paymentsTable.userTxId,
+      semesterStart: paymentsTable.semesterStart,
+      userEmail: usersTable.email,
+      userName: usersTable.name,
+    })
+    .from(paymentsTable)
+    .leftJoin(usersTable, eq(paymentsTable.userId, usersTable.id))
+    .where(eq(paymentsTable.id, id))
+    .limit(1);
+
+  if (!payment) return res.status(404).json({ error: "Payment record not found" });
+
+  if (payment.status === "success") {
+    return res.json({ match: true, message: "This payment was already verified and the user is subscribed." });
+  }
+
+  const userTxId = (payment.userTxId ?? "").trim().toUpperCase();
+  const match = adminTxId === userTxId;
+
+  if (match) {
+    // Subscribe the user
+    const plan = payment.plan;
+    const months = PLAN_MONTHS[plan] ?? 1;
+    let startDate = new Date();
+    if (plan === "semester" && payment.semesterStart) {
+      startDate = new Date(payment.semesterStart);
+    }
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + months);
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(paymentsTable)
+        .set({ status: "success", startDate, endDate })
+        .where(eq(paymentsTable.id, id));
+      await tx
+        .update(usersTable)
+        .set({ subscriptionPlan: plan, subscriptionEnd: endDate })
+        .where(eq(usersTable.id, payment.userId));
+    });
+
+    // Email the user — subscription confirmed
+    if (payment.userEmail) {
+      sendEmail({
+        to: payment.userEmail,
+        subject: "🎉 Your Quiz Bunker subscription is now active!",
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#ff6b00,#e03000);padding:24px 32px;">
+              <h1 style="margin:0;font-size:24px;letter-spacing:1px;">🎮 QUIZ BUNKER</h1>
+            </div>
+            <div style="padding:32px;">
+              <h2 style="margin:0 0 12px;color:#ffaa00;">Payment Verified! 🎉</h2>
+              <p style="color:#ccc;line-height:1.6;">Hi ${payment.userName ?? "there"},</p>
+              <p style="color:#ccc;line-height:1.6;">Your MoMo payment has been verified and your <strong style="color:#ffaa00;text-transform:uppercase;">${plan}</strong> subscription is now active!</p>
+              <p style="color:#ccc;line-height:1.6;">Your access runs until <strong style="color:#fff;">${endDate.toLocaleDateString("en-GH", { day: "numeric", month: "long", year: "numeric" })}</strong>.</p>
+              <a href="https://quizbunker.com/dashboard" style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
+                ENTER THE BUNKER
+              </a>
+            </div>
+          </div>
+        `,
+      }).catch(() => {});
+    }
+
+    return res.json({ match: true, message: `Payment verified. ${payment.userName ?? payment.userEmail} subscribed to ${plan} until ${endDate.toLocaleDateString()}.` });
+  } else {
+    // Mark as mismatch in payment record, email the user to resubmit
+    await db
+      .update(paymentsTable)
+      .set({ status: "mismatch" })
+      .where(eq(paymentsTable.id, id));
+
+    if (payment.userEmail) {
+      sendEmail({
+        to: payment.userEmail,
+        subject: "⚠️ Quiz Bunker — Transaction ID mismatch",
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#cc0000,#880000);padding:24px 32px;">
+              <h1 style="margin:0;font-size:24px;letter-spacing:1px;">🎮 QUIZ BUNKER</h1>
+            </div>
+            <div style="padding:32px;">
+              <h2 style="margin:0 0 12px;color:#ff4444;">Transaction ID Mismatch</h2>
+              <p style="color:#ccc;line-height:1.6;">Hi ${payment.userName ?? "there"},</p>
+              <p style="color:#ccc;line-height:1.6;">We received your payment submission, but the transaction ID you provided (<strong style="color:#ff4444;">${payment.userTxId ?? "—"}</strong>) does not match the one we found on our MoMo account.</p>
+              <p style="color:#ccc;line-height:1.6;">Please check your MoMo transaction history for the correct ID and resubmit your payment on Quiz Bunker. The transaction ID is usually shown in your MoMo message or app history.</p>
+              <a href="https://quizbunker.com/subscribe" style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
+                RESUBMIT PAYMENT
+              </a>
+              <p style="color:#555;font-size:12px;margin-top:24px;">If you believe this is an error, contact support via WhatsApp.</p>
+            </div>
+          </div>
+        `,
+      }).catch(() => {});
+    }
+
+    return res.json({ match: false, message: `Transaction ID mismatch. User has been emailed to resubmit the correct ID.` });
+  }
+});
+
+// POST /admin/subscribe — manually subscribe any user by email, optionally generate new password
+router.post("/admin/subscribe", requireAdmin, async (req, res) => {
+  const { email, plan, months: customMonths, generatePassword } = req.body as {
+    email?: string;
+    plan?: string;
+    months?: number;
+    generatePassword?: boolean;
+  };
+
+  if (!email?.trim() || !plan?.trim()) {
+    return res.status(400).json({ error: "email and plan are required" });
+  }
+
+  const emailLower = email.trim().toLowerCase();
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, emailLower))
+    .limit(1);
+
+  if (!user) return res.status(404).json({ error: `No user found with email: ${emailLower}` });
+
+  const months = customMonths && customMonths > 0
+    ? customMonths
+    : (PLAN_MONTHS[plan] ?? 1);
+
+  const now = new Date();
+  let endDate: Date;
+  if (plan === "trial") {
+    endDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+  } else {
+    endDate = new Date(now);
+    endDate.setMonth(endDate.getMonth() + months);
+  }
+
+  const updates: Record<string, unknown> = {
+    subscriptionPlan: plan,
+    subscriptionEnd: endDate,
+  };
+
+  let newPassword: string | null = null;
+
+  if (generatePassword) {
+    // Generate a memorable random password: word + 4 digits
+    const words = ["Quiz", "Bunker", "Ghana", "Learn", "Smart", "Ace", "Study", "Pass"];
+    const word = words[Math.floor(Math.random() * words.length)];
+    const digits = Math.floor(1000 + Math.random() * 9000).toString();
+    newPassword = `${word}${digits}`;
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    updates.passwordHash = passwordHash;
+    updates.emailVerified = true; // ensure they can log in
+    updates.verificationToken = null;
+  }
+
+  await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id));
+
+  // Create a payment record for tracking
+  const reference = `ADMIN_${Date.now()}_${user.id}`;
+  await db.insert(paymentsTable).values({
+    userId: user.id,
+    plan,
+    amount: PLAN_AMOUNTS[plan] ?? 0,
+    reference,
+    status: "success",
+    startDate: now,
+    endDate,
+  });
+
+  // Email the user about their subscription
+  if (newPassword) {
+    sendEmail({
+      to: user.email,
+      subject: "🎮 Your Quiz Bunker account is ready!",
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#ff6b00,#e03000);padding:24px 32px;">
+            <h1 style="margin:0;font-size:24px;letter-spacing:1px;">🎮 QUIZ BUNKER</h1>
+          </div>
+          <div style="padding:32px;">
+            <h2 style="margin:0 0 12px;color:#ffaa00;">Your Account is Active!</h2>
+            <p style="color:#ccc;line-height:1.6;">Hi ${user.name},</p>
+            <p style="color:#ccc;line-height:1.6;">Your Quiz Bunker account has been set up with a <strong style="color:#ffaa00;text-transform:uppercase;">${plan}</strong> subscription.</p>
+            <div style="background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:16px;margin:20px 0;">
+              <p style="margin:0 0 8px;color:#888;font-size:13px;">LOGIN DETAILS</p>
+              <p style="margin:0 0 6px;color:#ccc;"><strong style="color:#fff;">Email:</strong> ${user.email}</p>
+              <p style="margin:0;color:#ccc;"><strong style="color:#fff;">Password:</strong> <span style="color:#00ffcc;font-weight:bold;font-size:16px;">${newPassword}</span></p>
+            </div>
+            <p style="color:#aaa;font-size:13px;">Change your password after logging in.</p>
+            <a href="https://quizbunker.com/login" style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
+              LOG IN NOW
+            </a>
+          </div>
+        </div>
+      `,
+    }).catch(() => {});
+  } else {
+    sendEmail({
+      to: user.email,
+      subject: "🎉 Your Quiz Bunker subscription is active!",
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#ff6b00,#e03000);padding:24px 32px;">
+            <h1 style="margin:0;font-size:24px;letter-spacing:1px;">🎮 QUIZ BUNKER</h1>
+          </div>
+          <div style="padding:32px;">
+            <h2 style="margin:0 0 12px;color:#ffaa00;">Subscription Activated!</h2>
+            <p style="color:#ccc;line-height:1.6;">Hi ${user.name},</p>
+            <p style="color:#ccc;line-height:1.6;">Your <strong style="color:#ffaa00;text-transform:uppercase;">${plan}</strong> subscription has been activated. Access runs until <strong style="color:#fff;">${endDate.toLocaleDateString("en-GH", { day: "numeric", month: "long", year: "numeric" })}</strong>.</p>
+            <a href="https://quizbunker.com/dashboard" style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
+              ENTER THE BUNKER
+            </a>
+          </div>
+        </div>
+      `,
+    }).catch(() => {});
+  }
+
+  return res.json({
+    message: `${user.name} (${user.email}) subscribed to ${plan} until ${endDate.toLocaleDateString()}.`,
+    generatedPassword: newPassword,
+  });
 });
 
 // POST /admin/questions/upload
@@ -201,14 +456,13 @@ router.put("/admin/songs/reorder", requireAdmin, async (req, res) => {
   return res.json({ message: "Songs reordered" });
 });
 
-// POST /admin/songs — supports single or multiple files (field name: "files" or "file")
+// POST /admin/songs
 router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (req, res) => {
   const files = req.files as Express.Multer.File[] | undefined;
   if (!files || files.length === 0) {
     return res.status(400).json({ error: "No audio files uploaded. Send files in the 'files' field." });
   }
 
-  // Compute starting sort order
   const [last] = await db
     .select()
     .from(songsTable)
@@ -222,7 +476,6 @@ router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    // Use provided title or derive from original filename
     const rawTitle = (titles[i] || req.body.title || "").trim();
     const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
 
@@ -313,6 +566,7 @@ router.get("/admin/payments", requireAdmin, async (_req, res) => {
       amount: paymentsTable.amount,
       status: paymentsTable.status,
       reference: paymentsTable.reference,
+      userTxId: paymentsTable.userTxId,
       startDate: paymentsTable.startDate,
       endDate: paymentsTable.endDate,
       createdAt: paymentsTable.createdAt,
@@ -331,6 +585,7 @@ router.get("/admin/payments", requireAdmin, async (_req, res) => {
       amount: p.amount,
       status: p.status,
       reference: p.reference,
+      userTxId: p.userTxId ?? null,
       startDate: p.startDate?.toISOString() ?? null,
       endDate: p.endDate?.toISOString() ?? null,
       createdAt: p.createdAt.toISOString(),
