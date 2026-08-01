@@ -27,6 +27,16 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const activeSongs = songs.filter(s => s.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
   const currentSong = activeSongs.length > 0 ? activeSongs[currentSongIndex] : null;
 
+  // Pre-warm the audio cache while online so songs play even when offline later
+  useEffect(() => {
+    if (activeSongs.length === 0 || !navigator.onLine) return;
+    for (const song of activeSongs) {
+      const url = song.url.startsWith('/') ? `${API_BASE}${song.url}` : song.url;
+      // Fire-and-forget: the SW CacheFirst handler will store the response
+      fetch(url, { method: 'GET', cache: 'no-store' }).catch(() => {/* ignore — offline or unreachable */});
+    }
+  }, [activeSongs.length]);
+
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
