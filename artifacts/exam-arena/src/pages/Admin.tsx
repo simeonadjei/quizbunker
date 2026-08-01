@@ -3,7 +3,7 @@ import { useAdminLogin, useGetAdminStats, useListAdminUsers, useListSongs, useUp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Trash2, CheckCircle, ShieldAlert, Activity, CreditCard, RefreshCw, Mail } from 'lucide-react';
+import { Loader2, Upload, Trash2, CheckCircle, ShieldAlert, Activity, CreditCard, RefreshCw, Mail, Lock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,9 +21,19 @@ export default function AdminPortal() {
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-200 p-8 font-mono">
       <div className="max-w-6xl mx-auto space-y-12">
-        <header className="border-b border-red-500/30 pb-4 mb-8">
-          <h1 className="text-3xl font-bold text-red-500">SYSTEM.ADMIN_OVERRIDE</h1>
-          <p className="text-gray-500 text-sm mt-1">UNAUTHORIZED ACCESS STRICTLY PROHIBITED</p>
+        <header className="border-b border-red-500/30 pb-4 mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-red-500">SYSTEM.ADMIN_OVERRIDE</h1>
+            <p className="text-gray-500 text-sm mt-1">UNAUTHORIZED ACCESS STRICTLY PROHIBITED</p>
+          </div>
+          <button
+            onClick={() => setIsAuthenticated(false)}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-red-950 border border-zinc-700 hover:border-red-500/60 text-zinc-400 hover:text-red-400 text-sm font-bold rounded transition-colors shrink-0"
+            title="Lock screen"
+          >
+            <Lock className="w-4 h-4" />
+            LOCK SCREEN
+          </button>
         </header>
         
         <StatsPanel />
