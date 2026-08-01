@@ -3,6 +3,12 @@ import { Layout } from '@/components/Layout';
 import { Loader2, CheckCircle2, XCircle, Mail } from 'lucide-react';
 import { Link } from 'wouter';
 
+// On Render the frontend and API are separate services — VITE_API_URL points at
+// the API origin. On Replit (same-origin proxy) it is undefined and '' is correct.
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+// Cross-origin (Render) requires credentials: 'include' so session cookies travel.
+const FETCH_CREDS: RequestCredentials = API_BASE ? 'include' : 'same-origin';
+
 export default function VerifyEmail() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
@@ -20,9 +26,10 @@ export default function VerifyEmail() {
       return;
     }
 
-    fetch('/api/auth/verify-email', {
+    fetch(`${API_BASE}/api/auth/verify-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: FETCH_CREDS,
       body: JSON.stringify({ token }),
     })
       .then(async (res) => {
@@ -46,9 +53,10 @@ export default function VerifyEmail() {
     if (!resendEmail.trim()) return;
     setResendStatus('sending');
     try {
-      const res = await fetch('/api/auth/resend-verification', {
+      const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: FETCH_CREDS,
         body: JSON.stringify({ email: resendEmail.trim() }),
       });
       if (res.ok) {
