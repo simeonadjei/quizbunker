@@ -5,7 +5,7 @@ import {
 } from '@workspace/api-client-react';
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff } from 'lucide-react';
+import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ── Offline detection hook ─────────────────────────────────────────────────────
@@ -87,6 +87,7 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [showSubscribeGate, setShowSubscribeGate] = useState(false);
+  const [subBannerExpanded, setSubBannerExpanded] = useState(false);
 
   useEffect(() => {
     if (filters && !selectedYear && filters.years.length > 0) setSelectedYear(filters.years[0]);
@@ -110,119 +111,139 @@ export default function Dashboard() {
       {/* Subscribe gate modal */}
       {showSubscribeGate && <SubscribeGate onClose={() => setShowSubscribeGate(false)} />}
 
-      <div className="px-4 py-6 max-w-lg mx-auto w-full">
+      <div className="px-3 pt-3 pb-4 max-w-lg mx-auto w-full space-y-3">
 
         {/* Offline banner */}
         {!isOnline && (
-          <div className="card-game border-l-4 border-yellow-500 p-4 mb-5 flex items-center gap-3">
-            <WifiOff className="w-5 h-5 text-yellow-400 shrink-0" />
-            <p className="text-yellow-300 font-bold text-base">You're offline — quiz still works, but subscription payments need internet.</p>
+          <div className="card-game border-l-4 border-yellow-500 px-3 py-2 flex items-center gap-2">
+            <WifiOff className="w-4 h-4 text-yellow-400 shrink-0" />
+            <p className="text-yellow-300 font-bold text-sm">Offline — payments need internet.</p>
           </div>
         )}
 
-        {/* Page title */}
-        <div className="mb-6">
-          <h1 className="text-game-title text-4xl leading-tight">LEVEL SELECT</h1>
-          <p className="text-white/60 text-base font-bold mt-1.5">Pick your year, subject and week</p>
+        {/* Page title — compact */}
+        <div className="flex items-baseline justify-between">
+          <h1 className="text-game-title text-2xl leading-tight">LEVEL SELECT</h1>
+          <p className="text-white/50 text-sm font-bold">Pick year, subject & week</p>
         </div>
 
-        {/* Filters row */}
-        <div className="card-game p-5 mb-5 flex flex-col gap-4">
-          <div className="flex gap-4">
-            {/* Year */}
-            <div className="flex-1">
-              <label htmlFor="select-year" className="text-white/70 text-sm font-bold uppercase tracking-wider block mb-2">Year</label>
-              <div className="relative">
-                <select
-                  id="select-year"
-                  value={selectedYear}
-                  onChange={e => setSelectedYear(e.target.value)}
-                  disabled={loadingFilters || !filters?.years.length}
-                  className="w-full h-13 rounded-xl border-2 border-white/20 bg-black/40 pl-4 pr-10 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ colorScheme: 'dark', height: '3.25rem' }}
-                >
-                  <option value="" disabled>Year</option>
-                  {filters?.years.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
-              </div>
+        {/* Filters row — compact */}
+        <div className="flex gap-2.5">
+          {/* Year */}
+          <div className="flex-1">
+            <label htmlFor="select-year" className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Year</label>
+            <div className="relative">
+              <select
+                id="select-year"
+                value={selectedYear}
+                onChange={e => setSelectedYear(e.target.value)}
+                disabled={loadingFilters || !filters?.years.length}
+                className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-8 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ colorScheme: 'dark', height: '2.75rem' }}
+              >
+                <option value="" disabled>Year</option>
+                {filters?.years.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
             </div>
+          </div>
 
-            {/* Subject */}
-            <div className="flex-1">
-              <label htmlFor="select-subject" className="text-white/70 text-sm font-bold uppercase tracking-wider block mb-2">Subject</label>
-              <div className="relative">
-                <select
-                  id="select-subject"
-                  value={selectedSubject}
-                  onChange={e => setSelectedSubject(e.target.value)}
-                  disabled={loadingFilters || !filters?.subjects.length}
-                  className="w-full h-13 rounded-xl border-2 border-white/20 bg-black/40 pl-4 pr-10 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ colorScheme: 'dark', height: '3.25rem' }}
-                >
-                  <option value="" disabled>Subject</option>
-                  {filters?.subjects.map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
-              </div>
+          {/* Subject */}
+          <div className="flex-[2]">
+            <label htmlFor="select-subject" className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Subject</label>
+            <div className="relative">
+              <select
+                id="select-subject"
+                value={selectedSubject}
+                onChange={e => setSelectedSubject(e.target.value)}
+                disabled={loadingFilters || !filters?.subjects.length}
+                className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-8 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ colorScheme: 'dark', height: '2.75rem' }}
+              >
+                <option value="" disabled>Subject</option>
+                {filters?.subjects.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
             </div>
           </div>
         </div>
 
-        {/* Subscription control card — shown when not subscribed and not loading */}
+        {/* Subscription banner — collapsed strip by default, expandable */}
         {!isSubscribed && !loadingSub && (
-          <div className="card-game border-2 border-accent/40 p-6 mb-6 relative overflow-hidden">
-            {/* Glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-primary/5 pointer-events-none" />
-
-            <div className="relative flex items-start gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-accent/20 border-2 border-accent/50 flex items-center justify-center shrink-0"
-                style={{ boxShadow: '0 0 20px rgba(255,170,0,0.2)' }}>
-                <Zap className="w-7 h-7 text-accent" fill="currentColor" strokeWidth={0} />
+          <div className="rounded-xl border-2 border-accent/40 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(255,170,0,0.08), rgba(255,80,0,0.05))' }}>
+            {/* Always-visible strip */}
+            <button
+              onClick={() => setSubBannerExpanded(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2.5 gap-2"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Zap className="w-4 h-4 text-accent shrink-0" fill="currentColor" strokeWidth={0} />
+                <span className="font-display text-sm text-accent uppercase tracking-wide truncate">Unlock Full Access</span>
+                <div className="flex gap-1.5 shrink-0">
+                  {['All Subjects', 'All Weeks', 'Certificates', 'History'].map(tag => (
+                    <span key={tag} className="hidden sm:inline text-xs font-bold px-2 py-0.5 rounded-full border border-accent/40 text-accent/80 bg-accent/10">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-display text-white text-xl uppercase mb-2">Unlock the Arena</h3>
-                <p className="text-white/70 text-base font-bold leading-relaxed mb-5">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Link href="/subscribe" onClick={e => e.stopPropagation()}>
+                  <span className="btn-game py-1 px-3 text-xs inline-flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    Subscribe
+                  </span>
+                </Link>
+                {subBannerExpanded
+                  ? <ChevronUp className="w-4 h-4 text-white/40" />
+                  : <ChevronDown className="w-4 h-4 text-white/40" />
+                }
+              </div>
+            </button>
+
+            {/* Expanded detail */}
+            {subBannerExpanded && (
+              <div className="px-4 pb-4 border-t border-accent/20">
+                <p className="text-white/70 text-sm font-bold leading-relaxed mt-3 mb-3">
                   Subscribe to play any level. Access 1,500+ exam questions across all subjects, weeks, and Dok levels.
                 </p>
-                {/* Feature tags */}
-                <div className="flex flex-wrap gap-2.5 mb-5">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {['All Subjects', 'All Weeks', 'Certificates', 'History'].map(tag => (
-                    <span key={tag} className="text-sm font-bold px-4 py-1.5 rounded-full border-2 border-accent/40 text-accent bg-accent/10">
+                    <span key={tag} className="text-sm font-bold px-3 py-1 rounded-full border-2 border-accent/40 text-accent bg-accent/10">
                       {tag}
                     </span>
                   ))}
                 </div>
                 <Link href="/subscribe">
-                  <button className="btn-game py-3.5 px-6 text-base inline-flex items-center gap-2">
+                  <button className="btn-game py-2.5 px-5 text-sm inline-flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
                     Subscribe Now
                   </button>
                 </Link>
               </div>
-            </div>
+            )}
           </div>
         )}
 
         {/* Loading */}
         {loadingFilters && (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         )}
 
         {/* Week grid */}
         {!loadingFilters && selectedSubject && filters && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="font-display text-white text-xl">{selectedSubject}</span>
-              <span className="hud-badge text-sm px-3 py-1">{filters.weeks.length} weeks</span>
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="font-display text-white text-base">{selectedSubject}</span>
+              <span className="hud-badge text-xs px-2.5 py-0.5">{filters.weeks.length} weeks</span>
             </div>
-            <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+            <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
               {filters.weeks.map(w => {
                 const unlocked = !!isSubscribed;
                 return (
@@ -231,24 +252,24 @@ export default function Dashboard() {
                     onClick={() => handleStartLevel(w)}
                     disabled={createSession.isPending}
                     className={cn(
-                      'relative aspect-square rounded-2xl flex flex-col items-center justify-center font-display text-xl transition-all duration-150 border-2 select-none',
+                      'relative aspect-square rounded-xl flex flex-col items-center justify-center font-display text-lg transition-all duration-150 border-2 select-none',
                       unlocked
                         ? 'bg-black/30 border-white/20 text-white active:scale-90 active:translate-y-0.5 hover:border-primary hover:bg-primary/20'
                         : 'bg-black/20 border-white/10 text-white/30 hover:border-accent/30 hover:bg-accent/5'
                     )}
-                    style={unlocked ? { boxShadow: '0 4px 0 rgba(0,0,0,0.35)' } : undefined}
+                    style={unlocked ? { boxShadow: '0 3px 0 rgba(0,0,0,0.35)' } : undefined}
                   >
                     {createSession.isPending ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                     ) : unlocked ? (
                       <>
-                        <Play className="w-3.5 h-3.5 mb-0.5 opacity-50" fill="currentColor" strokeWidth={0} />
+                        <Play className="w-3 h-3 mb-0.5 opacity-50" fill="currentColor" strokeWidth={0} />
                         <span>{w}</span>
                       </>
                     ) : (
                       <>
-                        <Lock className="w-4 h-4 mb-0.5 opacity-40" strokeWidth={2} />
-                        <span className="text-base">{w}</span>
+                        <Lock className="w-3 h-3 mb-0.5 opacity-40" strokeWidth={2} />
+                        <span className="text-sm">{w}</span>
                       </>
                     )}
                   </button>
@@ -260,18 +281,18 @@ export default function Dashboard() {
 
         {/* Prompt to pick subject */}
         {!loadingFilters && !selectedSubject && filters && (
-          <div className="card-game p-10 text-center">
-            <BookOpen className="w-12 h-12 text-primary mx-auto mb-4" />
-            <p className="text-white/70 font-bold text-lg">Select a subject above to see available weeks</p>
+          <div className="card-game p-6 text-center">
+            <BookOpen className="w-9 h-9 text-primary mx-auto mb-3" />
+            <p className="text-white/70 font-bold text-base">Select a subject above to see available weeks</p>
           </div>
         )}
 
         {/* Empty state — no questions uploaded yet */}
         {!loadingFilters && filters && filters.years.length === 0 && (
-          <div className="card-game p-10 text-center border-l-4 border-white/10">
-            <BookOpen className="w-12 h-12 text-white/20 mx-auto mb-4" />
-            <p className="text-white/40 font-bold text-lg">No questions available yet.</p>
-            <p className="text-white/25 text-base mt-2">The admin needs to upload questions first.</p>
+          <div className="card-game p-8 text-center border-l-4 border-white/10">
+            <BookOpen className="w-9 h-9 text-white/20 mx-auto mb-3" />
+            <p className="text-white/40 font-bold text-base">No questions available yet.</p>
+            <p className="text-white/25 text-sm mt-1.5">The admin needs to upload questions first.</p>
           </div>
         )}
 
