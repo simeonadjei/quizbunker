@@ -36,7 +36,7 @@ export default function Quiz() {
 
   const handleSelect = (answer: string) => {
     if (session?.completedAt) return;
-    if (answers[currentQuestion.id]) return; // already answered — no change
+    if (answers[currentQuestion.id]) return;
     setAnswers(prev => ({ ...prev, [currentQuestion.id]: answer }));
     setRevealed(prev => ({ ...prev, [currentQuestion.id]: true }));
   };
@@ -64,6 +64,19 @@ export default function Quiz() {
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex flex-col relative overflow-hidden">
       <BackgroundParticles />
+
+      {/* ── Logo watermark background ── */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center"
+        aria-hidden="true"
+      >
+        <img
+          src="/logo.png"
+          alt=""
+          className="w-72 h-72 sm:w-96 sm:h-96 object-contain select-none"
+          style={{ opacity: 0.06, filter: 'blur(1px) saturate(0.4)' }}
+        />
+      </div>
 
       {/* ── HUD bar ── */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-md border-b-2 border-primary/40">
@@ -93,33 +106,11 @@ export default function Quiz() {
       {/* ── Main ── */}
       <main className="flex-1 relative z-10 px-4 pt-16 pb-4 flex flex-col max-w-lg mx-auto w-full">
 
-        {/* Question nav dots */}
-        <div className="flex flex-wrap gap-1.5 justify-center my-4">
-          {questions.map((q, idx) => {
-            const answered = !!answers[q.id];
-            const current = currentQIndex === idx;
-            return (
-              <button
-                key={q.id}
-                onClick={() => setCurrentQIndex(idx)}
-                className={cn(
-                  'w-8 h-8 rounded-lg font-display text-sm border-2 transition-all duration-150',
-                  current  ? 'border-white bg-primary text-white scale-110 shadow-[0_3px_0_hsl(22,90%,30%)]' :
-                  answered ? 'border-accent/60 bg-accent/15 text-accent' :
-                             'border-white/15 bg-black/30 text-white/45 hover:border-white/35'
-                )}
-              >
-                {idx + 1}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Question card */}
         {currentQuestion && (
           <div
             key={currentQuestion.id}
-            className="card-game p-4 border-t-4 border-primary flex flex-col animate-in zoom-in-95 duration-200"
+            className="card-game p-4 border-t-4 border-primary flex flex-col animate-in zoom-in-95 duration-200 mt-4"
           >
             {/* Question text */}
             <div className="flex items-start gap-3 mb-5">
@@ -129,14 +120,11 @@ export default function Quiz() {
               <p className="text-white font-bold text-base leading-snug">{currentQuestion.questionText}</p>
             </div>
 
-            {/* Options */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Options — single column list */}
+            <div className="flex flex-col gap-2.5">
               {(['A', 'B', 'C', 'D'] as const).map((key) => {
                 const text = currentQuestion[`option${key}` as `option${'A'|'B'|'C'|'D'}`];
                 const isSelected = answers[currentQuestion.id] === key;
-                // Once revealed, get correctAnswer from the questions data
-                // Note: correctAnswer is only available after reveal because the API
-                // returns it via formatQuestionSafe (feedback is included too)
                 const correctAnswer = (currentQuestion as { correctAnswer?: string }).correctAnswer;
                 const isCorrect = isCurrentRevealed && correctAnswer === key;
                 const isWrong   = isCurrentRevealed && isSelected && correctAnswer !== key;
@@ -148,25 +136,17 @@ export default function Quiz() {
                     onClick={() => handleSelect(key)}
                     disabled={isCurrentRevealed}
                     className={cn(
-                      'relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 transition-all duration-200 py-4 px-3 min-h-[110px] text-center',
-                      !isCurrentRevealed && !isSelected && 'border-white/15 bg-black/40 hover:border-white/30 hover:bg-white/5 active:scale-95',
+                      'relative flex flex-row items-center gap-4 rounded-2xl border-2 transition-all duration-200 py-3.5 px-4 text-left w-full',
+                      !isCurrentRevealed && !isSelected && 'border-white/15 bg-black/40 hover:border-white/30 hover:bg-white/5 active:scale-[0.98]',
                       !isCurrentRevealed && isSelected && `${optionStyle.selectedBg} ${optionStyle.border} ${optionStyle.shadow}`,
                       isCorrect  && 'border-emerald-400 bg-emerald-500/20 shadow-[0_0_20px_hsl(152_76%_50%/0.5)]',
                       isWrong    && 'border-rose-500 bg-rose-500/15 opacity-75',
                       isCurrentRevealed && !isCorrect && !isWrong && 'border-white/10 bg-black/20 opacity-40',
                     )}
                   >
-                    {/* Correct / Wrong badge overlay */}
-                    {isCorrect && (
-                      <CheckCircle2 className="absolute top-1.5 right-1.5 w-4 h-4 text-emerald-400" />
-                    )}
-                    {isWrong && (
-                      <XCircle className="absolute top-1.5 right-1.5 w-4 h-4 text-rose-400" />
-                    )}
-
-                    {/* Key badge */}
+                    {/* Key badge — small, left side */}
                     <div className={cn(
-                      'w-10 h-10 rounded-xl flex items-center justify-center font-display text-lg border-2 shrink-0 transition-all',
+                      'w-8 h-8 rounded-xl flex items-center justify-center font-display text-sm border-2 shrink-0 transition-all',
                       isCorrect ? 'bg-emerald-500 text-white border-white/40' :
                       isWrong   ? 'bg-rose-500 text-white border-white/40' :
                       isSelected && !isCurrentRevealed ? `${optionStyle.badgeBg} text-white border-white/40` :
@@ -174,14 +154,20 @@ export default function Quiz() {
                     )}>
                       {key}
                     </div>
+
+                    {/* Answer text — large */}
                     <span className={cn(
-                      'text-xs font-bold leading-snug',
+                      'text-lg font-bold leading-snug flex-1',
                       isCorrect ? 'text-emerald-200' :
                       isWrong   ? 'text-rose-200' :
-                      isSelected && !isCurrentRevealed ? 'text-white' : 'text-white/70'
+                      isSelected && !isCurrentRevealed ? 'text-white' : 'text-white/80'
                     )}>
                       {text}
                     </span>
+
+                    {/* Correct / Wrong icon — right side */}
+                    {isCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+                    {isWrong   && <XCircle      className="w-5 h-5 text-rose-400 shrink-0" />}
                   </button>
                 );
               })}
@@ -204,7 +190,6 @@ export default function Quiz() {
                       : 'bg-rose-500/10 border-rose-400'
                   )}
                 >
-                  {/* Result heading */}
                   <div className="flex items-center gap-2 mb-2">
                     {isRight
                       ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -220,7 +205,6 @@ export default function Quiz() {
                     )}
                   </div>
 
-                  {/* Explanation */}
                   {feedbackText && (
                     <div className="flex items-start gap-2 mt-1">
                       <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
