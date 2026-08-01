@@ -71,13 +71,34 @@ export default function Landing() {
 
           {/* Rolling word + title */}
           <RollingWord />
-          <h1 className="text-game-title text-5xl sm:text-6xl leading-tight">QUIZ</h1>
-          <h1 className="text-game-title-orange text-6xl sm:text-7xl leading-tight">BUNKER</h1>
+
+          {/* Game logo lockup */}
+          <div className="relative inline-block w-full">
+            {/* Back glow plate */}
+            <div className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'radial-gradient(ellipse 90% 60% at 50% 50%, hsl(32 100% 50% / 0.22), transparent 70%)',
+                filter: 'blur(18px)',
+              }} />
+            <h1 className="text-game-title text-5xl sm:text-6xl leading-tight relative z-10">QUIZ</h1>
+            <h1 className="text-game-title-orange text-6xl sm:text-7xl leading-none relative z-10"
+              style={{ marginTop: '-0.05em' }}>BUNKER</h1>
+            {/* Bottom fire line */}
+            <div className="mx-auto mt-1 h-1 w-40 rounded-full relative z-10"
+              style={{
+                background: 'linear-gradient(90deg, transparent, hsl(40 100% 60%), hsl(20 100% 55%), transparent)',
+                boxShadow: '0 0 12px hsl(35 100% 55% / 0.9), 0 0 28px hsl(35 100% 50% / 0.5)',
+              }} />
+          </div>
 
           {/* Tagline */}
-          <p className="font-bold text-base leading-relaxed mt-5" style={{ color: 'hsl(210 60% 90%)' }}>
+          <p className="font-bold text-base leading-relaxed mt-5"
+            style={{ color: 'hsl(210 80% 95%)', textShadow: '0 0 20px hsl(210 80% 70% / 0.4)' }}>
             Ghana's top exam practice platform.<br />
-            <span style={{ color: 'hsl(45 100% 72%)' }}>Crush real past questions, level by level.</span>
+            <span style={{
+              color: 'hsl(45 100% 78%)',
+              textShadow: '0 0 16px hsl(45 100% 60% / 0.6)',
+            }}>Crush real past questions, level by level.</span>
           </p>
         </div>
 
