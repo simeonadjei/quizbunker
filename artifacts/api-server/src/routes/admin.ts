@@ -107,6 +107,9 @@ router.post("/admin/test-email", requireAdmin, async (req, res) => {
     secure: false,
     requireTLS: true,
     auth: { user, pass },
+    // Force IPv4 — Render (and many cloud hosts) block outbound IPv6,
+    // so the default DNS resolution can return an unreachable IPv6 address.
+    family: 4,
   });
 
   try {
