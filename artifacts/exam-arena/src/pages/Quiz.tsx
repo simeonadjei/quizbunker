@@ -13,9 +13,6 @@ const OPTION_STYLES = {
   D: { selectedBg: 'bg-violet-500/25',  border: 'border-violet-400',  shadow: 'shadow-[0_0_18px_hsl(263_90%_65%/0.4)]', badgeBg: 'bg-violet-500' },
 } as const;
 
-// Bottom nav height (py-3 top+bottom + ~52px content) — keeps scroll area clear
-const BOTTOM_NAV_H = 'bottom-[72px]';
-
 export default function Quiz() {
   const [, params] = useRoute('/quiz/:sessionId');
   const sessionId = Number(params?.sessionId);
@@ -67,7 +64,8 @@ export default function Quiz() {
   if (session.completedAt) { setLocation(`/results/${sessionId}`); return null; }
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground relative">
+    /* Natural document scroll: pt clears fixed HUD, pb clears fixed bottom nav */
+    <div className="min-h-[100dvh] bg-background text-foreground relative pt-14 pb-24">
       <BackgroundParticles />
 
       {/* Logo watermark — behind everything */}
@@ -111,13 +109,9 @@ export default function Quiz() {
         </div>
       </header>
 
-      {/*
-        ── Scrollable content area ──
-        Sits between the fixed HUD (top-14 = 56px) and fixed bottom nav (~72px).
-        No sticky elements here — nothing can overlay the options.
-      */}
-      <div className={`fixed top-14 left-0 right-0 ${BOTTOM_NAV_H} overflow-y-auto z-10`}>
-        <div className="max-w-lg mx-auto px-4 py-4 flex flex-col gap-3 pb-4">
+      {/* ── Scrollable content (flows naturally below HUD) ── */}
+      <div className="relative z-10">
+        <div className="max-w-lg mx-auto px-4 py-4 flex flex-col gap-3">
 
           {/* ── Question text ── */}
           {currentQuestion && (

@@ -69,17 +69,23 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, [currentSongIndex, currentSong?.url]);
 
-  // ── Start playback (called synchronously in click handler) ─────────
+  // ── Start playback (called synchronously inside a click/tap handler) ─
+  // iOS Safari requires audio.play() to be called directly inside the
+  // element's event handler — not from a document-level listener.
   const _startPlayback = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio || isPlayingRef.current) return;
+    if (!audio) return;
+    // Use audio.paused as ground truth; isPlayingRef can lag on iOS
+    if (!audio.paused) return;
     if (currentSong && !audio.src) {
       audio.src = resolveUrl(currentSong.url);
-      audio.load();
+      // Do NOT call audio.load() here — calling load() before play() in the
+      // same gesture can break iOS Safari's gesture context. play() alone
+      // starts downloading if needed.
     }
     audio.play()
       .then(() => { isPlayingRef.current = true; setIsPlaying(true); hasStartedRef.current = true; })
-      .catch(() => {});
+      .catch((err) => { console.warn('[Music] play() blocked:', err); });
   }, [currentSong]);
 
   // ── Autoplay: start on first user interaction anywhere ─────────────
@@ -91,18 +97,18 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       _startPlayback();
     };
 
-    // Try immediately (works when browser allows it)
+    // Try immediately (works on desktop when browser allows autoplay)
     tryStart();
 
-    // Fallback: start on any user gesture (no once — keep listening until started)
-    document.addEventListener('click',      tryStart, { passive: true });
-    document.addEventListener('touchstart', tryStart, { passive: true });
-    document.addEventListener('keydown',    tryStart, { passive: true });
+    // Fallback: listen for click/keydown only — NOT touchstart.
+    // touchstart + click both fire for the same tap; double-calling play()
+    // within the same gesture can confuse iOS Safari and block both calls.
+    document.addEventListener('click',   tryStart, { passive: true });
+    document.addEventListener('keydown', tryStart, { passive: true });
 
     return () => {
-      document.removeEventListener('click',      tryStart);
-      document.removeEventListener('touchstart', tryStart);
-      document.removeEventListener('keydown',    tryStart);
+      document.removeEventListener('click',   tryStart);
+      document.removeEventListener('keydown', tryStart);
     };
   }, [activeSongs.length, _startPlayback]);
 
