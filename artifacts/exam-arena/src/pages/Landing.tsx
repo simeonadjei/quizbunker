@@ -33,9 +33,11 @@ function RollingWord() {
   return (
     <div className="h-9 flex items-center justify-center overflow-hidden">
       <span
-        className="font-display text-2xl tracking-widest text-accent"
+        className="font-display text-2xl tracking-widest"
         style={{
           display: 'inline-block',
+          color: 'hsl(45 100% 65%)',
+          textShadow: '0 0 16px hsl(45 100% 65% / 0.7), 0 0 32px hsl(45 100% 55% / 0.4)',
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0)' : 'translateY(-18px)',
           transition: 'opacity 0.35s ease, transform 0.35s ease',
@@ -58,7 +60,8 @@ export default function Landing() {
         <div className="w-full mt-8 mb-2">
 
           {/* Live badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/40 text-white font-bold text-xs uppercase tracking-widest mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/50 font-bold text-xs uppercase tracking-widest mb-6"
+            style={{ color: 'hsl(36 100% 80%)' }}>
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
@@ -72,9 +75,9 @@ export default function Landing() {
           <h1 className="text-game-title-orange text-6xl sm:text-7xl leading-tight">BUNKER</h1>
 
           {/* Tagline */}
-          <p className="text-white/70 font-bold text-base leading-relaxed mt-5">
+          <p className="font-bold text-base leading-relaxed mt-5" style={{ color: 'hsl(210 60% 90%)' }}>
             Ghana's top exam practice platform.<br />
-            Crush real past questions, level by level.
+            <span style={{ color: 'hsl(45 100% 72%)' }}>Crush real past questions, level by level.</span>
           </p>
         </div>
 
@@ -96,25 +99,50 @@ export default function Landing() {
           )}
         </div>
 
+        {/* ── Ancient Quote ─────────────────────────────────────────── */}
+        <div className="w-full mt-10 rounded-2xl px-5 py-5 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, hsl(263 80% 15% / 0.85), hsl(240 60% 12% / 0.9))',
+            border: '1.5px solid hsl(263 80% 55% / 0.45)',
+            boxShadow: '0 0 30px hsl(263 80% 40% / 0.2), inset 0 1px 0 hsl(263 80% 70% / 0.1)',
+          }}
+        >
+          {/* decorative glow blob */}
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full pointer-events-none"
+            style={{ background: 'hsl(263 90% 60% / 0.15)', filter: 'blur(20px)' }} />
+
+          <p className="font-mono text-sm italic leading-relaxed relative z-10"
+            style={{ color: 'hsl(263 60% 90%)', textShadow: '0 0 12px hsl(263 80% 70% / 0.4)' }}>
+            "Education is the most powerful weapon which you can use to change the world."
+          </p>
+          <p className="mt-2 text-xs font-bold tracking-widest uppercase relative z-10"
+            style={{ color: 'hsl(45 100% 65%)', textShadow: '0 0 8px hsl(45 100% 55% / 0.5)' }}>
+            — Nelson Mandela
+          </p>
+        </div>
+
         {/* ── Feature list ─────────────────────────────────────────── */}
-        <div className="flex flex-col gap-5 w-full mt-12">
+        <div className="flex flex-col gap-5 w-full mt-8">
           <FeatureCard
-            icon={<BookOpen className="w-6 h-6 text-accent" />}
-            title="1,500+ Questions"
-            desc="Organised by subject and year — tackle them week by week like game levels."
-            colorClass="border-l-accent"
+            icon={<BookOpen className="w-6 h-6" style={{ color: 'hsl(45 100% 65%)' }} />}
+            title="4,800+ Questions"
+            desc="Organised by week and DOK level — tackle them like unlocking game levels."
+            borderColor="hsl(45 100% 55%)"
+            iconBg="hsl(45 100% 55% / 0.12)"
           />
           <FeatureCard
-            icon={<Trophy className="w-6 h-6 text-primary" />}
+            icon={<Trophy className="w-6 h-6" style={{ color: 'hsl(28 100% 65%)' }} />}
             title="All Levels · Dok 1 to 4"
-            desc="From straightforward recall all the way up to extended thinking questions."
-            colorClass="border-l-primary"
+            desc="From quick recall to extended thinking — every difficulty, every topic."
+            borderColor="hsl(28 100% 55%)"
+            iconBg="hsl(28 100% 55% / 0.12)"
           />
           <FeatureCard
-            icon={<Zap className="w-6 h-6 text-secondary" />}
+            icon={<Zap className="w-6 h-6" style={{ color: 'hsl(175 100% 55%)' }} />}
             title="Track Your Progress"
             desc="Review every answer after each session and watch your score climb."
-            colorClass="border-l-secondary"
+            borderColor="hsl(175 100% 45%)"
+            iconBg="hsl(175 100% 45% / 0.12)"
           />
         </div>
 
@@ -126,17 +154,25 @@ export default function Landing() {
   );
 }
 
-function FeatureCard({ icon, title, desc, colorClass }: {
-  icon: React.ReactNode; title: string; desc: string; colorClass: string;
+function FeatureCard({ icon, title, desc, borderColor, iconBg }: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  borderColor: string;
+  iconBg: string;
 }) {
   return (
-    <div className={`card-game p-5 flex items-start gap-4 text-left border-l-4 ${colorClass}`}>
-      <div className="bg-black/30 w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-white/10">
+    <div
+      className="card-game p-5 flex items-start gap-4 text-left border-l-4"
+      style={{ borderLeftColor: borderColor }}
+    >
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-white/20"
+        style={{ background: iconBg }}>
         {icon}
       </div>
       <div className="pt-0.5">
-        <h3 className="font-display text-white text-base mb-1">{title}</h3>
-        <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
+        <h3 className="font-display text-base mb-1" style={{ color: '#ffffff' }}>{title}</h3>
+        <p className="text-sm leading-relaxed" style={{ color: 'hsl(220 30% 82%)' }}>{desc}</p>
       </div>
     </div>
   );

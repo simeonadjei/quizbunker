@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "_SlHKijg6J4fEEgVxSBug"
+uri = "file://attached_assets/Mathematics_Year1_Weeks1-24_ForUpload.txt"
+type = "text"
+title = "Mathematics Year 1 – Weeks 1–24 (Ready to Upload)"
+description = "Converted from the original DOCX. Format: Year 1 Mathematics header, WEEK N: TOPIC headers, Question N: text, A–D options, Answer: X. Upload this file via Bulk Ingest with no overrides needed."
