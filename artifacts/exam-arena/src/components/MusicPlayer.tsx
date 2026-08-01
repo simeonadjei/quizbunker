@@ -10,7 +10,7 @@ interface MusicPlayerProps {
 }
 
 export function MusicPlayer({ bottomClass = 'bottom-4' }: MusicPlayerProps) {
-  const { isPlaying, nextSong, prevSong, currentSong, volume, setVolume } = useMusic();
+  const { isPlaying, nextSong, prevSong, currentSong, volume, setVolume, _startPlayback } = useMusic();
   const [expanded, setExpanded] = useState(false);
 
   if (!currentSong) return null;
@@ -94,7 +94,7 @@ export function MusicPlayer({ bottomClass = 'bottom-4' }: MusicPlayerProps) {
       {/* ── Collapsed pill button ──────────────────────────────────── */}
       {!expanded && (
         <button
-          onClick={() => setExpanded(true)}
+          onClick={() => { _startPlayback(); setExpanded(true); }}
           aria-label="Open music player"
           className={cn(
             'relative w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-[0_4px_16px_rgba(0,0,0,0.5)] transition-all active:scale-90',

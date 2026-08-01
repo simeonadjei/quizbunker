@@ -94,10 +94,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     // Try immediately (works when browser allows it)
     tryStart();
 
-    // Fallback: piggyback on the first user gesture
-    document.addEventListener('click',      tryStart, { once: true, passive: true });
-    document.addEventListener('touchstart', tryStart, { once: true, passive: true });
-    document.addEventListener('keydown',    tryStart, { once: true, passive: true });
+    // Fallback: start on any user gesture (no once — keep listening until started)
+    document.addEventListener('click',      tryStart, { passive: true });
+    document.addEventListener('touchstart', tryStart, { passive: true });
+    document.addEventListener('keydown',    tryStart, { passive: true });
 
     return () => {
       document.removeEventListener('click',      tryStart);
