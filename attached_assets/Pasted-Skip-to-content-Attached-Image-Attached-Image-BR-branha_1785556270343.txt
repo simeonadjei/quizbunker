@@ -1,0 +1,103 @@
+Skip to content
+
+
+
+
+
+
+
+
+
+
+
+
+
+/
+
+
+
+
+
+Attached Image
+
+Attached Image
+BR
+branham134
+branham134
+21 minutes ago
+Identifying Render's SMTP port restrictions
+
+Identifying Render's SMTP port restrictions
+Deploy is live but "Connection timeout" means Render's free tier is blocking outbound SMTP port 587. Port 465 (SSL) sometimes gets through when 587 doesn't — let me try that first, and if it's also blocked I'll switch to an HTTP-based email service.
+
+
+6 actions
+Pushed 3ce761f. Once Render deploys (watch the dashboard), try Send Test again.
+
+If port 465 also times out, Render's free tier is blocking all outbound SMTP. In that case the fix is to swap nodemailer for Resend (free HTTP API, 3,000 emails/month) — just let me know and I'll make the switch.
+
+
+Worked for 58 seconds
+
+Attached Image
+BR
+branham134
+branham134
+7 minutes ago
+Evaluating email integration options
+
+Evaluating email integration options
+Port 465 also blocked — Render free tier blocks all outbound SMTP. Switching to Resend (HTTP API, works fine on Render). Let me check what other routes send email first so I can convert everything at once.
+
+
+2 actions
+Both SMTP ports blocked — switching everything to Resend (HTTP API). I'll rewrite the email layer in both files at once, then ask for your API key.
+
+
+2 actions
+Now I'll create a shared Resend email helper and update both route files in parallel.
+
+
+2 actions
+Now update both route files and the server entry point in parallel.
+
+
+4 actions
+Now update admin.ts and the server entry point in parallel.
+
+
+8 actions
+Now replace the test-email handler in admin.ts with the Resend version.
+
+
+8 actions
+Add secrets
+Resend is a free email service that works on Render (unlike Gmail SMTP which is blocked). Sign up at https://resend.com, create an API key, and paste it here. Free tier gives 3,000 emails/month.
+
+IMPORTANT: Also add RESEND_API_KEY as an environment variable on your Render web service (quizbunker-o733) — Render dashboard → your service → Environment → Add environment variable.
+RESEND_API_KEY
+Enter the value for RESEND_API_KEY. It will be saved as a Replit Secret.
+This prompt is for another responder.
+
+Worked for 2 minutes
+lets use brevo
+
+BR
+branham134
+branham134
+4 minutes ago
+Evaluating email integration options
+
+Evaluating email integration options
+Switching to Brevo. I'll use their HTTP API directly (no SDK needed — just fetch), which avoids any SMTP port issues.
+
+
+Removed dependencies
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+
+Worked for 23 seconds
+lets use brevo Agent activity Switching to Brevo. I'll use their HTTP API directly (no SDK needed — just `fetch`), which avoids any SMTP port issues. Agent activity Agent activity Agent activity Agent activity
+
+Scroll to latest
+Guests can't use Agent in Starter Plan user's repls

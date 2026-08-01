@@ -89,12 +89,12 @@ router.post("/admin/auth", async (req, res) => {
   return res.json({ message: "Authenticated" });
 });
 
-// POST /admin/test-email — sends a test email via Resend and returns success or the exact error
+// POST /admin/test-email — sends a test email via Brevo and returns success or the exact error
 router.post("/admin/test-email", requireAdmin, async (req, res) => {
   if (!isEmailConfigured()) {
     return res.status(400).json({
       ok: false,
-      error: "Email not configured — RESEND_API_KEY must be set as an environment variable on Render.",
+      error: "Email not configured — BREVO_API_KEY must be set as an environment variable.",
     });
   }
 

@@ -1,33 +1,14 @@
 /**
- * Shared email sender using Resend (HTTP API).
- * Resend works on all cloud hosts including Render free tier,
- * unlike SMTP which is blocked on ports 465 and 587.
+ * Shared email sender using Brevo's HTTP API.
+ * Uses plain fetch — no SDK required, works on all cloud hosts.
  */
-import { Resend } from "resend";
-
-let _resend: Resend | null = null;
-
-function getResend(): Resend | null {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return null;
-  if (!_resend) _resend = new Resend(key);
-  return _resend;
-}
 
 export function isEmailConfigured(): boolean {
-  return !!process.env.RESEND_API_KEY;
+  return !!process.env.BREVO_API_KEY;
 }
 
-/** Returns the "from" address: uses GMAIL_USER / ADMIN_EMAIL as the display
- *  name + address when verified on Resend, otherwise falls back to the safe
- *  Resend sandbox sender which works without domain verification. */
-function fromAddress(): string {
-  const configured = (process.env.GMAIL_USER || process.env.ADMIN_EMAIL || "").trim();
-  // If the user has verified their domain on Resend, use their address.
-  // Otherwise Resend requires using onboarding@resend.dev (sandbox) or a
-  // verified address. We try to use their address and let Resend reject it
-  // with a clear error if it isn't verified, rather than silently swapping it.
-  return configured ? `Quiz Bunker <${configured}>` : "Quiz Bunker <onboarding@resend.dev>";
+function senderEmail(): string {
+  return (process.env.GMAIL_USER || process.env.ADMIN_EMAIL || "").trim() || "noreply@quizbunker.com";
 }
 
 export interface SendResult {
@@ -40,20 +21,45 @@ export async function sendEmail(opts: {
   subject: string;
   html: string;
 }): Promise<SendResult> {
-  const resend = getResend();
-  if (!resend) {
-    return { ok: false, error: "Email not configured — RESEND_API_KEY must be set." };
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    return { ok: false, error: "Email not configured — BREVO_API_KEY must be set." };
   }
 
-  const { data, error } = await resend.emails.send({
-    from: fromAddress(),
-    to: opts.to,
-    subject: opts.subject,
-    html: opts.html,
-  });
+  const from = senderEmail();
 
-  if (error) {
-    return { ok: false, error: `Resend error: ${error.message}` };
+  const body = {
+    sender: { name: "Quiz Bunker", email: from },
+    to: [{ email: opts.to }],
+    subject: opts.subject,
+    htmlContent: opts.html,
+  };
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Network error sending email: ${msg}` };
+  }
+
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const json = (await res.json()) as { message?: string; code?: string };
+      detail = json.message ?? json.code ?? "";
+    } catch {
+      detail = await res.text().catch(() => "");
+    }
+    return { ok: false, error: `Brevo API error ${res.status}: ${detail}` };
   }
 
   return { ok: true };
@@ -62,8 +68,8 @@ export async function sendEmail(opts: {
 /** Call once at startup to log whether email is configured. */
 export function logEmailConfigStatus(): void {
   if (isEmailConfigured()) {
-    console.log("[EMAIL] ✅ Resend configured — email sending enabled.");
+    console.log("[EMAIL] ✅ Brevo configured — email sending enabled.");
   } else {
-    console.error("[EMAIL] ⚠️  Email NOT configured — set RESEND_API_KEY to enable email sending.");
+    console.error("[EMAIL] ⚠️  Email NOT configured — set BREVO_API_KEY to enable email sending.");
   }
 }
