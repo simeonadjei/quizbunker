@@ -47,7 +47,7 @@ function formatQuestion(q: typeof questionsTable.$inferSelect) {
   };
 }
 
-/** Question without the answer — for in-progress sessions */
+/** Question with answer — for in-progress sessions (client needs it for immediate feedback) */
 function formatQuestionSafe(q: typeof questionsTable.$inferSelect) {
   return {
     id: q.id,
@@ -61,7 +61,7 @@ function formatQuestionSafe(q: typeof questionsTable.$inferSelect) {
     optionB: q.optionB,
     optionC: q.optionC,
     optionD: q.optionD,
-    // correctAnswer intentionally omitted
+    correctAnswer: q.correctAnswer,
     dok: q.dok ?? null,
     learningIndicator: q.learningIndicator ?? null,
     feedback: q.feedback ?? null,

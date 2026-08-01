@@ -69,37 +69,41 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     return () => audio.removeEventListener('ended', onEnded);
   }, [activeSongs.length]);
 
-  // ── Load new song src when track changes ───────────────────────────
+  // ── Track the URL we last loaded so we can detect song changes ────
+  const loadedUrlRef = useRef<string>('');
+
+  // ── When the track changes while already playing, swap src + resume ─
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
     const url = resolveUrl(currentSong.url);
-    // audio.src returns the absolute version; compare against both forms
-    let abs = url;
-    try { abs = new URL(url, window.location.href).href; } catch { /* keep url */ }
-    if (audio.src !== url && audio.src !== abs) {
+    if (loadedUrlRef.current === url) return; // same track, nothing to do
+    // Only auto-swap if already playing (e.g. auto-advance / manual skip).
+    // On first play the gesture handler (_startPlayback) owns src assignment —
+    // doing it here would break iOS Safari's autoplay policy.
+    if (!audio.paused) {
+      loadedUrlRef.current = url;
       audio.src = url;
-      audio.load();
-      // If already playing (e.g. track skipped while playing) continue playback
-      if (!audio.paused) {
-        audio.play().catch(() => {});
-      }
+      audio.play().catch(() => {});
     }
+    // If paused, _startPlayback will set the src when the next gesture fires.
   }, [currentSongIndex, currentSong?.url]);
 
   // ── Start playback — must be called synchronously inside a click/tap ─
-  // iOS Safari requires audio.play() to happen in the direct element
-  // handler's synchronous call stack.
+  // iOS Safari requires BOTH audio.src assignment AND audio.play() to happen
+  // in the same synchronous user-gesture call stack. Setting src in a
+  // useEffect and calling play() here counts as two separate gestures on iOS
+  // and gets blocked. Always do both here.
   const _startPlayback = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
-    // Guard: don't call play() a second time if already playing
-    if (!audio.paused) return;
+    if (!audio.paused) return; // already playing
 
-    // Ensure src is set (defensive — the useEffect should have done this)
-    if (!audio.src || audio.src === window.location.href) {
-      audio.src = resolveUrl(currentSong.url);
-    }
+    const url = resolveUrl(currentSong.url);
+
+    // Assign src inside the gesture handler — required for iOS Safari.
+    audio.src = url;
+    loadedUrlRef.current = url;
 
     // Mark as started SYNCHRONOUSLY so the bubbled document-click listener
     // (which fires after this returns) sees it and skips the duplicate call.
