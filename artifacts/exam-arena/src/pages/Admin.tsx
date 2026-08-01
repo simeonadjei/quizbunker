@@ -490,7 +490,9 @@ function EmailTestPanel() {
         setMessage(data.message ?? 'Email sent successfully');
       } else {
         setStatus('error');
-        setMessage(data.error ?? `HTTP ${res.status} — unknown error`);
+        // Include raw body for debugging when shape doesn't match
+        const detail = data.error ?? `HTTP ${res.status} — unexpected response: ${raw.slice(0, 300)}`;
+        setMessage(detail);
       }
     } catch (err) {
       setStatus('error');
