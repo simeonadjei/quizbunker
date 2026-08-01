@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -18,6 +19,7 @@ import Admin from '@/pages/Admin';
 import VerifyEmail from '@/pages/VerifyEmail';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import { playClickSound } from '@/lib/clickSound';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,13 +47,24 @@ function Router() {
       <Route path="/reset-password" component={ResetPassword} />
       {/* Hidden Admin Route */}
       <Route path="/xk9admin2024" component={Admin} />
-      
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function App() {
+  // ── Global click sound on every button / link / select ──────────────
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button, a, [role="button"], select, label')) {
+        playClickSound();
+      }
+    };
+    document.addEventListener('click', handler, { passive: true });
+    return () => document.removeEventListener('click', handler);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <MusicProvider>

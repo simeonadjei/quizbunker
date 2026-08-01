@@ -10,11 +10,13 @@ function resolveUrl(url: string) {
 
 interface MusicContextType {
   isPlaying: boolean;
-  togglePlay: () => void;
-  nextSong: () => void;
   currentSong: any | null;
   volume: number;
   setVolume: (v: number) => void;
+  nextSong: () => void;
+  prevSong: () => void;
+  /** Internal — used by autoplay mechanism only */
+  _startPlayback: () => void;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -27,12 +29,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [volume, setVolumeState] = useState(0.5);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isPlayingRef = useRef(false); // mirror for use inside event handlers
+  const isPlayingRef = useRef(false);
+  const hasStartedRef = useRef(false); // tracks whether we've ever started playback
 
   const activeSongs = songs.filter(s => s.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
   const currentSong = activeSongs.length > 0 ? activeSongs[currentSongIndex % activeSongs.length] : null;
 
-  // ── Initialise audio element once ───────────────────────────────────
+  // ── Init audio element once ─────────────────────────────────────────
   useEffect(() => {
     if (!audioRef.current) {
       const audio = new Audio();
@@ -42,26 +45,22 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ── Auto-advance to next track on ended ─────────────────────────────
+  // ── Auto-advance on track end ───────────────────────────────────────
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-
-    const onEnded = () => {
-      setCurrentSongIndex(prev => (prev + 1) % (activeSongs.length || 1));
-    };
-
+    const onEnded = () => setCurrentSongIndex(prev => (prev + 1) % (activeSongs.length || 1));
     audio.addEventListener('ended', onEnded);
     return () => audio.removeEventListener('ended', onEnded);
   }, [activeSongs.length]);
 
-  // ── Load new song src whenever track changes ────────────────────────
+  // ── Load new song src when track changes ───────────────────────────
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
-
     const url = resolveUrl(currentSong.url);
-    if (audio.src !== url && audio.src !== new URL(url, window.location.href).href) {
+    const abs = (() => { try { return new URL(url, window.location.href).href; } catch { return url; } })();
+    if (audio.src !== url && audio.src !== abs) {
       audio.src = url;
       audio.load();
       if (isPlayingRef.current) {
@@ -70,48 +69,60 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, [currentSongIndex, currentSong?.url]);
 
-  // ── Play / pause — called DIRECTLY from click handler ──────────────
-  // Calling play() inside useEffect loses the user-gesture context and
-  // browsers block autoplay. We call it synchronously here instead.
-  const togglePlay = useCallback(() => {
+  // ── Start playback (called synchronously in click handler) ─────────
+  const _startPlayback = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlayingRef.current) {
-      audio.pause();
-      isPlayingRef.current = false;
-      setIsPlaying(false);
-    } else {
-      // Ensure src is set before playing
-      if (currentSong && !audio.src) {
-        audio.src = resolveUrl(currentSong.url);
-        audio.load();
-      }
-      audio.play()
-        .then(() => {
-          isPlayingRef.current = true;
-          setIsPlaying(true);
-        })
-        .catch(() => {
-          isPlayingRef.current = false;
-          setIsPlaying(false);
-        });
+    if (!audio || isPlayingRef.current) return;
+    if (currentSong && !audio.src) {
+      audio.src = resolveUrl(currentSong.url);
+      audio.load();
     }
+    audio.play()
+      .then(() => { isPlayingRef.current = true; setIsPlaying(true); hasStartedRef.current = true; })
+      .catch(() => {});
   }, [currentSong]);
 
-  const nextSong = useCallback(() => {
-    const audio = audioRef.current;
-    setCurrentSongIndex(prev => (prev + 1) % (activeSongs.length || 1));
+  // ── Autoplay: start on first user interaction anywhere ─────────────
+  useEffect(() => {
+    if (activeSongs.length === 0) return;
 
-    // If already playing, the src-change useEffect will continue playback
-    if (!isPlayingRef.current && audio) {
-      // Auto-start on skip
-      setTimeout(() => {
-        audio.play()
-          .then(() => { isPlayingRef.current = true; setIsPlaying(true); })
-          .catch(() => {});
-      }, 50); // brief delay lets the src useEffect run first
-    }
+    const tryStart = () => {
+      if (hasStartedRef.current) return;
+      _startPlayback();
+    };
+
+    // Try immediately (works when browser allows it)
+    tryStart();
+
+    // Fallback: piggyback on the first user gesture
+    document.addEventListener('click',      tryStart, { once: true, passive: true });
+    document.addEventListener('touchstart', tryStart, { once: true, passive: true });
+    document.addEventListener('keydown',    tryStart, { once: true, passive: true });
+
+    return () => {
+      document.removeEventListener('click',      tryStart);
+      document.removeEventListener('touchstart', tryStart);
+      document.removeEventListener('keydown',    tryStart);
+    };
+  }, [activeSongs.length, _startPlayback]);
+
+  const nextSong = useCallback(() => {
+    setCurrentSongIndex(prev => (prev + 1) % (activeSongs.length || 1));
+    // Ensure playing continues
+    setTimeout(() => {
+      if (audioRef.current && isPlayingRef.current) {
+        audioRef.current.play().catch(() => {});
+      }
+    }, 60);
+  }, [activeSongs.length]);
+
+  const prevSong = useCallback(() => {
+    setCurrentSongIndex(prev => (prev - 1 + (activeSongs.length || 1)) % (activeSongs.length || 1));
+    setTimeout(() => {
+      if (audioRef.current && isPlayingRef.current) {
+        audioRef.current.play().catch(() => {});
+      }
+    }, 60);
   }, [activeSongs.length]);
 
   const setVolume = useCallback((v: number) => {
@@ -119,51 +130,32 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     if (audioRef.current) audioRef.current.volume = v;
   }, []);
 
-  // ── Pre-warm audio cache for offline playback ────────────────────────
-  // Uses Cache Storage API directly so songs are available offline even
-  // before the user plays them.
+  // ── Pre-warm audio cache (Cache Storage API) ───────────────────────
   useEffect(() => {
-    if (activeSongs.length === 0) return;
-    if (!('caches' in window)) return;
-
-    const warmCache = async () => {
-      let cache: Cache;
+    if (activeSongs.length === 0 || !('caches' in window)) return;
+    (async () => {
       try {
-        cache = await caches.open('audio-cache');
-      } catch {
-        return;
-      }
-
-      for (const song of activeSongs) {
-        const url = resolveUrl(song.url);
-        try {
-          const cached = await cache.match(url);
+        const cache = await caches.open('audio-cache');
+        for (const song of activeSongs) {
+          const url = resolveUrl(song.url);
+          const cached = await cache.match(url).catch(() => null);
           if (!cached) {
-            const response = await fetch(url);
-            if (response.ok) {
-              await cache.put(url, response);
-            }
+            fetch(url).then(r => { if (r.ok) cache.put(url, r); }).catch(() => {});
           }
-        } catch {
-          // Offline or unreachable — skip silently
         }
-      }
-    };
-
-    warmCache();
+      } catch {}
+    })();
   }, [activeSongs.length]);
 
   return (
-    <MusicContext.Provider value={{ isPlaying, togglePlay, nextSong, currentSong, volume, setVolume }}>
+    <MusicContext.Provider value={{ isPlaying, currentSong, volume, setVolume, nextSong, prevSong, _startPlayback }}>
       {children}
     </MusicContext.Provider>
   );
 }
 
 export function useMusic() {
-  const context = useContext(MusicContext);
-  if (context === undefined) {
-    throw new Error('useMusic must be used within a MusicProvider');
-  }
-  return context;
+  const ctx = useContext(MusicContext);
+  if (!ctx) throw new Error('useMusic must be used within a MusicProvider');
+  return ctx;
 }
