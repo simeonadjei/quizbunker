@@ -629,42 +629,92 @@ function SongManager() {
   const { toast } = useToast();
 
   const [files, setFiles] = useState<File[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
+  // Upload files one-by-one so each request finishes well within Render's timeout
   const handleUpload = async () => {
     if (files.length === 0) return;
-    setIsUploading(true);
+    setUploadProgress({ done: 0, total: files.length });
 
-    const formData = new FormData();
-    for (const f of files) {
-      formData.append("files", f);
-    }
+    let succeeded = 0;
+    const failed: string[] = [];
 
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/songs`, {
-        method: 'POST',
-        body: formData,
-        credentials: "include"
-      });
-      if (!res.ok) {
-        let msg = 'Upload failed';
-        try { const d = await res.json(); msg = d.error || msg; } catch { /* ignore */ }
-        throw new Error(msg);
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const formData = new FormData();
+      formData.append("file", f);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/songs`, {
+          method: 'POST',
+          body: formData,
+          credentials: "include",
+        });
+        if (!res.ok) {
+          let msg = `HTTP ${res.status}`;
+          try { const d = await res.json(); msg = d.error || msg; } catch { /* ignore */ }
+          failed.push(`${f.name}: ${msg}`);
+        } else {
+          succeeded++;
+        }
+      } catch (e: unknown) {
+        failed.push(`${f.name}: ${(e as Error).message}`);
       }
 
-      toast({ title: `${files.length} Track${files.length > 1 ? 's' : ''} Added` });
-      setFiles([]);
-      refetch();
-    } catch (e: unknown) {
-      toast({ title: "Upload Failed", description: (e as Error).message, variant: "destructive" });
-    } finally {
-      setIsUploading(false);
+      setUploadProgress({ done: i + 1, total: files.length });
+    }
+
+    setUploadProgress(null);
+    setFiles([]);
+    refetch();
+
+    if (failed.length === 0) {
+      toast({ title: `${succeeded} Track${succeeded > 1 ? 's' : ''} Added` });
+    } else {
+      toast({
+        title: `${succeeded} uploaded, ${failed.length} failed`,
+        description: failed.join('\n'),
+        variant: "destructive",
+      });
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!window.confirm(`Delete all ${songs.length} songs? This cannot be undone.`)) return;
+    setIsDeletingAll(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/songs`, {
+        method: 'DELETE',
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast({ title: "All songs deleted" });
+      refetch();
+    } catch (e: unknown) {
+      toast({ title: "Delete failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
+  const isUploading = uploadProgress !== null;
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 p-6 flex flex-col h-full">
-      <h3 className="text-xl font-bold mb-4">AUDIO SUBSYSTEM</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold">AUDIO SUBSYSTEM</h3>
+        {songs.length > 0 && (
+          <button
+            onClick={handleDeleteAll}
+            disabled={isDeletingAll}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-red-400 hover:text-red-300 border border-red-800 hover:border-red-600 bg-red-950/40 hover:bg-red-950/70 rounded transition-colors disabled:opacity-50"
+          >
+            {isDeletingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+            DELETE ALL
+          </button>
+        )}
+      </div>
 
       <div className="space-y-4 mb-8">
         <div>
@@ -675,6 +725,7 @@ function SongManager() {
             multiple
             onChange={(e) => setFiles(Array.from(e.target.files || []))}
             className="bg-black border-zinc-700 mt-1 p-1 text-sm"
+            disabled={isUploading}
           />
           {files.length > 0 && (
             <div className="mt-2 space-y-1">
@@ -693,11 +744,19 @@ function SongManager() {
           disabled={files.length === 0 || isUploading}
           className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-none border border-zinc-600"
         >
-          {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : `UPLOAD ${files.length > 1 ? `${files.length} TRACKS` : 'TRACK'}`}
+          {isUploading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Uploading {uploadProgress!.done}/{uploadProgress!.total}…
+            </span>
+          ) : `UPLOAD ${files.length > 1 ? `${files.length} TRACKS` : 'TRACK'}`}
         </Button>
       </div>
 
       <div className="flex-1 overflow-auto bg-black border border-zinc-800 p-2">
+        {songs.length === 0 && (
+          <p className="text-xs text-zinc-600 text-center py-4">No songs yet</p>
+        )}
         {songs.map(song => (
           <div key={song.id} className="flex items-center justify-between p-2 border-b border-zinc-900 hover:bg-zinc-900/50">
             <span className="text-sm truncate mr-4">{song.title}</span>

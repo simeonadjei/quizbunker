@@ -36,16 +36,9 @@ const questionUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// Multer for songs (audio files) — keep original extension
-const songStorage = multer.diskStorage({
-  destination: songsDir,
-  filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    cb(null, `${unique}${path.extname(file.originalname)}`);
-  },
-});
+// Multer for songs — memory storage so we never touch disk (faster, no ephemeral-disk issues)
 const songUpload = multer({
-  storage: songStorage,
+  storage: multer.memoryStorage(),
   fileFilter: (_req, file, cb) => {
     const allowed = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -466,11 +459,11 @@ const AUDIO_MIME: Record<string, string> = {
   ".flac": "audio/flac",
 };
 
-// POST /admin/songs
-router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (req, res) => {
-  const files = req.files as Express.Multer.File[] | undefined;
-  if (!files || files.length === 0) {
-    return res.status(400).json({ error: "No audio files uploaded. Send files in the 'files' field." });
+// POST /admin/songs — accepts one file at a time (call repeatedly for batches)
+router.post("/admin/songs", requireAdmin, songUpload.single("file"), async (req, res) => {
+  const file = req.file as Express.Multer.File | undefined;
+  if (!file) {
+    return res.status(400).json({ error: "No audio file uploaded. Send a single file in the 'file' field." });
   }
 
   const [last] = await db
@@ -479,57 +472,43 @@ router.post("/admin/songs", requireAdmin, songUpload.array("files", 20), async (
     .orderBy(desc(songsTable.sortOrder))
     .limit(1);
 
-  let nextSortOrder = last ? last.sortOrder + 1 : 0;
+  const nextSortOrder = last ? last.sortOrder + 1 : 0;
 
-  const titles = Array.isArray(req.body.titles) ? req.body.titles as string[] : [];
-  const inserted = [];
+  const rawTitle = String(req.body.title ?? "").trim();
+  const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
+  const ext = path.extname(file.originalname).toLowerCase();
+  const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const rawTitle = (titles[i] || req.body.title || "").trim();
-    const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
-    const ext = path.extname(file.originalname).toLowerCase();
-    const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
-
-    // Read file bytes into memory, encode as base64, then clean up disk immediately.
-    // Storing as base64 text avoids all bytea binary-serialization issues.
-    let fileData: string | undefined;
-    try {
-      const buf = fs.readFileSync(file.path);
-      fileData = buf.toString("base64");
-    } catch (readErr) {
-      req.log.warn({ err: readErr }, "Failed to read uploaded audio file from disk");
-    } finally {
-      fs.unlink(file.path, () => {});
-    }
-
-    if (!fileData) {
-      return res.status(500).json({ error: "Could not read uploaded file data" });
-    }
-
-    // Insert with a placeholder URL first so we can get the real ID for the audio URL
-    const [song] = await db
-      .insert(songsTable)
-      .values({
-        title,
-        filename: file.filename,
-        url: "/api/songs/0/audio", // temporary, updated below
-        sortOrder: nextSortOrder,
-        isActive: true,
-        fileData,
-        mimeType,
-      })
-      .returning();
-
-    // Update URL to use the DB-backed audio endpoint (survives redeploys)
-    const audioUrl = `/api/songs/${song.id}/audio`;
-    await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
-
-    inserted.push({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
-    nextSortOrder++;
+  // file.buffer is already in memory — no disk I/O needed
+  if (!file.buffer || file.buffer.length === 0) {
+    return res.status(500).json({ error: "Could not read uploaded file data" });
   }
+  const fileData = file.buffer.toString("base64");
 
-  return res.status(201).json(inserted.length === 1 ? inserted[0] : inserted);
+  // Insert with a placeholder URL first so we get the real ID
+  const [song] = await db
+    .insert(songsTable)
+    .values({
+      title,
+      filename: file.originalname,
+      url: "/api/songs/0/audio",
+      sortOrder: nextSortOrder,
+      isActive: true,
+      fileData,
+      mimeType,
+    })
+    .returning();
+
+  const audioUrl = `/api/songs/${song.id}/audio`;
+  await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
+
+  return res.status(201).json({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
+});
+
+// DELETE /admin/songs — wipe all songs
+router.delete("/admin/songs", requireAdmin, async (_req, res) => {
+  await db.delete(songsTable);
+  return res.json({ message: "All songs deleted" });
 });
 
 // PUT /admin/songs/:id
