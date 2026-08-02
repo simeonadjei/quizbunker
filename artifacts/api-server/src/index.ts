@@ -16,20 +16,25 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-Promise.all([ensureSessionTable(), backfillTrials()])
-  .then(() => {
-    // Log whether email is configured at startup
-    logEmailConfigStatus();
+// Run DB startup tasks but never let them abort the server.
+// The sessions table almost always already exists; if the DB is temporarily
+// unavailable (e.g. quota exceeded on the free tier) we still want the
+// server to accept requests — most endpoints will degrade gracefully.
+Promise.all([
+  ensureSessionTable().catch((err: Error) =>
+    logger.warn({ err: err.message }, "ensureSessionTable failed — server will still start"),
+  ),
+  backfillTrials().catch((err: Error) =>
+    logger.warn({ err: err.message }, "backfillTrials failed — server will still start"),
+  ),
+]).then(() => {
+  logEmailConfigStatus();
 
-    app.listen(port, (err) => {
-      if (err) {
-        logger.error({ err }, "Error listening on port");
-        process.exit(1);
-      }
-      logger.info({ port }, "Server listening");
-    });
-  })
-  .catch((err) => {
-    logger.error({ err }, "Failed to ensure session table — aborting");
-    process.exit(1);
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+    logger.info({ port }, "Server listening");
   });
+});
