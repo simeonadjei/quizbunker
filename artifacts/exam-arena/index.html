@@ -333,13 +333,13 @@
 
         setTimeout(showWord, 5000);
 
-        // Fade out and remove splash after 10 seconds
+        // Fade out and remove splash after 5 seconds
         var splash = document.getElementById('splash');
         setTimeout(function () {
           splash.style.opacity = '0';
           splash.style.pointerEvents = 'none';
           setTimeout(function () { splash.remove(); }, 1000);
-        }, 10000);
+        }, 5000);
       })();
     </script>
 
