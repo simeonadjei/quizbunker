@@ -496,47 +496,72 @@ const AUDIO_MIME: Record<string, string> = {
 };
 
 // POST /admin/songs — accepts one file at a time
-router.post("/admin/songs", requireAdmin, songUpload.single("file"), async (req, res) => {
+// Wrap multer in a manual callback so file-type / size errors return JSON, not HTML
+router.post("/admin/songs", requireAdmin, (req, res, next) => {
+  songUpload.single("file")(req, res, (err) => {
+    if (err) {
+      const msg =
+        err instanceof multer.MulterError
+          ? err.code === "LIMIT_FILE_SIZE"
+            ? "File too large — maximum size is 50 MB"
+            : `Upload error: ${err.message}`
+          : (err as Error).message ?? "File upload failed";
+      return res.status(400).json({ error: msg });
+    }
+    next();
+  });
+}, async (req, res) => {
   const file = req.file as Express.Multer.File | undefined;
   if (!file) {
     return res.status(400).json({ error: "No audio file uploaded. Send a single file in the 'file' field." });
   }
 
-  const [last] = await db
-    .select()
-    .from(songsTable)
-    .orderBy(desc(songsTable.sortOrder))
-    .limit(1);
-
-  const nextSortOrder = last ? last.sortOrder + 1 : 0;
-
-  const rawTitle = String(req.body.title ?? "").trim();
-  const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
-  const ext = path.extname(file.originalname).toLowerCase();
-  const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
-
   if (!file.buffer || file.buffer.length === 0) {
-    return res.status(500).json({ error: "Could not read uploaded file data" });
+    return res.status(400).json({ error: "Uploaded file is empty" });
   }
-  const fileData = file.buffer.toString("base64");
 
-  const [song] = await db
-    .insert(songsTable)
-    .values({
-      title,
-      filename: file.originalname,
-      url: "/api/songs/0/audio",
-      sortOrder: nextSortOrder,
-      isActive: true,
-      fileData,
-      mimeType,
-    })
-    .returning();
+  try {
+    const [last] = await db
+      .select()
+      .from(songsTable)
+      .orderBy(desc(songsTable.sortOrder))
+      .limit(1);
 
-  const audioUrl = `/api/songs/${song.id}/audio`;
-  await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
+    const nextSortOrder = last ? last.sortOrder + 1 : 0;
 
-  return res.status(201).json({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
+    const rawTitle = String(req.body.title ?? "").trim();
+    const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
+
+    const fileData = file.buffer.toString("base64");
+    const fileSizeMB = (file.buffer.length / 1024 / 1024).toFixed(1);
+
+    logger.info({ title, fileSizeMB, mimeType }, "Inserting song into DB");
+
+    const [song] = await db
+      .insert(songsTable)
+      .values({
+        title,
+        filename: file.originalname,
+        url: "/api/songs/0/audio",
+        sortOrder: nextSortOrder,
+        isActive: true,
+        fileData,
+        mimeType,
+      })
+      .returning();
+
+    const audioUrl = `/api/songs/${song.id}/audio`;
+    await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
+
+    logger.info({ songId: song.id, title }, "Song uploaded successfully");
+    return res.status(201).json({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
+  } catch (err: unknown) {
+    const message = (err as Error).message ?? "Unknown error";
+    logger.error({ err: message }, "Song upload DB error");
+    return res.status(500).json({ error: `Database error: ${message}` });
+  }
 });
 
 // DELETE /admin/songs — wipe all songs
