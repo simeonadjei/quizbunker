@@ -1,0 +1,42 @@
+==> Downloading cache...
+==> Cloning from https://github.com/simeonadjei/quizbunker
+==> Checking out commit 4df3d6896bab17a0008290b2792d45f4a62eaf6c in branch main
+==> Downloaded 103MB in 8s. Extraction took 3s.
+==> Using Node.js version 24.14.1 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Running build command 'pnpm install && pnpm --filter @workspace/api-server run build '...
+> @workspace/api-server@0.0.0 build /opt/render/project/src/artifacts/api-server
+> node ./build.mjs
+  dist/index.mjs                       4.0mb ⚠️
+  dist/pino-worker.mjs               153.4kb
+  dist/pino-file.mjs                 142.1kb
+  dist/pino-pretty.mjs               114.6kb
+  dist/thread-stream-worker.mjs        7.3kb
+  dist/index.mjs.map                   6.8mb
+  dist/pino-worker.mjs.map           256.9kb
+  dist/pino-file.mjs.map             229.0kb
+  dist/pino-pretty.mjs.map           204.0kb
+  dist/thread-stream-worker.mjs.map   12.0kb
+⚡ Done in 538ms
+==> Uploading build...
+==> Uploaded in 5.5s. Compression took 1.9s
+==> Build successful 🎉
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Running 'pnpm --filter @workspace/api-server run start'
+> @workspace/api-server@0.0.0 start /opt/render/project/src/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+(node:83) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":50,"time":1785690017946,"pid":83,"hostname":"srv-d98dcqreo5us73db2u10-hibernate-6c9bdcc5b5-sj249","err":{"type":"DatabaseError2","message":"Your project has exceeded the data transfer quota. Upgrade your plan to increase limits.","stack":"error: Your project has exceeded the data transfer quota. Upgrade your plan to increase limits.\n    at <anonymous> (/opt/render/project/src/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async ensureSessionTable (/opt/render/project/src/artifacts/api-server/src/app.ts:94:18)\n    at async Promise.all (index 0)","length":109,"name":"error","severity":"ERROR","code":"53000"},"msg":"Failed to ensure session table — aborting"}
+/opt/render/project/src/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 start: `node --enable-source-maps ./dist/index.mjs`
+Exit status 1
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'pnpm --filter @workspace/api-server run start'
