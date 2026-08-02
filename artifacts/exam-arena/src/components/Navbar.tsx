@@ -62,11 +62,12 @@ export function Navbar() {
               </div>
               <button
                 onClick={handleLogout}
-                className="bg-destructive/80 p-1.5 sm:p-2 rounded-xl border-2 border-white/30 text-white hover:scale-105 active:translate-y-0.5 transition-transform shrink-0"
-                style={{ boxShadow: '0 3px 0 hsl(0 85% 35%)' }}
-                title="Logout"
+                disabled={logout.isPending}
+                className="hud-badge hover:scale-105 active:translate-y-0.5 transition-transform shrink-0 !border-red-500/40 !text-red-400 hover:!bg-red-500/15 disabled:opacity-60"
+                title="Log out"
               >
-                <LogOut className="w-4 h-4" strokeWidth={2.5} />
+                <LogOut className="w-3.5 h-3.5" strokeWidth={2.5} />
+                <span>OUT</span>
               </button>
             </>
           ) : (
