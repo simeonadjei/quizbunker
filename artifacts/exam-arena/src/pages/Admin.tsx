@@ -557,37 +557,55 @@ function StatsPanel() {
 
 function QuestionUploader() {
   const { toast } = useToast();
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [year, setYear] = useState('');
   const [subject, setSubject] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [result, setResult] = useState<{ inserted: number; skipped: number; errors?: string[] } | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number; current: string } | null>(null);
+  const [summary, setSummary] = useState<{ inserted: number; skipped: number; failed: string[] } | null>(null);
+
+  const isUploading = progress !== null;
 
   const handleUpload = async () => {
-    if (!file) return;
-    setIsUploading(true);
-    setResult(null);
+    if (files.length === 0) return;
+    setSummary(null);
+    setProgress({ done: 0, total: files.length, current: files[0].name });
 
-    const formData = new FormData();
-    formData.append("file", file);
-    if (year) formData.append("year", year);
-    if (subject) formData.append("subject", subject);
+    let totalInserted = 0;
+    let totalSkipped = 0;
+    const failed: string[] = [];
 
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/questions/upload`, {
-        method: 'POST',
-        body: formData,
-        credentials: "include"
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
-      setResult(data);
-      toast({ title: "Upload Complete" });
-      setFile(null);
-    } catch (e: unknown) {
-      toast({ title: "Upload Failed", description: (e as Error).message, variant: "destructive" });
-    } finally {
-      setIsUploading(false);
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      setProgress({ done: i, total: files.length, current: f.name });
+
+      const formData = new FormData();
+      formData.append("file", f);
+      if (year) formData.append("year", year);
+      if (subject) formData.append("subject", subject);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/questions/upload`, {
+          method: 'POST',
+          body: formData,
+          credentials: "include"
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        totalInserted += data.inserted ?? 0;
+        totalSkipped += data.skipped ?? 0;
+      } catch (e: unknown) {
+        failed.push(`${f.name}: ${(e as Error).message}`);
+      }
+    }
+
+    setProgress(null);
+    setSummary({ inserted: totalInserted, skipped: totalSkipped, failed });
+    setFiles([]);
+
+    if (failed.length === 0) {
+      toast({ title: `${files.length} file${files.length > 1 ? 's' : ''} ingested successfully` });
+    } else {
+      toast({ title: `${files.length - failed.length}/${files.length} succeeded`, variant: "destructive" });
     }
   };
 
@@ -597,36 +615,65 @@ function QuestionUploader() {
 
       <div className="space-y-4">
         <div>
-          <label className="text-xs text-zinc-500">FILE (.docx, .txt)</label>
-          <Input type="file" accept=".docx,.txt" onChange={(e) => setFile(e.target.files?.[0] || null)} className="bg-black border-zinc-700 mt-1" />
+          <label className="text-xs text-zinc-500">FILES (.docx, .txt) — SELECT ONE OR MANY</label>
+          <Input
+            type="file"
+            accept=".docx,.txt"
+            multiple
+            onChange={(e) => setFiles(Array.from(e.target.files || []))}
+            className="bg-black border-zinc-700 mt-1"
+            disabled={isUploading}
+          />
+          {files.length > 1 && (
+            <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center justify-between text-xs text-zinc-400 bg-black border border-zinc-800 px-3 py-1.5">
+                  <span className="truncate mr-2">{f.name}</span>
+                  <span className="text-zinc-600 shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-zinc-500">YEAR OVERRIDE (OPTIONAL)</label>
-            <Input value={year} onChange={(e) => setYear(e.target.value)} className="bg-black border-zinc-700 mt-1" placeholder="e.g. 2023" />
+            <Input value={year} onChange={(e) => setYear(e.target.value)} className="bg-black border-zinc-700 mt-1" placeholder="e.g. 2023" disabled={isUploading} />
           </div>
           <div>
             <label className="text-xs text-zinc-500">SUBJECT OVERRIDE (OPTIONAL)</label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-black border-zinc-700 mt-1" placeholder="e.g. MATH" />
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-black border-zinc-700 mt-1" placeholder="e.g. MATH" disabled={isUploading} />
           </div>
         </div>
 
         <Button
           onClick={handleUpload}
-          disabled={!file || isUploading}
+          disabled={files.length === 0 || isUploading}
           className="w-full bg-blue-900 hover:bg-blue-800 text-blue-400 border border-blue-500 rounded-none"
         >
-          {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "EXECUTE INGEST"}
+          {isUploading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {progress!.done}/{progress!.total} — {progress!.current}
+            </span>
+          ) : (
+            files.length > 1 ? `INGEST ${files.length} FILES` : "EXECUTE INGEST"
+          )}
         </Button>
 
-        {result && (
-          <div className="mt-4 p-4 bg-black border border-green-500/30 text-green-400 text-sm space-y-1">
-            <div><CheckCircle className="w-4 h-4 inline mr-2" /> SUCCESS</div>
-            <div>INSERTED: {result.inserted}</div>
-            <div>SKIPPED: {result.skipped}</div>
-            {(result.errors?.length ?? 0) > 0 && (
-              <div className="text-red-400 mt-2 text-xs">ERRORS: {result.errors!.length} (See console)</div>
+        {summary && (
+          <div className="mt-4 p-4 bg-black border border-green-500/30 text-sm space-y-1">
+            <div className="text-green-400"><CheckCircle className="w-4 h-4 inline mr-2" />INGEST COMPLETE</div>
+            <div className="text-green-400">INSERTED: {summary.inserted}</div>
+            <div className="text-zinc-400">SKIPPED: {summary.skipped}</div>
+            {summary.failed.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <div className="text-red-400 text-xs font-bold">FAILED ({summary.failed.length}):</div>
+                {summary.failed.map((msg, i) => (
+                  <div key={i} className="text-red-400 text-xs pl-2 border-l border-red-800">{msg}</div>
+                ))}
+              </div>
             )}
           </div>
         )}
