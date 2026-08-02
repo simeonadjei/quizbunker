@@ -82,7 +82,7 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" className="hud-badge hover:scale-105 transition-transform text-xs sm:text-sm !px-2.5 sm:!px-3 shrink-0">
+              <Link href="/login" className="btn-game px-3 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-sm whitespace-nowrap shrink-0">
                 LOGIN
               </Link>
               <Link href="/register" className="btn-game px-3 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-sm whitespace-nowrap shrink-0">
