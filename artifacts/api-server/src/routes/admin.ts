@@ -4,8 +4,8 @@ import path from "path";
 import fs from "fs";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { db, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable } from "@workspace/db";
-import { eq, desc, count, gt } from "drizzle-orm";
+import { db, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable, referralEarningsTable } from "@workspace/db";
+import { eq, desc, count, gt, and } from "drizzle-orm";
 import { parseQuestionText } from "../lib/parser";
 import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
@@ -65,11 +65,12 @@ const PLAN_MONTHS: Record<string, number> = {
   lifetime: 0,  // handled specially — sets end to 2099
 };
 
+// Updated amounts: monthly GHS 15, semester GHS 30, yearly GHS 60
 const PLAN_AMOUNTS: Record<string, number> = {
   trial:    0,
-  monthly:  1000,
+  monthly:  1500,
   semester: 3000,
-  yearly:   5000,
+  yearly:   6000,
   lifetime: 0,
 };
 
@@ -147,6 +148,7 @@ router.post("/admin/payments/:id/verify", requireAdmin, async (req, res) => {
       semesterStart: paymentsTable.semesterStart,
       userEmail: usersTable.email,
       userName: usersTable.name,
+      referredBy: usersTable.referredBy,
     })
     .from(paymentsTable)
     .leftJoin(usersTable, eq(paymentsTable.userId, usersTable.id))
@@ -183,6 +185,20 @@ router.post("/admin/payments/:id/verify", requireAdmin, async (req, res) => {
         .set({ subscriptionPlan: plan, subscriptionEnd: endDate })
         .where(eq(usersTable.id, payment.userId));
     });
+
+    // Create referral earnings if this user was referred
+    if (payment.referredBy) {
+      const earningAmount = Math.floor(payment.amount * 0.20); // 20% cashback
+      if (earningAmount > 0) {
+        await db.insert(referralEarningsTable).values({
+          referrerId: payment.referredBy,
+          refereeId: payment.userId,
+          paymentId: payment.id,
+          amount: earningAmount,
+          status: "pending",
+        }).catch(() => {}); // ignore duplicate errors
+      }
+    }
 
     // Email the user — subscription confirmed
     if (payment.userEmail) {
@@ -229,7 +245,7 @@ router.post("/admin/payments/:id/verify", requireAdmin, async (req, res) => {
               <h2 style="margin:0 0 12px;color:#ff4444;">Transaction ID Mismatch</h2>
               <p style="color:#ccc;line-height:1.6;">Hi ${payment.userName ?? "there"},</p>
               <p style="color:#ccc;line-height:1.6;">We received your payment submission, but the transaction ID you provided (<strong style="color:#ff4444;">${payment.userTxId ?? "—"}</strong>) does not match the one we found on our MoMo account.</p>
-              <p style="color:#ccc;line-height:1.6;">Please check your MoMo transaction history for the correct ID and resubmit your payment on Quiz Bunker. The transaction ID is usually shown in your MoMo message or app history.</p>
+              <p style="color:#ccc;line-height:1.6;">Please check your MoMo transaction history for the correct ID and resubmit your payment on Quiz Bunker.</p>
               <a href="https://quizbunker.com/subscribe" style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
                 RESUBMIT PAYMENT
               </a>
@@ -289,14 +305,13 @@ router.post("/admin/subscribe", requireAdmin, async (req, res) => {
   let newPassword: string | null = null;
 
   if (generatePassword) {
-    // Generate a memorable random password: word + 4 digits
     const words = ["Quiz", "Bunker", "Ghana", "Learn", "Smart", "Ace", "Study", "Pass"];
     const word = words[Math.floor(Math.random() * words.length)];
     const digits = Math.floor(1000 + Math.random() * 9000).toString();
     newPassword = `${word}${digits}`;
     const passwordHash = await bcrypt.hash(newPassword, 10);
     updates.passwordHash = passwordHash;
-    updates.emailVerified = true; // ensure they can log in
+    updates.emailVerified = true;
     updates.verificationToken = null;
   }
 
@@ -463,7 +478,7 @@ const AUDIO_MIME: Record<string, string> = {
   ".flac": "audio/flac",
 };
 
-// POST /admin/songs — accepts one file at a time (call repeatedly for batches)
+// POST /admin/songs — accepts one file at a time
 router.post("/admin/songs", requireAdmin, songUpload.single("file"), async (req, res) => {
   const file = req.file as Express.Multer.File | undefined;
   if (!file) {
@@ -483,13 +498,11 @@ router.post("/admin/songs", requireAdmin, songUpload.single("file"), async (req,
   const ext = path.extname(file.originalname).toLowerCase();
   const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
 
-  // file.buffer is already in memory — no disk I/O needed
   if (!file.buffer || file.buffer.length === 0) {
     return res.status(500).json({ error: "Could not read uploaded file data" });
   }
   const fileData = file.buffer.toString("base64");
 
-  // Insert with a placeholder URL first so we get the real ID
   const [song] = await db
     .insert(songsTable)
     .values({
@@ -537,7 +550,6 @@ router.put("/admin/songs/:id", requireAdmin, async (req, res) => {
 router.delete("/admin/songs/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
 
-  // Best-effort: also clean up legacy disk file if it still exists
   const [song] = await db.select().from(songsTable).where(eq(songsTable.id, id)).limit(1);
   if (song) {
     const filePath = path.join(songsDir, song.filename);
@@ -658,6 +670,158 @@ router.get("/admin/stats", requireAdmin, async (_req, res) => {
     totalSubjects: subjectRows.length,
     totalSongs: Number(songCount?.count ?? 0),
     recentSessions: Number(sessionCount?.count ?? 0),
+  });
+});
+
+// GET /admin/referrals — referral earnings grouped by referrer
+router.get("/admin/referrals", requireAdmin, async (_req, res) => {
+  // Get all earnings with referrer info
+  const referrerAlias = usersTable;
+  const earnings = await db
+    .select({
+      id: referralEarningsTable.id,
+      referrerId: referralEarningsTable.referrerId,
+      refereeId: referralEarningsTable.refereeId,
+      amount: referralEarningsTable.amount,
+      status: referralEarningsTable.status,
+      createdAt: referralEarningsTable.createdAt,
+      plan: paymentsTable.plan,
+    })
+    .from(referralEarningsTable)
+    .leftJoin(paymentsTable, eq(referralEarningsTable.paymentId, paymentsTable.id))
+    .orderBy(desc(referralEarningsTable.createdAt));
+
+  // Get all unique referrers
+  const referrerIds = [...new Set(earnings.map(e => e.referrerId))];
+  if (referrerIds.length === 0) {
+    return res.json([]);
+  }
+
+  // Get referrer and referee user info
+  const allUsers = await db.select().from(usersTable);
+  const userMap = new Map(allUsers.map(u => [u.id, u]));
+
+  // Group by referrerId
+  const grouped = new Map<number, {
+    userId: number;
+    userName: string;
+    userEmail: string;
+    momoName: string | null;
+    momoNumber: string | null;
+    pendingAmount: number;
+    paidAmount: number;
+    earnings: Array<{
+      id: number; refereeName: string; plan: string; amount: number; status: string; createdAt: string;
+    }>;
+  }>();
+
+  for (const earning of earnings) {
+    const referrer = userMap.get(earning.referrerId);
+    if (!referrer) continue;
+    const referee = userMap.get(earning.refereeId);
+
+    if (!grouped.has(earning.referrerId)) {
+      grouped.set(earning.referrerId, {
+        userId: referrer.id,
+        userName: referrer.name,
+        userEmail: referrer.email,
+        momoName: referrer.momoName ?? null,
+        momoNumber: referrer.momoNumber ?? null,
+        pendingAmount: 0,
+        paidAmount: 0,
+        earnings: [],
+      });
+    }
+
+    const row = grouped.get(earning.referrerId)!;
+    if (earning.status === "pending") row.pendingAmount += earning.amount;
+    if (earning.status === "paid") row.paidAmount += earning.amount;
+    row.earnings.push({
+      id: earning.id,
+      refereeName: referee?.name ?? "Unknown",
+      plan: earning.plan ?? "—",
+      amount: earning.amount,
+      status: earning.status,
+      createdAt: earning.createdAt.toISOString(),
+    });
+  }
+
+  return res.json(Array.from(grouped.values()));
+});
+
+// POST /admin/referrals/:userId/notify — mark earnings as paid + send thank-you email
+router.post("/admin/referrals/:userId/notify", requireAdmin, async (req, res) => {
+  const userId = parseInt(String(req.params.userId), 10);
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  // Get pending earnings for this user
+  const pendingEarnings = await db
+    .select()
+    .from(referralEarningsTable)
+    .where(and(
+      eq(referralEarningsTable.referrerId, userId),
+      eq(referralEarningsTable.status, "pending"),
+    ));
+
+  if (pendingEarnings.length === 0) {
+    return res.status(400).json({ error: "No pending earnings for this user" });
+  }
+
+  const totalAmount = pendingEarnings.reduce((s, e) => s + e.amount, 0);
+
+  // Mark all pending as paid
+  await db
+    .update(referralEarningsTable)
+    .set({ status: "paid" })
+    .where(and(
+      eq(referralEarningsTable.referrerId, userId),
+      eq(referralEarningsTable.status, "pending"),
+    ));
+
+  // Send thank-you email to the user
+  const momoInfo = user.momoNumber ? `to ${user.momoName ?? user.momoNumber} (${user.momoNumber})` : "to your registered MoMo";
+  sendEmail({
+    to: user.email,
+    subject: "💰 Your Quiz Bunker referral earnings have been sent!",
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#ff6b00,#e03000);padding:24px 32px;">
+          <h1 style="margin:0;font-size:24px;letter-spacing:1px;">🎮 QUIZ BUNKER</h1>
+        </div>
+        <div style="padding:32px;">
+          <h2 style="margin:0 0 12px;color:#ffaa00;">Referral Earnings Sent! 💰</h2>
+          <p style="color:#ccc;line-height:1.6;">Hi ${user.name},</p>
+          <p style="color:#ccc;line-height:1.6;">
+            We've sent your referral earnings of
+            <strong style="color:#00ffcc;font-size:18px;"> GHS ${(totalAmount / 100).toFixed(2)}</strong>
+            ${momoInfo}.
+          </p>
+          <div style="background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:16px;margin:20px 0;">
+            <p style="margin:0 0 6px;color:#888;font-size:12px;">PAYMENT DETAILS</p>
+            <p style="margin:0;color:#ccc;">Amount: <strong style="color:#00ffcc;">GHS ${(totalAmount / 100).toFixed(2)}</strong></p>
+            ${user.momoNumber ? `<p style="margin:4px 0 0;color:#ccc;">Sent to: <strong style="color:#fff;">${user.momoName ?? ""} (${user.momoNumber})</strong></p>` : ""}
+          </div>
+          <p style="color:#ccc;line-height:1.6;">
+            Thank you so much for referring friends to Quiz Bunker! Keep sharing your referral link to earn more. Every new subscriber who uses your link earns you <strong style="color:#ffaa00;">20%</strong> of their payment.
+          </p>
+          <a href="https://quizbunker.com/dashboard" style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
+            SHARE YOUR REFERRAL LINK
+          </a>
+          <p style="color:#555;font-size:12px;margin-top:24px;">Payments are sent manually between the 15th and 20th of each month.</p>
+        </div>
+      </div>
+    `,
+  }).catch(() => {});
+
+  return res.json({
+    message: `GHS ${(totalAmount / 100).toFixed(2)} earnings marked as paid. Thank-you email sent to ${user.email}.`,
   });
 });
 

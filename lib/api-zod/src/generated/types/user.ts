@@ -5,15 +5,21 @@
  * Exam Arena API
  * OpenAPI spec version: 0.1.0
  */
-import type { UserSubscriptionPlan } from './userSubscriptionPlan';
+import type { UserSubscriptionPlanProperty } from './userSubscriptionPlanProperty';
 
 export interface User {
   id: number;
   email: string;
   name: string;
-  subscriptionPlan: UserSubscriptionPlan;
+  subscriptionPlan: UserSubscriptionPlanProperty;
   /** @nullable */
   subscriptionEnd?: string | null;
   /** @nullable */
   semesterStart?: string | null;
+  /** @nullable */
+  referralCode?: string | null;
+  /** @nullable */
+  momoNumber?: string | null;
+  /** @nullable */
+  momoName?: string | null;
 }

@@ -13,8 +13,8 @@ const PLANS = [
   {
     key: 'monthly' as const,
     label: 'Monthly',
-    price: '10',
-    amount: 10,
+    price: '15',
+    amount: 15,
     period: '/mo',
     icon: <Clock className="w-5 h-5" />,
     color: 'border-t-secondary',
@@ -36,8 +36,8 @@ const PLANS = [
   {
     key: 'yearly' as const,
     label: 'Yearly',
-    price: '50',
-    amount: 50,
+    price: '60',
+    amount: 60,
     period: '/yr',
     icon: <Shield className="w-5 h-5" />,
     color: 'border-t-primary',

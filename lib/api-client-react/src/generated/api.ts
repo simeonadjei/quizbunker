@@ -23,9 +23,11 @@ import type {
   ActivityLog,
   AdminLoginInput,
   AdminPayment,
+  AdminReferralRow,
   AdminStats,
   AdminSubscribeInput,
   AdminSubscribeResponse,
+  AdminTestEmailInput,
   AuthResponse,
   ErrorResponse,
   ForgotPasswordInput,
@@ -34,6 +36,7 @@ import type {
   ListQuestionsParams,
   LoginInput,
   MessageResponse,
+  MomoDetailsInput,
   MomoPaymentInput,
   MomoPaymentResponse,
   MomoVerifyInput,
@@ -45,6 +48,7 @@ import type {
   QuizSessionDetail,
   QuizSessionInput,
   QuizSubmitInput,
+  ReferralInfo,
   RegisterInput,
   ResendVerificationInput,
   ResetPasswordInput,
@@ -1339,6 +1343,153 @@ export function useGetPaymentStatus<TData = Awaited<ReturnType<typeof getPayment
 
 
 
+export const getSaveMomoDetailsUrl = () => {
+
+
+
+
+  return `/api/payments/momo-details`
+}
+
+/**
+ * @summary Save the current user's MoMo name and number for referral cashback
+ */
+export const saveMomoDetails = async (momoDetailsInput: MomoDetailsInput, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getSaveMomoDetailsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(momoDetailsInput)
+  }
+);}
+
+
+
+
+export const getSaveMomoDetailsMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveMomoDetails>>, TError,{data: BodyType<MomoDetailsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveMomoDetails>>, TError,{data: BodyType<MomoDetailsInput>}, TContext> => {
+
+const mutationKey = ['saveMomoDetails'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveMomoDetails>>, {data: BodyType<MomoDetailsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveMomoDetails(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveMomoDetailsMutationResult = NonNullable<Awaited<ReturnType<typeof saveMomoDetails>>>
+    export type SaveMomoDetailsMutationBody = BodyType<MomoDetailsInput>
+    export type SaveMomoDetailsMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save the current user's MoMo name and number for referral cashback
+ */
+export const useSaveMomoDetails = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveMomoDetails>>, TError,{data: BodyType<MomoDetailsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveMomoDetails>>,
+        TError,
+        {data: BodyType<MomoDetailsInput>},
+        TContext
+      > => {
+      return useMutation(getSaveMomoDetailsMutationOptions(options));
+    }
+
+export const getGetReferralInfoUrl = () => {
+
+
+
+
+  return `/api/payments/referral`
+}
+
+/**
+ * @summary Get current user's referral code and earnings
+ */
+export const getReferralInfo = async ( options?: RequestInit): Promise<ReferralInfo> => {
+
+  return customFetch<ReferralInfo>(getGetReferralInfoUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReferralInfoQueryKey = () => {
+    return [
+    `/api/payments/referral`
+    ] as const;
+    }
+
+
+export const getGetReferralInfoQueryOptions = <TData = Awaited<ReturnType<typeof getReferralInfo>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReferralInfo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReferralInfoQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReferralInfo>>> = ({ signal }) => getReferralInfo({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReferralInfo>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetReferralInfoQueryResult = NonNullable<Awaited<ReturnType<typeof getReferralInfo>>>
+export type GetReferralInfoQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get current user's referral code and earnings
+ */
+
+export function useGetReferralInfo<TData = Awaited<ReturnType<typeof getReferralInfo>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReferralInfo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetReferralInfoQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getAdminLoginUrl = () => {
 
 
@@ -1407,6 +1558,76 @@ export const useAdminLogin = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminLoginMutationOptions(options));
+    }
+
+export const getAdminTestEmailUrl = () => {
+
+
+
+
+  return `/api/admin/test-email`
+}
+
+/**
+ * @summary Send a test email
+ */
+export const adminTestEmail = async (adminTestEmailInput?: AdminTestEmailInput, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getAdminTestEmailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminTestEmailInput)
+  }
+);}
+
+
+
+
+export const getAdminTestEmailMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminTestEmail>>, TError,{data?: BodyType<AdminTestEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminTestEmail>>, TError,{data?: BodyType<AdminTestEmailInput>}, TContext> => {
+
+const mutationKey = ['adminTestEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminTestEmail>>, {data?: BodyType<AdminTestEmailInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminTestEmail(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminTestEmailMutationResult = NonNullable<Awaited<ReturnType<typeof adminTestEmail>>>
+    export type AdminTestEmailMutationBody = BodyType<AdminTestEmailInput> | undefined
+    export type AdminTestEmailMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Send a test email
+ */
+export const useAdminTestEmail = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminTestEmail>>, TError,{data?: BodyType<AdminTestEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminTestEmail>>,
+        TError,
+        {data?: BodyType<AdminTestEmailInput>},
+        TContext
+      > => {
+      return useMutation(getAdminTestEmailMutationOptions(options));
     }
 
 export const getUploadQuestionsUrl = () => {
@@ -2293,5 +2514,152 @@ export const useAdminSubscribeUser = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminSubscribeUserMutationOptions(options));
+    }
+
+export const getListAdminReferralsUrl = () => {
+
+
+
+
+  return `/api/admin/referrals`
+}
+
+/**
+ * @summary List all referral earnings grouped by referrer (users with pending or paid earnings)
+ */
+export const listAdminReferrals = async ( options?: RequestInit): Promise<AdminReferralRow[]> => {
+
+  return customFetch<AdminReferralRow[]>(getListAdminReferralsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminReferralsQueryKey = () => {
+    return [
+    `/api/admin/referrals`
+    ] as const;
+    }
+
+
+export const getListAdminReferralsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminReferrals>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminReferrals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminReferralsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminReferrals>>> = ({ signal }) => listAdminReferrals({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminReferrals>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminReferralsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminReferrals>>>
+export type ListAdminReferralsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all referral earnings grouped by referrer (users with pending or paid earnings)
+ */
+
+export function useListAdminReferrals<TData = Awaited<ReturnType<typeof listAdminReferrals>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminReferrals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminReferralsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getNotifyReferralPaidUrl = (userId: number,) => {
+
+
+
+
+  return `/api/admin/referrals/${userId}/notify`
+}
+
+/**
+ * @summary Mark pending earnings as paid and send thank-you notification to a user
+ */
+export const notifyReferralPaid = async (userId: number, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getNotifyReferralPaidUrl(userId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getNotifyReferralPaidMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof notifyReferralPaid>>, TError,{userId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof notifyReferralPaid>>, TError,{userId: number}, TContext> => {
+
+const mutationKey = ['notifyReferralPaid'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof notifyReferralPaid>>, {userId: number}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  notifyReferralPaid(userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type NotifyReferralPaidMutationResult = NonNullable<Awaited<ReturnType<typeof notifyReferralPaid>>>
+
+    export type NotifyReferralPaidMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark pending earnings as paid and send thank-you notification to a user
+ */
+export const useNotifyReferralPaid = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof notifyReferralPaid>>, TError,{userId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof notifyReferralPaid>>,
+        TError,
+        {userId: number},
+        TContext
+      > => {
+      return useMutation(getNotifyReferralPaidMutationOptions(options));
     }
 

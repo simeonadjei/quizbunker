@@ -6,6 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface MomoVerifyInput {
-  txId: string;
+export interface AdminTestEmailInput {
+  to?: string;
 }

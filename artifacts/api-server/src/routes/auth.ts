@@ -122,6 +122,16 @@ async function sendPasswordResetEmail(toEmail: string, name: string, token: stri
   }
 }
 
+/** Generate a short unique referral code like QB7X2K9F */
+function generateReferralCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "QB";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 // ── Format user ───────────────────────────────────────────────────────────────
 
 function formatUser(user: typeof usersTable.$inferSelect) {
@@ -132,6 +142,9 @@ function formatUser(user: typeof usersTable.$inferSelect) {
     subscriptionPlan: user.subscriptionPlan,
     subscriptionEnd: user.subscriptionEnd?.toISOString() ?? null,
     semesterStart: user.semesterStart?.toISOString() ?? null,
+    referralCode: user.referralCode ?? null,
+    momoNumber: user.momoNumber ?? null,
+    momoName: user.momoName ?? null,
   };
 }
 
@@ -144,6 +157,7 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
   }
 
   const { email, password, name } = parsed.data;
+  const referralCodeInput = (req.body as { referralCode?: string }).referralCode?.trim().toUpperCase() || null;
 
   const existing = await db
     .select()
@@ -161,6 +175,30 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
   // Grant a 2-day free trial automatically on registration
   const trialEnd = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
 
+  // Generate a unique referral code for this user
+  let referralCode: string | null = null;
+  for (let attempts = 0; attempts < 5; attempts++) {
+    const candidate = generateReferralCode();
+    const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.referralCode, candidate)).limit(1);
+    if (existing.length === 0) {
+      referralCode = candidate;
+      break;
+    }
+  }
+
+  // Resolve who referred this user
+  let referredBy: number | null = null;
+  if (referralCodeInput) {
+    const [referrer] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.referralCode, referralCodeInput))
+      .limit(1);
+    if (referrer) {
+      referredBy = referrer.id;
+    }
+  }
+
   const [user] = await db
     .insert(usersTable)
     .values({
@@ -171,6 +209,8 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
       emailVerified: false,
       subscriptionPlan: "trial",
       subscriptionEnd: trialEnd,
+      referralCode,
+      referredBy,
     })
     .returning();
 
@@ -299,6 +339,20 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
     return res.status(403).json({ error: "Please verify your email before logging in. Check your inbox for the verification link." });
   }
 
+  // Lazily assign a referral code if the user doesn't have one (existing accounts)
+  if (!user.referralCode) {
+    let newCode: string | null = null;
+    for (let attempts = 0; attempts < 5; attempts++) {
+      const candidate = generateReferralCode();
+      const found = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.referralCode, candidate)).limit(1);
+      if (found.length === 0) { newCode = candidate; break; }
+    }
+    if (newCode) {
+      await db.update(usersTable).set({ referralCode: newCode }).where(eq(usersTable.id, user.id));
+      user.referralCode = newCode;
+    }
+  }
+
   // Regenerate session to prevent session fixation
   await new Promise<void>((resolve, reject) =>
     req.session.regenerate((err) => (err ? reject(err) : resolve())),
@@ -417,6 +471,20 @@ router.get("/auth/me", async (req, res) => {
 
   if (!user) {
     return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  // Lazily assign referral code if missing
+  if (!user.referralCode) {
+    let newCode: string | null = null;
+    for (let attempts = 0; attempts < 5; attempts++) {
+      const candidate = generateReferralCode();
+      const found = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.referralCode, candidate)).limit(1);
+      if (found.length === 0) { newCode = candidate; break; }
+    }
+    if (newCode) {
+      await db.update(usersTable).set({ referralCode: newCode }).where(eq(usersTable.id, user.id));
+      user.referralCode = newCode;
+    }
   }
 
   return res.json(formatUser(user));

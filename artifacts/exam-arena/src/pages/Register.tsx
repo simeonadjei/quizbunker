@@ -8,13 +8,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Loader2, UserPlus, Mail } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, UserPlus, Mail, Gift } from 'lucide-react';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  referralCode: z.string().optional(),
 });
 
 export default function Register() {
@@ -26,21 +27,32 @@ export default function Register() {
   const [emailSent, setEmailSent] = useState<string | null>(null);
   const [resentOk, setResentOk] = useState(false);
 
+  // Pre-fill referral code from ?ref= URL param
+  const refCode = new URLSearchParams(window.location.search).get('ref') ?? '';
+
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '' },
+    defaultValues: { name: '', email: '', password: '', referralCode: refCode },
   });
 
+  // Update if URL param changes after mount
+  useEffect(() => {
+    if (refCode) form.setValue('referralCode', refCode);
+  }, [refCode]);
+
   const onSubmit = (values: z.infer<typeof registerSchema>) => {
-    register.mutate({ data: values }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        setEmailSent(values.email);
+    register.mutate(
+      { data: { ...values, referralCode: values.referralCode?.trim().toUpperCase() || undefined } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          setEmailSent(values.email);
+        },
+        onError: (err: any) => {
+          toast({ title: 'Registration failed', description: err.error || 'Could not create account.', variant: 'destructive' });
+        },
       },
-      onError: (err: any) => {
-        toast({ title: 'Registration failed', description: err.error || 'Could not create account.', variant: 'destructive' });
-      },
-    });
+    );
   };
 
   const handleResend = () => {
@@ -112,6 +124,14 @@ export default function Register() {
             <p className="text-white/55 text-sm font-bold mt-1">Join Quiz Bunker</p>
           </div>
 
+          {/* Referral banner */}
+          {refCode && (
+            <div className="card-game border-l-4 border-accent p-3 mb-4 flex items-center gap-2">
+              <Gift className="w-4 h-4 text-accent shrink-0" />
+              <span className="text-white/80 text-sm font-bold">Referral code <span className="text-accent font-mono">{refCode}</span> applied!</span>
+            </div>
+          )}
+
           <div className="card-game p-5">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -164,6 +184,27 @@ export default function Register() {
                           placeholder="••••••••"
                           className="bg-black/40 border-2 border-white/20 text-white placeholder:text-white/35 focus-visible:ring-secondary focus-visible:border-secondary font-bold h-11 rounded-xl tracking-widest"
                           {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-accent font-bold text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="referralCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/50 font-bold text-xs uppercase tracking-wider flex items-center gap-1">
+                        <Gift className="w-3 h-3" /> Referral Code <span className="text-white/30">(optional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. QB7X2K9F"
+                          className="bg-black/40 border-2 border-white/15 text-white placeholder:text-white/25 focus-visible:ring-accent focus-visible:border-accent font-mono font-bold h-11 rounded-xl uppercase tracking-widest"
+                          {...field}
+                          onChange={e => field.onChange(e.target.value.toUpperCase())}
                         />
                       </FormControl>
                       <FormMessage className="text-accent font-bold text-xs" />

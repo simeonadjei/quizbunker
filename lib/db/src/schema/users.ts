@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -14,6 +14,11 @@ export const usersTable = pgTable("users", {
   subscriptionPlan: text("subscription_plan").notNull().default("none"),
   subscriptionEnd: timestamp("subscription_end"),
   semesterStart: timestamp("semester_start"),
+  // Referral system
+  referralCode: text("referral_code").unique(),
+  referredBy: integer("referred_by"), // user id of who referred them (no FK to avoid circular)
+  momoNumber: text("momo_number"),
+  momoName: text("momo_name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

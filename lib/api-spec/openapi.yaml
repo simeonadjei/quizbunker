@@ -371,6 +371,50 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubscriptionStatus"
 
+  /payments/momo-details:
+    post:
+      operationId: saveMomoDetails
+      tags: [payments]
+      summary: Save the current user's MoMo name and number for referral cashback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MomoDetailsInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/referral:
+    get:
+      operationId: getReferralInfo
+      tags: [payments]
+      summary: Get current user's referral code and earnings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferralInfo"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # ── Admin ─────────────────────────────────────────────────────────────────
   /admin/auth:
     post:
@@ -396,6 +440,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/test-email:
+    post:
+      operationId: adminTestEmail
+      tags: [admin]
+      summary: Send a test email
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTestEmailInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
 
   /admin/questions/upload:
     post:
@@ -638,6 +701,46 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/referrals:
+    get:
+      operationId: listAdminReferrals
+      tags: [admin]
+      summary: List all referral earnings grouped by referrer (users with pending or paid earnings)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminReferralRow"
+
+  /admin/referrals/{userId}/notify:
+    post:
+      operationId: notifyReferralPaid
+      tags: [admin]
+      summary: Mark pending earnings as paid and send thank-you notification to a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -682,6 +785,9 @@ components:
         name:
           type: string
           minLength: 1
+        referralCode:
+          type: ["string", "null"]
+          description: Optional referral code from an existing user
 
     LoginInput:
       type: object
@@ -710,6 +816,12 @@ components:
         subscriptionEnd:
           type: ["string", "null"]
         semesterStart:
+          type: ["string", "null"]
+        referralCode:
+          type: ["string", "null"]
+        momoNumber:
+          type: ["string", "null"]
+        momoName:
           type: ["string", "null"]
 
     AuthResponse:
@@ -959,7 +1071,86 @@ components:
         daysRemaining:
           type: ["integer", "null"]
 
+    MomoDetailsInput:
+      type: object
+      required: [momoNumber, momoName]
+      properties:
+        momoNumber:
+          type: string
+          minLength: 10
+          description: MoMo phone number (e.g. 0241234567)
+        momoName:
+          type: string
+          minLength: 1
+          description: Name registered on MoMo — must match exactly
+
+    ReferralEarningEntry:
+      type: object
+      required: [id, refereeName, plan, amount, status, createdAt]
+      properties:
+        id:
+          type: integer
+        refereeName:
+          type: string
+        plan:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+        createdAt:
+          type: string
+
+    ReferralInfo:
+      type: object
+      required: [referralCode, totalEarningsPesewas, pendingEarningsPesewas, earnings, momoName, momoNumber]
+      properties:
+        referralCode:
+          type: string
+        totalEarningsPesewas:
+          type: integer
+        pendingEarningsPesewas:
+          type: integer
+        momoName:
+          type: ["string", "null"]
+        momoNumber:
+          type: ["string", "null"]
+        earnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReferralEarningEntry"
+
+    AdminReferralRow:
+      type: object
+      required: [userId, userName, userEmail, momoName, momoNumber, pendingAmount, paidAmount, earnings]
+      properties:
+        userId:
+          type: integer
+        userName:
+          type: string
+        userEmail:
+          type: string
+        momoName:
+          type: ["string", "null"]
+        momoNumber:
+          type: ["string", "null"]
+        pendingAmount:
+          type: integer
+        paidAmount:
+          type: integer
+        earnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReferralEarningEntry"
+
     # ── Admin ─────────────────────────────────────────────────────────────────
+    AdminTestEmailInput:
+      type: object
+      properties:
+        to:
+          type: string
+          format: email
+
     AdminLoginInput:
       type: object
       required: [password]
@@ -1084,7 +1275,6 @@ components:
       properties:
         txId:
           type: string
-          minLength: 1
 
     MomoVerifyResponse:
       type: object
@@ -1102,12 +1292,15 @@ components:
         email:
           type: string
         plan:
-          type: string
-          enum: [trial, monthly, semester, yearly]
+          $ref: "#/components/schemas/AdminSubscribeInputPlan"
         months:
           type: integer
         generatePassword:
           type: boolean
+
+    AdminSubscribeInputPlan:
+      type: string
+      enum: [trial, monthly, semester, yearly, lifetime]
 
     AdminSubscribeResponse:
       type: object
@@ -1117,3 +1310,7 @@ components:
           type: string
         generatedPassword:
           type: ["string", "null"]
+
+    UserSubscriptionPlan:
+      type: string
+      enum: [none, trial, monthly, semester, yearly]

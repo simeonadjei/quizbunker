@@ -27,7 +27,8 @@ export const registerUserBodyPasswordMin = 6;
 export const RegisterUserBody = zod.object({
   "email": zod.string().email(),
   "password": zod.string().min(registerUserBodyPasswordMin),
-  "name": zod.string().min(1)
+  "name": zod.string().min(1),
+  "referralCode": zod.string().nullish().describe('Optional referral code from an existing user')
 })
 
 export const RegisterUserResponse = zod.object({
@@ -37,7 +38,10 @@ export const RegisterUserResponse = zod.object({
   "name": zod.string(),
   "subscriptionPlan": zod.enum(['none', 'trial', 'monthly', 'semester', 'yearly']),
   "subscriptionEnd": zod.string().nullish(),
-  "semesterStart": zod.string().nullish()
+  "semesterStart": zod.string().nullish(),
+  "referralCode": zod.string().nullish(),
+  "momoNumber": zod.string().nullish(),
+  "momoName": zod.string().nullish()
 })
 })
 
@@ -58,7 +62,10 @@ export const LoginUserResponse = zod.object({
   "name": zod.string(),
   "subscriptionPlan": zod.enum(['none', 'trial', 'monthly', 'semester', 'yearly']),
   "subscriptionEnd": zod.string().nullish(),
-  "semesterStart": zod.string().nullish()
+  "semesterStart": zod.string().nullish(),
+  "referralCode": zod.string().nullish(),
+  "momoNumber": zod.string().nullish(),
+  "momoName": zod.string().nullish()
 })
 })
 
@@ -121,7 +128,10 @@ export const GetCurrentUserResponse = zod.object({
   "name": zod.string(),
   "subscriptionPlan": zod.enum(['none', 'trial', 'monthly', 'semester', 'yearly']),
   "subscriptionEnd": zod.string().nullish(),
-  "semesterStart": zod.string().nullish()
+  "semesterStart": zod.string().nullish(),
+  "referralCode": zod.string().nullish(),
+  "momoNumber": zod.string().nullish(),
+  "momoName": zod.string().nullish()
 })
 
 
@@ -333,6 +343,44 @@ export const GetPaymentStatusResponse = zod.object({
 
 
 /**
+ * @summary Save the current user's MoMo name and number for referral cashback
+ */
+export const saveMomoDetailsBodyMomoNumberMin = 10;
+
+
+
+
+export const SaveMomoDetailsBody = zod.object({
+  "momoNumber": zod.string().min(saveMomoDetailsBodyMomoNumberMin).describe('MoMo phone number (e.g. 0241234567)'),
+  "momoName": zod.string().min(1).describe('Name registered on MoMo — must match exactly')
+})
+
+export const SaveMomoDetailsResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Get current user's referral code and earnings
+ */
+export const GetReferralInfoResponse = zod.object({
+  "referralCode": zod.string(),
+  "totalEarningsPesewas": zod.number(),
+  "pendingEarningsPesewas": zod.number(),
+  "momoName": zod.string().nullable(),
+  "momoNumber": zod.string().nullable(),
+  "earnings": zod.array(zod.object({
+  "id": zod.number(),
+  "refereeName": zod.string(),
+  "plan": zod.string(),
+  "amount": zod.number(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
  * @summary Admin login
  */
 export const AdminLoginBody = zod.object({
@@ -341,6 +389,18 @@ export const AdminLoginBody = zod.object({
 })
 
 export const AdminLoginResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Send a test email
+ */
+export const AdminTestEmailBody = zod.object({
+  "to": zod.string().email().optional()
+})
+
+export const AdminTestEmailResponse = zod.object({
   "message": zod.string()
 })
 
@@ -526,11 +586,8 @@ export const VerifyMomoPaymentParams = zod.object({
   "id": zod.coerce.number()
 })
 
-
-
-
 export const VerifyMomoPaymentBody = zod.object({
-  "txId": zod.string().min(1)
+  "txId": zod.string()
 })
 
 export const VerifyMomoPaymentResponse = zod.object({
@@ -544,7 +601,7 @@ export const VerifyMomoPaymentResponse = zod.object({
  */
 export const AdminSubscribeUserBody = zod.object({
   "email": zod.string(),
-  "plan": zod.enum(['trial', 'monthly', 'semester', 'yearly']),
+  "plan": zod.enum(['trial', 'monthly', 'semester', 'yearly', 'lifetime']),
   "months": zod.number().optional(),
   "generatePassword": zod.boolean().optional()
 })
@@ -552,6 +609,41 @@ export const AdminSubscribeUserBody = zod.object({
 export const AdminSubscribeUserResponse = zod.object({
   "message": zod.string(),
   "generatedPassword": zod.string().nullish()
+})
+
+
+/**
+ * @summary List all referral earnings grouped by referrer (users with pending or paid earnings)
+ */
+export const ListAdminReferralsResponseItem = zod.object({
+  "userId": zod.number(),
+  "userName": zod.string(),
+  "userEmail": zod.string(),
+  "momoName": zod.string().nullable(),
+  "momoNumber": zod.string().nullable(),
+  "pendingAmount": zod.number(),
+  "paidAmount": zod.number(),
+  "earnings": zod.array(zod.object({
+  "id": zod.number(),
+  "refereeName": zod.string(),
+  "plan": zod.string(),
+  "amount": zod.number(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+export const ListAdminReferralsResponse = zod.array(ListAdminReferralsResponseItem)
+
+
+/**
+ * @summary Mark pending earnings as paid and send thank-you notification to a user
+ */
+export const NotifyReferralPaidParams = zod.object({
+  "userId": zod.coerce.number()
+})
+
+export const NotifyReferralPaidResponse = zod.object({
+  "message": zod.string()
 })
 
 

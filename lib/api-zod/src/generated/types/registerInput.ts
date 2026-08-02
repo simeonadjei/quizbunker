@@ -12,4 +12,9 @@ export interface RegisterInput {
   password: string;
   /** @minLength 1 */
   name: string;
+  /**
+     * Optional referral code from an existing user
+     * @nullable
+     */
+  referralCode?: string | null;
 }

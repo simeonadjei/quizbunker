@@ -10,11 +10,14 @@ import {
   useListAdminPayments,
   useVerifyMomoPayment,
   useAdminSubscribeUser,
+  useListAdminReferrals,
+  useNotifyReferralPaid,
   getGetAdminStatsQueryKey,
   getListSongsQueryKey,
   getListAdminUsersQueryKey,
   getListAdminActivityQueryKey,
   getListAdminPaymentsQueryKey,
+  getListAdminReferralsQueryKey,
   type AdminSubscribeInputPlan,
 } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2, Upload, Trash2, CheckCircle, ShieldAlert, Activity,
-  CreditCard, RefreshCw, Mail, Lock, UserPlus, CheckCircle2, XCircle,
+  CreditCard, RefreshCw, Mail, Lock, UserPlus, CheckCircle2, XCircle, Gift,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
@@ -66,6 +69,7 @@ export default function AdminPortal() {
           <SongManager />
         </div>
 
+        <ReferralEarningsPanel />
         <UsersPanel />
         <ActivityPanel />
         <PaymentsPanel />
@@ -845,6 +849,147 @@ function EmailTestPanel() {
       {message && (
         <div className={`mt-3 text-xs font-mono p-3 rounded border ${status === 'ok' ? 'bg-green-900/30 border-green-700 text-green-400' : 'bg-red-900/30 border-red-700 text-red-400'}`}>
           {status === 'ok' ? '✅ ' : '❌ '}{message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Referral Earnings Panel ────────────────────────────────────────────────────
+
+function ReferralEarningsPanel() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: rows = [], isLoading, refetch } = useListAdminReferrals({ query: { enabled: true, queryKey: getListAdminReferralsQueryKey() } });
+  const notify = useNotifyReferralPaid();
+  const [notifying, setNotifying] = useState<number | null>(null);
+
+  const handleNotify = async (userId: number, userName: string) => {
+    setNotifying(userId);
+    notify.mutate(
+      { userId },
+      {
+        onSuccess: (result) => {
+          toast({ title: `Notified ${userName}`, description: (result as any).message ?? 'Earnings marked as paid and email sent.' });
+          queryClient.invalidateQueries({ queryKey: getListAdminReferralsQueryKey() });
+        },
+        onError: (err: any) => {
+          toast({ title: 'Error', description: err.error ?? 'Could not send notification.', variant: 'destructive' });
+        },
+        onSettled: () => setNotifying(null),
+      },
+    );
+  };
+
+  return (
+    <div className="bg-zinc-900 border border-yellow-600/40 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Gift className="w-5 h-5 text-yellow-400" />
+          <h3 className="text-xl font-bold text-yellow-400">REFERRAL CASHBACK</h3>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors"
+        >
+          <RefreshCw className="w-3 h-3" /> Refresh
+        </button>
+      </div>
+
+      <p className="text-zinc-500 text-sm mb-5">
+        Users earn 20% cashback when a friend they referred subscribes. Send payments manually between the 15th–20th, then click "Mark Paid &amp; Notify".
+      </p>
+
+      {isLoading && (
+        <div className="flex items-center gap-2 text-zinc-500 py-4">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading referral data…
+        </div>
+      )}
+
+      {!isLoading && rows.length === 0 && (
+        <p className="text-zinc-600 text-sm italic py-4">No referral earnings yet. Earnings appear here after a referred user subscribes.</p>
+      )}
+
+      {!isLoading && rows.length > 0 && (
+        <div className="space-y-6">
+          {rows.map((row) => {
+            const pendingGhs = ((row.pendingAmount ?? 0) / 100).toFixed(2);
+            const paidGhs = ((row.paidAmount ?? 0) / 100).toFixed(2);
+            const hasPending = (row.pendingAmount ?? 0) > 0;
+            const hasMomo = !!(row.momoName && row.momoNumber);
+
+            return (
+              <div key={row.userId} className="border border-zinc-800 rounded p-4 space-y-3">
+                {/* User header */}
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-bold text-white">{row.userName}</p>
+                    <p className="text-zinc-500 text-sm">{row.userEmail}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-yellow-400 font-bold font-mono text-lg">GHS {pendingGhs} pending</p>
+                    {Number(paidGhs) > 0 && (
+                      <p className="text-green-600 text-xs font-mono">GHS {paidGhs} already paid</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* MoMo details */}
+                <div className="bg-zinc-800/50 rounded p-3 space-y-1">
+                  <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">MoMo Cashback Details</p>
+                  {hasMomo ? (
+                    <>
+                      <p className="text-sm"><span className="text-zinc-500">Name:</span> <span className="text-white font-bold">{row.momoName}</span></p>
+                      <p className="text-sm font-mono"><span className="text-zinc-500">Number:</span> <span className="text-green-400 font-bold">{row.momoNumber}</span></p>
+                    </>
+                  ) : (
+                    <p className="text-yellow-600 text-sm">⚠ User has not added MoMo details yet. Remind them before paying.</p>
+                  )}
+                </div>
+
+                {/* Earnings breakdown */}
+                {(row.earnings ?? []).length > 0 && (
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="text-zinc-500 border-b border-zinc-800">
+                        <th className="py-1 pr-3 font-normal">Referee</th>
+                        <th className="py-1 pr-3 font-normal">Plan</th>
+                        <th className="py-1 pr-3 font-normal text-right">Amount</th>
+                        <th className="py-1 font-normal text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {row.earnings!.map((e: any) => (
+                        <tr key={e.id} className="border-b border-zinc-800/50">
+                          <td className="py-1.5 pr-3 text-zinc-300">{e.refereeName}</td>
+                          <td className="py-1.5 pr-3 text-zinc-400 uppercase">{e.plan}</td>
+                          <td className="py-1.5 pr-3 text-right font-mono text-yellow-400">GHS {(e.amount / 100).toFixed(2)}</td>
+                          <td className="py-1.5 text-right">
+                            {e.status === 'paid'
+                              ? <span className="text-green-500">✓ Paid</span>
+                              : <span className="text-yellow-600">⏳ Pending</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* Action button */}
+                {hasPending && (
+                  <button
+                    onClick={() => handleNotify(row.userId!, row.userName!)}
+                    disabled={notifying === row.userId}
+                    className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-black font-bold text-sm rounded transition-colors"
+                  >
+                    {notifying === row.userId
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Notifying…</>
+                      : <><Mail className="w-4 h-4" /> Mark Paid &amp; Notify User</>}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

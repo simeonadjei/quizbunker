@@ -1,12 +1,15 @@
 import { Layout } from '@/components/Layout';
 import {
   useGetQuestionFilters, useCreateQuizSession, useGetPaymentStatus,
-  getGetPaymentStatusQueryKey, getGetQuestionFiltersQueryKey
+  useGetReferralInfo, useSaveMomoDetails,
+  getGetPaymentStatusQueryKey, getGetQuestionFiltersQueryKey, getGetReferralInfoQueryKey
 } from '@workspace/api-client-react';
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp } from 'lucide-react';
+import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 // ── Offline detection hook ─────────────────────────────────────────────────────
 function useOnlineStatus() {
@@ -77,6 +80,218 @@ function SubscribeGate({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Referral & MoMo Panel ──────────────────────────────────────────────────────
+function ReferralPanel() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: referral, isLoading } = useGetReferralInfo({ query: { queryKey: getGetReferralInfoQueryKey() } });
+  const saveMomo = useSaveMomoDetails();
+
+  const [momoName, setMomoName] = useState('');
+  const [momoNumber, setMomoNumber] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [showMomoForm, setShowMomoForm] = useState(false);
+
+  useEffect(() => {
+    if (referral) {
+      setMomoName(referral.momoName ?? '');
+      setMomoNumber(referral.momoNumber ?? '');
+    }
+  }, [referral]);
+
+  const referralLink = referral?.referralCode
+    ? `${window.location.origin}/register?ref=${referral.referralCode}`
+    : '';
+
+  const handleCopyLink = () => {
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    });
+  };
+
+  const handleCopyCode = () => {
+    if (!referral?.referralCode) return;
+    navigator.clipboard.writeText(referral.referralCode).then(() => {
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    });
+  };
+
+  const handleSaveMomo = () => {
+    const num = momoNumber.trim();
+    const name = momoName.trim();
+    if (!num || num.length < 10) {
+      toast({ title: 'Invalid MoMo number', description: 'Enter a valid 10-digit MoMo number.', variant: 'destructive' });
+      return;
+    }
+    if (!name) {
+      toast({ title: 'MoMo name required', description: 'Enter the name registered on your MoMo.', variant: 'destructive' });
+      return;
+    }
+    saveMomo.mutate(
+      { data: { momoNumber: num, momoName: name } },
+      {
+        onSuccess: () => {
+          toast({ title: 'MoMo details saved', description: 'Your referral cashback will be sent here.' });
+          queryClient.invalidateQueries({ queryKey: getGetReferralInfoQueryKey() });
+          setShowMomoForm(false);
+        },
+        onError: () => toast({ title: 'Error', description: 'Could not save MoMo details. Try again.', variant: 'destructive' }),
+      },
+    );
+  };
+
+  if (isLoading) return null;
+
+  const hasMomo = !!(referral?.momoNumber && referral?.momoName);
+  const pendingGhs = ((referral?.pendingEarningsPesewas ?? 0) / 100).toFixed(2);
+  const totalGhs = ((referral?.totalEarningsPesewas ?? 0) / 100).toFixed(2);
+  const hasEarnings = (referral?.totalEarningsPesewas ?? 0) > 0;
+
+  return (
+    <div className="card-game p-4 space-y-4" style={{ border: '1.5px solid hsl(38 90% 30%)' }}>
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <Gift className="w-5 h-5 text-accent" />
+        <h2 className="font-display text-accent text-base uppercase tracking-wide">Referral Cashback</h2>
+      </div>
+      <p className="text-white/60 text-xs font-bold leading-relaxed -mt-2">
+        Share your link. When a friend subscribes using it, you earn <span className="text-accent">20%</span> of their payment — sent to your MoMo every 15th–20th.
+      </p>
+
+      {/* Referral code + copy */}
+      {referral?.referralCode && (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <div className="flex-1 rounded-xl bg-black/40 border border-white/15 px-3 py-2 font-mono text-sm text-white/70 truncate">
+              {referralLink}
+            </div>
+            <button
+              onClick={handleCopyLink}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0"
+              style={{ background: copiedLink ? 'hsl(145 60% 20%)' : 'hsl(240 30% 18%)', color: copiedLink ? '#25D366' : '#ccc', border: '1px solid hsl(240 25% 28%)' }}
+            >
+              {copiedLink ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedLink ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-white/40 text-xs font-bold">Code:</span>
+            <span className="font-mono font-bold text-white text-sm tracking-widest">{referral.referralCode}</span>
+            <button
+              onClick={handleCopyCode}
+              className="text-white/30 hover:text-white/70 transition-colors ml-auto"
+            >
+              {copiedCode ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Earnings summary */}
+      {hasEarnings && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl p-3 text-center" style={{ background: 'hsl(38 90% 8%)', border: '1px solid hsl(38 90% 20%)' }}>
+            <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">Total Earned</p>
+            <p className="font-display text-accent text-xl">GHS {totalGhs}</p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: 'hsl(145 60% 7%)', border: '1px solid hsl(145 60% 18%)' }}>
+            <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">Pending</p>
+            <p className="font-display text-lg" style={{ color: '#25D366' }}>GHS {pendingGhs}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Earnings list */}
+      {(referral?.earnings ?? []).length > 0 && (
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid hsl(240 25% 20%)' }}>
+          {referral!.earnings.map(e => (
+            <div key={e.id} className="flex items-center justify-between px-3 py-2 border-b border-white/5 last:border-b-0">
+              <div>
+                <p className="text-white/80 text-xs font-bold">{e.refereeName}</p>
+                <p className="text-white/40 text-xs uppercase">{e.plan}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-mono font-bold text-sm" style={{ color: e.status === 'paid' ? '#25D366' : 'hsl(45 100% 65%)' }}>
+                  GHS {(e.amount / 100).toFixed(2)}
+                </p>
+                <p className="text-xs" style={{ color: e.status === 'paid' ? '#25D366' : 'hsl(45 100% 55%)' }}>
+                  {e.status === 'paid' ? '✓ Sent' : '⏳ Pending'}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* MoMo details section */}
+      <div>
+        {hasMomo && !showMomoForm ? (
+          <div className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: 'hsl(145 60% 7%)', border: '1px solid hsl(145 50% 18%)' }}>
+            <div>
+              <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-0.5">MoMo for cashback</p>
+              <p className="text-white font-bold text-sm">{referral?.momoName}</p>
+              <p className="font-mono text-xs" style={{ color: '#25D366' }}>{referral?.momoNumber}</p>
+            </div>
+            <button
+              onClick={() => setShowMomoForm(true)}
+              className="text-white/40 hover:text-white/70 text-xs font-bold transition-colors"
+            >
+              Edit
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {!hasMomo && (
+              <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: 'hsl(45 100% 7%)', border: '1px solid hsl(45 90% 22%)' }}>
+                <AlertTriangle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                <p className="text-xs font-bold" style={{ color: 'hsl(45 100% 70%)' }}>
+                  Add your MoMo details to receive cashback. Earnings cannot be sent without a valid MoMo number and name.
+                </p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={momoName}
+                onChange={e => setMomoName(e.target.value)}
+                placeholder="MoMo registered name (e.g. Kofi Mensah)"
+                className="w-full h-11 rounded-xl border-2 border-white/15 bg-black/40 px-3 text-white font-bold text-sm placeholder:text-white/30 focus:outline-none focus:border-accent"
+              />
+              <div className="flex items-start gap-1 px-1">
+                <AlertTriangle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-red-400 text-xs font-bold">Name must match your MoMo exactly — if wrong, payment cannot be sent.</p>
+              </div>
+              <input
+                type="tel"
+                value={momoNumber}
+                onChange={e => setMomoNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="MoMo number (e.g. 0241234567)"
+                className="w-full h-11 rounded-xl border-2 border-white/15 bg-black/40 px-3 text-white font-mono font-bold text-sm placeholder:text-white/30 focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveMomo}
+                disabled={saveMomo.isPending}
+                className="btn-game flex-1 py-2.5 text-sm justify-center flex items-center gap-2"
+              >
+                {saveMomo.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save MoMo Details'}
+              </button>
+              {showMomoForm && (
+                <button onClick={() => setShowMomoForm(false)} className="btn-game-ghost px-4 py-2.5 text-sm">Cancel</button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const isOnline = useOnlineStatus();
@@ -88,6 +303,7 @@ export default function Dashboard() {
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [showSubscribeGate, setShowSubscribeGate] = useState(false);
   const [subBannerExpanded, setSubBannerExpanded] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
 
   useEffect(() => {
     if (filters && !selectedYear && filters.years.length > 0) setSelectedYear(filters.years[0]);
@@ -124,8 +340,17 @@ export default function Dashboard() {
         {/* Page title — compact */}
         <div className="flex items-baseline justify-between">
           <h1 className="text-game-title text-2xl leading-tight">LEVEL SELECT</h1>
-          <p className="text-white/50 text-sm font-bold">Pick year, subject & week</p>
+          <button
+            onClick={() => setShowReferral(v => !v)}
+            className="flex items-center gap-1.5 text-accent/80 hover:text-accent text-xs font-bold transition-colors"
+          >
+            <Gift className="w-3.5 h-3.5" />
+            Refer & Earn
+          </button>
         </div>
+
+        {/* Referral panel — toggleable */}
+        {showReferral && <ReferralPanel />}
 
         {/* Filters row — compact */}
         <div className="flex gap-2.5">

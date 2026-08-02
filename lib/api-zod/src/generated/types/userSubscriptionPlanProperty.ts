@@ -6,13 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type AdminSubscribeInputPlan = typeof AdminSubscribeInputPlan[keyof typeof AdminSubscribeInputPlan];
+export type UserSubscriptionPlanProperty = typeof UserSubscriptionPlanProperty[keyof typeof UserSubscriptionPlanProperty];
 
 
-export const AdminSubscribeInputPlan = {
+export const UserSubscriptionPlanProperty = {
+  none: 'none',
   trial: 'trial',
   monthly: 'monthly',
   semester: 'semester',
   yearly: 'yearly',
-  lifetime: 'lifetime',
 } as const;

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, paymentsTable } from "@workspace/db";
+import { db, usersTable, paymentsTable, referralEarningsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
 import { logActivity } from "../lib/activity";
@@ -15,13 +15,17 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
   next();
 }
 
+// Updated prices: monthly GHS 15, semester GHS 30, yearly GHS 60
 const PLANS = {
-  monthly:  { amount: 1000,  label: "Monthly (GHS 10)",  months: 1  },
+  monthly:  { amount: 1500,  label: "Monthly (GHS 15)",  months: 1  },
   semester: { amount: 3000,  label: "Semester (GHS 30)", months: 4  },
-  yearly:   { amount: 5000,  label: "Yearly (GHS 50)",   months: 12 },
+  yearly:   { amount: 6000,  label: "Yearly (GHS 60)",   months: 12 },
 } as const;
 
 type PlanKey = keyof typeof PLANS;
+
+// Referral cashback: 20% of payment amount
+const REFERRAL_PERCENT = 0.20;
 
 // POST /payments/submit — user submits MoMo payment with their transaction ID
 router.post("/payments/submit", requireAuth, async (req, res) => {
@@ -84,7 +88,7 @@ router.post("/payments/submit", requireAuth, async (req, res) => {
             </table>
             <div style="margin:20px 0;padding:14px;background:#1a1a2e;border-left:4px solid #ff6b00;border-radius:4px;">
               <p style="margin:0;color:#ccc;font-size:13px;">
-                <strong style="color:#ff6b00;">Action required:</strong> Log into the Admin page, find this pending payment, and enter the transaction ID you received on your MoMo to verify it. If it matches, the user will be automatically subscribed.
+                <strong style="color:#ff6b00;">Action required:</strong> Log into the Admin page, find this pending payment, and enter the transaction ID you received on your MoMo to verify it.
               </p>
             </div>
           </div>
@@ -139,4 +143,74 @@ router.get("/payments/status", requireAuth, async (req, res) => {
   });
 });
 
+// POST /payments/momo-details — save user's MoMo name and number for cashback
+router.post("/payments/momo-details", requireAuth, async (req, res) => {
+  const { momoNumber, momoName } = req.body as { momoNumber?: string; momoName?: string };
+
+  const numberClean = (momoNumber ?? "").trim();
+  const nameClean = (momoName ?? "").trim();
+
+  if (!numberClean || numberClean.length < 10) {
+    return res.status(400).json({ error: "A valid MoMo number (at least 10 digits) is required" });
+  }
+  if (!nameClean) {
+    return res.status(400).json({ error: "MoMo name is required" });
+  }
+
+  await db
+    .update(usersTable)
+    .set({ momoNumber: numberClean, momoName: nameClean })
+    .where(eq(usersTable.id, req.session.userId!));
+
+  return res.json({ message: "MoMo details saved successfully." });
+});
+
+// GET /payments/referral — current user's referral code and earnings
+router.get("/payments/referral", requireAuth, async (req, res) => {
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, req.session.userId!))
+    .limit(1);
+
+  if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+  // Get all earnings for this user
+  const earnings = await db
+    .select({
+      id: referralEarningsTable.id,
+      refereeId: referralEarningsTable.refereeId,
+      amount: referralEarningsTable.amount,
+      status: referralEarningsTable.status,
+      createdAt: referralEarningsTable.createdAt,
+      plan: paymentsTable.plan,
+      refereeName: usersTable.name,
+    })
+    .from(referralEarningsTable)
+    .leftJoin(paymentsTable, eq(referralEarningsTable.paymentId, paymentsTable.id))
+    .leftJoin(usersTable, eq(referralEarningsTable.refereeId, usersTable.id))
+    .where(eq(referralEarningsTable.referrerId, user.id))
+    .orderBy(referralEarningsTable.createdAt);
+
+  const totalEarningsPesewas = earnings.reduce((s, e) => s + e.amount, 0);
+  const pendingEarningsPesewas = earnings.filter(e => e.status === "pending").reduce((s, e) => s + e.amount, 0);
+
+  return res.json({
+    referralCode: user.referralCode ?? "",
+    totalEarningsPesewas,
+    pendingEarningsPesewas,
+    momoName: user.momoName ?? null,
+    momoNumber: user.momoNumber ?? null,
+    earnings: earnings.map(e => ({
+      id: e.id,
+      refereeName: e.refereeName ?? "Unknown",
+      plan: e.plan ?? "—",
+      amount: e.amount,
+      status: e.status,
+      createdAt: e.createdAt.toISOString(),
+    })),
+  });
+});
+
+export { PLANS, REFERRAL_PERCENT };
 export default router;

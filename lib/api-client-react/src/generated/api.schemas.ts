@@ -27,6 +27,11 @@ export interface RegisterInput {
   password: string;
   /** @minLength 1 */
   name: string;
+  /**
+     * Optional referral code from an existing user
+     * @nullable
+     */
+  referralCode?: string | null;
 }
 
 export interface LoginInput {
@@ -35,10 +40,10 @@ export interface LoginInput {
   rememberMe?: boolean;
 }
 
-export type UserSubscriptionPlan = typeof UserSubscriptionPlan[keyof typeof UserSubscriptionPlan];
+export type UserSubscriptionPlanProperty = typeof UserSubscriptionPlanProperty[keyof typeof UserSubscriptionPlanProperty];
 
 
-export const UserSubscriptionPlan = {
+export const UserSubscriptionPlanProperty = {
   none: 'none',
   trial: 'trial',
   monthly: 'monthly',
@@ -50,11 +55,17 @@ export interface User {
   id: number;
   email: string;
   name: string;
-  subscriptionPlan: UserSubscriptionPlan;
+  subscriptionPlan: UserSubscriptionPlanProperty;
   /** @nullable */
   subscriptionEnd?: string | null;
   /** @nullable */
   semesterStart?: string | null;
+  /** @nullable */
+  referralCode?: string | null;
+  /** @nullable */
+  momoNumber?: string | null;
+  /** @nullable */
+  momoName?: string | null;
 }
 
 export interface AuthResponse {
@@ -203,6 +214,56 @@ export interface SubscriptionStatus {
   daysRemaining?: number | null;
 }
 
+export interface MomoDetailsInput {
+  /**
+     * MoMo phone number (e.g. 0241234567)
+     * @minLength 10
+     */
+  momoNumber: string;
+  /**
+     * Name registered on MoMo — must match exactly
+     * @minLength 1
+     */
+  momoName: string;
+}
+
+export interface ReferralEarningEntry {
+  id: number;
+  refereeName: string;
+  plan: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface ReferralInfo {
+  referralCode: string;
+  totalEarningsPesewas: number;
+  pendingEarningsPesewas: number;
+  /** @nullable */
+  momoName: string | null;
+  /** @nullable */
+  momoNumber: string | null;
+  earnings: ReferralEarningEntry[];
+}
+
+export interface AdminReferralRow {
+  userId: number;
+  userName: string;
+  userEmail: string;
+  /** @nullable */
+  momoName: string | null;
+  /** @nullable */
+  momoNumber: string | null;
+  pendingAmount: number;
+  paidAmount: number;
+  earnings: ReferralEarningEntry[];
+}
+
+export interface AdminTestEmailInput {
+  to?: string;
+}
+
 export interface AdminLoginInput {
   email?: string;
   password: string;
@@ -276,7 +337,6 @@ export interface AdminPayment {
 }
 
 export interface MomoVerifyInput {
-  /** @minLength 1 */
   txId: string;
 }
 
@@ -293,6 +353,7 @@ export const AdminSubscribeInputPlan = {
   monthly: 'monthly',
   semester: 'semester',
   yearly: 'yearly',
+  lifetime: 'lifetime',
 } as const;
 
 export interface AdminSubscribeInput {
@@ -307,6 +368,17 @@ export interface AdminSubscribeResponse {
   /** @nullable */
   generatedPassword?: string | null;
 }
+
+export type UserSubscriptionPlan = typeof UserSubscriptionPlan[keyof typeof UserSubscriptionPlan];
+
+
+export const UserSubscriptionPlan = {
+  none: 'none',
+  trial: 'trial',
+  monthly: 'monthly',
+  semester: 'semester',
+  yearly: 'yearly',
+} as const;
 
 export type ListQuestionsParams = {
 year?: string;
