@@ -10,6 +10,7 @@ import { parseQuestionText } from "../lib/parser";
 import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
 import { sendEmail, isEmailConfigured } from "../lib/email";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -83,12 +84,23 @@ router.post("/admin/auth", async (req, res) => {
 
   // Accept ADMIN_PASSWORD or ADMIN_SECRET_PATH as the password.
   // This allows Render deployments to work with only ADMIN_SECRET_PATH set.
+  // Trim all values to avoid whitespace issues from env var copy-paste.
   const passwordOk =
-    (adminPassword && password === adminPassword) ||
-    (adminSecretPath && password === adminSecretPath);
-  const emailOk = !adminEmail || (email && email.toLowerCase() === adminEmail.toLowerCase());
+    (adminPassword && password?.trim() === adminPassword.trim()) ||
+    (adminSecretPath && password?.trim() === adminSecretPath.trim());
+  const emailOk = !adminEmail || (email && email.trim().toLowerCase() === adminEmail.trim().toLowerCase());
 
   if (!passwordOk || !emailOk) {
+    // Log which check failed (no secret values exposed)
+    logger.warn({
+      passwordOk,
+      emailOk,
+      hasAdminPassword: !!adminPassword,
+      hasAdminSecretPath: !!adminSecretPath,
+      hasAdminEmail: !!adminEmail,
+      submittedEmailLen: email?.length ?? 0,
+      submittedPasswordLen: password?.length ?? 0,
+    }, "Admin login failed");
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
