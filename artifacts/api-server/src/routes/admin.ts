@@ -78,9 +78,14 @@ const PLAN_AMOUNTS: Record<string, number> = {
 router.post("/admin/auth", async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
   const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminSecretPath = process.env.ADMIN_SECRET_PATH;
   const adminEmail = process.env.ADMIN_EMAIL;
 
-  const passwordOk = adminPassword && password === adminPassword;
+  // Accept ADMIN_PASSWORD or ADMIN_SECRET_PATH as the password.
+  // This allows Render deployments to work with only ADMIN_SECRET_PATH set.
+  const passwordOk =
+    (adminPassword && password === adminPassword) ||
+    (adminSecretPath && password === adminSecretPath);
   const emailOk = !adminEmail || (email && email.toLowerCase() === adminEmail.toLowerCase());
 
   if (!passwordOk || !emailOk) {

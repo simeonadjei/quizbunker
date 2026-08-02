@@ -1,0 +1,111 @@
+Skip to content
+
+
+
+
+
+
+
+
+
+
+
+
+
+/
+
+
+
+
+How many songs can I upload
+
+kuhlman757
+kuhlman757
+10 hours ago
+
+5 actions
+There's no hard limit on the number of songs you can upload — you can add as many as you like. The only constraint is 50 MB per individual song file.
+
+One thing worth knowing: the Service Worker (which caches songs for offline playback) keeps the 20 most recently played songs cached in the browser. Songs beyond that are still streamed from the server normally when online — they just won't be available offline until they've been played and cached.
+
+
+Worked for 18 seconds
+
+Attached Image
+Trying to login
+
+kuhlman757
+kuhlman757
+9 hours ago
+Investigating server-side crash logs
+
+Investigating server-side crash logs
+This is a server crash on the deployed (Render) app. Let me check the production logs and auth route at the same time.
+
+
+3 actions
+The local server is fine — this 500 is happening on the Render deployment. Let me check the server's session and app setup alongside the deployment config.
+
+
+3 actions
+This is a production-only 500 — that HTML error page is Express's default unhandled error response. Let me check the DB connection and the Render-specific past notes in parallel.
+
+
+3 actions
+The root cause is clear: on Render, neither REPLIT_DEV_DOMAIN nor REPLIT_DOMAINS are set, so the CORS allowed-origins list is empty except for localhost. When the Render frontend hits the API, CORS blocks it → Express's default HTML error handler fires → the "HTTP 500 : " you're seeing.
+
+Two fixes: allow *.onrender.com in CORS, and add a global JSON error handler so errors always return JSON (never HTML).
+
+
+2 actions
+Now add the global JSON error handler at the bottom of app.ts so crashes always return JSON, never HTML.
+
+
+6 actions
+Pushed — commit 88f5b17. Render will auto-deploy from GitHub shortly.
+
+What was causing it: On Render, the environment variables REPLIT_DEV_DOMAIN and REPLIT_DOMAINS don't exist, so the CORS allowed-origins list was effectively empty. Every request from your Render frontend hit the CORS block, which crashed into Express's default HTML error handler — producing that HTTP 500 : <!DOCTYPE html> response instead of useful JSON.
+
+What's fixed:
+
+Any *.onrender.com origin is now automatically allowed, so your Render frontend can talk to the Render API without needing FRONTEND_URL set
+A global JSON error handler now sits at the bottom of the server — if anything else crashes, you'll get {"error": "..."} in the toast instead of raw HTML
+Once Render finishes redeploying (usually 2–3 minutes), login should work normally.
+
+
+Worked for 2 minutes
+the admin password is not working
+
+kuhlman757
+kuhlman757
+7 minutes ago
+
+7 actions
+Let me check how the frontend sends the admin password and what path it hits.
+
+
+21 actions
+The route looks correct — it reads ADMIN_PASSWORD from process.env. The most likely cause is that ADMIN_PASSWORD isn't set in the Replit environment secrets, so adminPassword is undefined and passwordOk is always false.
+
+Let me verify:
+
+
+2 actions
+ADMIN_PASSWORD is set here in Replit, but on Render the API service has its own separate environment variables — Replit secrets don't carry over. The API server on Render has no ADMIN_PASSWORD set, so every login attempt fails immediately.
+
+You need to add two environment variables to your Render API service:
+
+Go to your Render dashboard → select the API service (not the static site)
+Click Environment in the left sidebar
+Add these two variables:
+Key	Value
+ADMIN_PASSWORD	(your admin password)
+ADMIN_EMAIL	simeonadjei12015@gmail.com
+Click Save Changes — Render will redeploy automatically
+Once that's done the admin login will work. The same root cause applies to any other secrets you use on Render (SESSION_SECRET, NEON_DATABASE_URL, BREVO_API_KEY, etc.) — each one needs to be added to the Render service's environment panel separately.
+
+
+Worked for 1 minute
+
+Scroll to latest
+Guests can't use Agent in Starter Plan user's repls
