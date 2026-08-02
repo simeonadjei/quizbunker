@@ -2,7 +2,7 @@ import { useGetQuizSession, useSubmitQuizSession, getGetQuizSessionQueryKey } fr
 import type { QuizSessionDetail } from '@workspace/api-client-react';
 import { useRoute, useLocation } from 'wouter';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid, WifiOff } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid, WifiOff, Hand } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackgroundParticles } from '@/components/BackgroundParticles';
 import { MusicPlayer } from '@/components/MusicPlayer';
@@ -77,6 +77,7 @@ export default function Quiz() {
 
   const [offlineMode, setOfflineMode] = useState(false);
   const [session, setSession] = useState<QuizSessionDetail | null>(null);
+  const [showGridHint, setShowGridHint] = useState(false);
 
   // Sync session: prefer live network data; fall back to cache on error
   useEffect(() => {
@@ -124,6 +125,19 @@ export default function Quiz() {
   const isComplete      = Object.keys(answers).length === questions.length && questions.length > 0;
   const isCurrentRevealed = currentQuestion ? !!revealed[currentQuestion.id] : false;
   const isLastQuestion  = currentQIndex === questions.length - 1;
+
+  // Periodic hint for the grid (week-switcher) button — every 6 minutes
+  useEffect(() => {
+    if (!session) return;
+    let hideTimer: ReturnType<typeof setTimeout>;
+    const flash = () => {
+      setShowGridHint(true);
+      hideTimer = setTimeout(() => setShowGridHint(false), 6_000);
+    };
+    const firstTimer = setTimeout(flash, 12_000); // first flash 12 s after load
+    const interval   = setInterval(flash, 6 * 60 * 1000); // then every 6 min
+    return () => { clearTimeout(firstTimer); clearTimeout(hideTimer); clearInterval(interval); };
+  }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll the options pane to top whenever the question changes
   useEffect(() => {
@@ -242,13 +256,45 @@ export default function Quiz() {
             <Target className="w-3.5 h-3.5 text-accent" />
             <span>{Object.keys(answers).length}/{questions.length}</span>
           </div>
-          <button
-            onClick={() => setLocation('/dashboard')}
-            className="w-9 h-9 flex items-center justify-center rounded-xl border-2 border-white/15 bg-black/30 text-white/50 hover:border-white/40 hover:text-white transition-all active:scale-90 shrink-0"
-            title="Switch week"
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </button>
+          {/* Grid button with periodic hint */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => { setShowGridHint(false); setLocation('/dashboard'); }}
+              className="w-9 h-9 flex items-center justify-center rounded-xl border-2 border-white/15 bg-black/30 text-white/50 hover:border-white/40 hover:text-white transition-all active:scale-90"
+              title="Switch week"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+
+            {/* Periodic hint bubble */}
+            {showGridHint && (
+              <div className="absolute top-11 right-0 z-50 animate-in fade-in slide-in-from-top-2 duration-300"
+                style={{ whiteSpace: 'nowrap' }}>
+                {/* Arrow pointing up to button */}
+                <div className="flex justify-end pr-3.5 -mb-[5px]">
+                  <div className="w-2.5 h-2.5 rotate-45 border-l border-t"
+                    style={{ background: 'rgba(10,20,30,0.95)', borderColor: 'hsl(175 100% 50% / 0.45)' }} />
+                </div>
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white shadow-xl border"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(10,20,30,0.95), rgba(10,30,25,0.97))',
+                    borderColor: 'hsl(175 100% 50% / 0.45)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                  }}
+                >
+                  <Hand className="w-3.5 h-3.5 text-secondary shrink-0" />
+                  <span style={{ color: 'hsl(175 100% 80%)' }}>Tap to change year &amp; subject</span>
+                  <button
+                    onClick={() => setShowGridHint(false)}
+                    className="ml-1 text-white/30 hover:text-white/70 text-[10px] leading-none shrink-0"
+                    aria-label="Dismiss"
+                  >✕</button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

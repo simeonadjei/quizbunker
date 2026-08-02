@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 
-const HINT_KEY = 'qb_music_hint_seen';
+const MUSIC_HINT_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const HINT_VISIBLE_MS     = 6_000;          // show for 6 s each time
 
 interface MusicPlayerProps {
   /** Tailwind class for bottom position, e.g. "bottom-4" or "bottom-20" */
@@ -16,24 +17,32 @@ export function MusicPlayer({ bottomClass = 'bottom-4' }: MusicPlayerProps) {
   const [expanded, setExpanded] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
-  // Show hint on first visit, auto-dismiss after 6 s
+  // Show hint periodically every 5 minutes (first appearance after 8 s)
   useEffect(() => {
     if (!currentSong) return;
-    const seen = localStorage.getItem(HINT_KEY);
-    if (!seen) {
+
+    let hideTimer: ReturnType<typeof setTimeout>;
+
+    const flash = () => {
       setShowHint(true);
-      const t = setTimeout(() => {
-        setShowHint(false);
-        localStorage.setItem(HINT_KEY, '1');
-      }, 6000);
-      return () => clearTimeout(t);
-    }
+      hideTimer = setTimeout(() => setShowHint(false), HINT_VISIBLE_MS);
+    };
+
+    // First flash after a short delay so the user has settled
+    const firstTimer = setTimeout(flash, 8_000);
+
+    // Then repeat every 5 minutes
+    const interval = setInterval(flash, MUSIC_HINT_INTERVAL);
+
+    return () => {
+      clearTimeout(firstTimer);
+      clearTimeout(hideTimer);
+      clearInterval(interval);
+    };
   }, [currentSong]);
 
-  const dismissHint = () => {
-    setShowHint(false);
-    localStorage.setItem(HINT_KEY, '1');
-  };
+  // Dismiss hides the current popup; next cycle will still fire
+  const dismissHint = () => setShowHint(false);
 
   if (!currentSong) return null;
 
