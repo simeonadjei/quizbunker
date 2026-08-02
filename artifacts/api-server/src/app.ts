@@ -36,26 +36,38 @@ app.use(
   }),
 );
 
-// Strict CORS: only allow the Replit preview domain and localhost
+// CORS: allow Replit preview domains, explicit FRONTEND_URL overrides,
+// any *.onrender.com deployment, and localhost for dev.
 const allowedOrigins = new Set(
   [
     process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
     ...(process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(",").map((d) => `https://${d.trim()}`) : []),
-    // Non-Replit production frontend (e.g. Render static site), set via env var
+    // Explicit override — comma-separated list of allowed frontend origins
     ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",").map((d) => d.trim()) : []),
     "http://localhost:3000",
     "http://localhost:5173",
   ].filter(Boolean) as string[],
 );
 
+function isOriginAllowed(origin: string): boolean {
+  if (allowedOrigins.has(origin)) return true;
+  // Allow any *.onrender.com origin (Render deployments)
+  try {
+    const url = new URL(origin);
+    if (url.hostname.endsWith(".onrender.com") && url.protocol === "https:") return true;
+  } catch {}
+  return false;
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow server-to-server calls (no origin) and explicitly allowed origins
-      if (!origin || allowedOrigins.has(origin)) {
+      // Allow server-to-server calls (no Origin header) and approved origins
+      if (!origin || isOriginAllowed(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        logger.warn({ origin }, "CORS: blocked request from unlisted origin");
+        callback(new Error(`CORS: origin '${origin}' is not allowed`));
       }
     },
     credentials: true,
@@ -149,5 +161,16 @@ if (!fs.existsSync(songsDir)) {
 app.use("/api/uploads/songs", express.static(songsDir));
 
 app.use("/api", router);
+
+// ── Global JSON error handler ─────────────────────────────────────────────────
+// Must have 4 parameters so Express treats it as an error handler.
+// This ensures every unhandled error returns JSON, never Express's default HTML.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const isCors = err.message.startsWith("CORS:");
+  const status = isCors ? 403 : 500;
+  logger.error({ err: err.message, stack: err.stack }, "Unhandled error");
+  return res.status(status).json({ error: isCors ? err.message : "Internal server error" });
+});
 
 export default app;
