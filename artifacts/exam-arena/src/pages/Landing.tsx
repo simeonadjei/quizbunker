@@ -81,7 +81,7 @@ function FeatureBtn({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 sm:gap-4 w-full transition-transform hover:scale-[1.03] active:scale-[0.97]"
+      className="flex items-center justify-center gap-3 sm:gap-4 w-full transition-transform hover:scale-[1.03] active:scale-[0.97]"
       style={{
         background: bg,
         border: `2.5px solid ${border}`,
@@ -90,7 +90,7 @@ function FeatureBtn({
         WebkitBackdropFilter: 'blur(10px)',
         borderRadius: '16px',
         padding: '18px 20px',
-        flexDirection: align === 'right' ? 'row-reverse' : 'row',
+        flexDirection: 'row',
         textDecoration: 'none',
         cursor: 'pointer',
       }}
@@ -108,7 +108,7 @@ function FeatureBtn({
           lineHeight: 1.25,
           color: '#fff',
           textShadow: '0 2px 6px rgba(0,0,0,0.7)',
-          textAlign: align === 'right' ? 'right' : 'left',
+          textAlign: 'center',
           margin: 0,
         }}
       >
@@ -145,7 +145,7 @@ export default function Landing() {
         <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 py-4 sm:py-6">
 
           {/* ══ DESKTOP: 3-column ══════════════════════════════ */}
-          <div className="hidden lg:grid lg:grid-cols-[300px_1fr_300px] xl:grid-cols-[340px_1fr_340px] gap-6 items-center w-full">
+          <div className="hidden lg:grid lg:grid-cols-[260px_1fr_260px] xl:grid-cols-[280px_1fr_280px] gap-5 items-center mx-auto w-full max-w-4xl">
             <div className="flex flex-col gap-5 w-full">
               {LEFT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} align="left" />)}
             </div>
@@ -203,35 +203,6 @@ function CentreHero({ user, isLoading }: { user: unknown; isLoading: boolean }) 
         }} />
         <span style={{ fontSize: 'clamp(24px,5vw,36px)', filter: 'drop-shadow(0 0 12px #facc15)', position: 'relative', zIndex: 1 }}>💡</span>
       </div>
-
-      {/* Static QUIZ BUNKER title */}
-      <div className="select-none" style={{ lineHeight: 1 }}>
-        <div style={{
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 'clamp(64px,12vw,108px)',
-          lineHeight: 1,
-          color: '#facc15',
-          textShadow: '0 0 24px rgba(250,204,21,0.8), 0 5px 0 rgba(0,0,0,0.6), 2px 2px 0 #92400e',
-          letterSpacing: '0.04em',
-          WebkitTextStroke: '1px rgba(0,0,0,0.25)',
-        }}>
-          QUIZ
-        </div>
-        <div style={{
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 'clamp(68px,14vw,118px)',
-          lineHeight: 0.92,
-          marginTop: '-0.04em',
-          color: '#ffffff',
-          textShadow: '0 0 28px rgba(129,140,248,0.7), 0 6px 0 rgba(0,0,0,0.65), 2px 2px 0 #1e1b4b',
-          letterSpacing: '0.02em',
-          WebkitTextStroke: '1.5px rgba(99,102,241,0.45)',
-        }}>
-          BUNKER
-        </div>
-      </div>
-
-      <div style={{ color: '#facc15', fontSize: 24, filter: 'drop-shadow(0 0 7px #facc15)', lineHeight: 1 }}>★</div>
 
       {/* Subtitle */}
       <p
