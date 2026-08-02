@@ -71,7 +71,7 @@ export default defineConfig({
         // CacheFirst for audio files (large, rarely change)
         runtimeCaching: [
           {
-            urlPattern: /\/api\/uploads\/songs\/.*/i,
+            urlPattern: /\/api\/songs\/\d+\/audio/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'audio-cache',
