@@ -62,6 +62,7 @@ const PLAN_MONTHS: Record<string, number> = {
   monthly:  1,
   semester: 4,
   yearly:   12,
+  lifetime: 0,  // handled specially — sets end to 2099
 };
 
 const PLAN_AMOUNTS: Record<string, number> = {
@@ -69,6 +70,7 @@ const PLAN_AMOUNTS: Record<string, number> = {
   monthly:  1000,
   semester: 3000,
   yearly:   5000,
+  lifetime: 0,
 };
 
 // POST /admin/auth
@@ -270,7 +272,9 @@ router.post("/admin/subscribe", requireAdmin, async (req, res) => {
 
   const now = new Date();
   let endDate: Date;
-  if (plan === "trial") {
+  if (plan === "lifetime") {
+    endDate = new Date("2099-12-31T23:59:59Z");
+  } else if (plan === "trial") {
     endDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
   } else {
     endDate = new Date(now);

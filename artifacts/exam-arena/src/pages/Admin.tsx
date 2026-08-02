@@ -252,6 +252,7 @@ function ManualSubscribePanel() {
             <option value="monthly">Monthly (1 month)</option>
             <option value="semester">Semester (4 months)</option>
             <option value="yearly">Yearly (12 months)</option>
+            <option value="lifetime">Lifetime (unlimited)</option>
           </select>
         </div>
         <div>
