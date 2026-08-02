@@ -260,6 +260,28 @@ export default function Quiz() {
             boxShadow: '0 2px 0 hsl(22 90% 25%)',
           }}
         >
+          {/* Week topic banner */}
+          {(currentQuestion as any).weekTopic && (
+            <div
+              className="max-w-lg mx-auto px-4 pt-3 pb-0 flex items-center gap-2"
+            >
+              <div
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border"
+                style={{
+                  background: 'hsl(175 100% 40% / 0.12)',
+                  borderColor: 'hsl(175 100% 50% / 0.4)',
+                  color: 'hsl(175 100% 75%)',
+                }}
+              >
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full"
+                  style={{ background: 'hsl(175 100% 55%)' }}
+                />
+                {(currentQuestion as any).weekTopic}
+              </div>
+            </div>
+          )}
+
           <div className="max-w-lg mx-auto px-4 py-4 flex items-start gap-3">
             <div className="bg-primary/30 text-primary border-2 border-primary/60 px-3 py-1.5 rounded-xl font-display text-base shrink-0 mt-0.5 min-w-[3rem] text-center">
               Q{currentQIndex + 1}
