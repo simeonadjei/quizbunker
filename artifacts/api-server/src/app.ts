@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import path from "path";
 import fs from "fs";
 import router from "./routes";
@@ -85,27 +85,17 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-const PgSession = connectPgSimple(session);
+const SessionStore = MemoryStore(session);
 
-// connect-pg-simple reads a bundled table.sql file to create the sessions
-// table, but esbuild does not include .sql assets in the output bundle.
-// We create the table ourselves with inline SQL so the deployed build works.
+// Sessions are kept in-memory (no Neon dependency) with TTL-based pruning
+// every 60 minutes. Sessions are lost on server restart, which means users
+// must re-login after a deploy — acceptable trade-off for reliability.
+const sessionStore = new SessionStore({ checkPeriod: 60 * 60 * 1000 });
+
+// ensureSessionTable is kept as a no-op so index.ts can still call it safely.
+// The user_sessions Postgres table is no longer used.
 export async function ensureSessionTable(): Promise<void> {
-  const client = await pool.connect();
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS "user_sessions" (
-        "sid"    varchar      NOT NULL COLLATE "default",
-        "sess"   json         NOT NULL,
-        "expire" timestamp(6) NOT NULL,
-        CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
-      );
-      CREATE INDEX IF NOT EXISTS "IDX_user_sessions_expire"
-        ON "user_sessions" ("expire");
-    `);
-  } finally {
-    client.release();
-  }
+  // no-op: sessions are now in-memory via memorystore
 }
 
 /**
@@ -133,11 +123,7 @@ export async function backfillTrials(): Promise<void> {
 
 app.use(
   session({
-    store: new PgSession({
-      pool,
-      // createTableIfMissing intentionally omitted — we handle it above
-      tableName: "user_sessions",
-    }),
+    store: sessionStore,
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,

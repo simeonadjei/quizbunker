@@ -486,7 +486,15 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
     e.preventDefault();
     login.mutate({ data: { email, password } }, {
       onSuccess: () => onLogin(),
-      onError: () => toast({ title: "Access Denied", description: "Invalid credentials.", variant: "destructive" })
+      onError: (err: unknown) => {
+        const status = (err as { status?: number })?.status ?? (err as { response?: { status?: number } })?.response?.status;
+        const description = status === 401
+          ? "Wrong email or password."
+          : status === 503
+          ? "Server is temporarily unavailable. Try again in a moment."
+          : "Login failed — please try again.";
+        toast({ title: "Access Denied", description, variant: "destructive" });
+      }
     });
   };
 
