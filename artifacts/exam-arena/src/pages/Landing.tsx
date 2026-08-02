@@ -141,16 +141,16 @@ export default function Landing() {
       <MusicPlayer />
 
       {/* ── Page content ── */}
-      <div className="relative z-10 flex-1 flex flex-col pt-14 lg:pt-20 pb-28 px-3 sm:px-5">
-        <div className="w-full max-w-6xl mx-auto flex flex-col flex-1 gap-4 py-4 sm:py-5">
+      <div className="relative z-10 flex-1 flex flex-col pt-14 lg:pt-20 pb-6 px-3 sm:px-5">
+        <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 py-4 sm:py-6">
 
           {/* ══ DESKTOP: 3-column ══════════════════════════════ */}
-          <div className="hidden lg:grid lg:grid-cols-[300px_1fr_300px] xl:grid-cols-[320px_1fr_320px] gap-6 items-center flex-1">
-            <div className="flex flex-col gap-5">
+          <div className="hidden lg:grid lg:grid-cols-[300px_1fr_300px] xl:grid-cols-[340px_1fr_340px] gap-6 items-center w-full">
+            <div className="flex flex-col gap-5 w-full">
               {LEFT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} align="left" />)}
             </div>
             <CentreHero user={user} isLoading={isLoading} />
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 w-full">
               {RIGHT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} align="right" />)}
             </div>
           </div>
@@ -306,7 +306,7 @@ function Footer() {
       }}
     >
       <p
-        className="text-lg sm:text-xl font-bold text-center sm:text-left leading-snug"
+        className="text-xl sm:text-2xl lg:text-3xl font-bold text-center sm:text-left leading-snug"
         style={{ color: 'rgba(199,210,254,0.97)', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
       >
         © 2026 <span style={{ color: '#facc15' }}>Quiz Bunker</span>
