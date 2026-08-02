@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCachedSessionId, getCachedWeeksForSubject } from '@/lib/offlineSessions';
 import { useOfflinePreCache } from '@/hooks/useOfflinePreCache';
+import { cacheSubscriptionEnd, isSubscriptionActiveOffline } from '@/lib/offlineUser';
 
 // ── Offline detection hook ─────────────────────────────────────────────────────
 function useOnlineStatus() {
@@ -314,34 +315,61 @@ export default function Dashboard() {
 
   const isSubscribed = subStatus?.isActive;
 
+  // Cache subscription end date whenever we get a fresh status from the server,
+  // so offline expiry checks work without a network call.
+  useEffect(() => {
+    if (subStatus !== undefined) {
+      cacheSubscriptionEnd(subStatus.isActive ? (subStatus.subscriptionEnd ?? null) : null);
+    }
+  }, [subStatus]);
+
   // Pre-cache all sessions + song audio for offline use once the user is subscribed and online
   const preCache = useOfflinePreCache(!!isSubscribed && isOnline);
 
   const handleStartLevel = (week: number) => {
-    if (!isSubscribed) {
-      setShowSubscribeGate(true);
+    // Online: server always re-checks; just use server truth
+    if (isOnline) {
+      if (!isSubscribed) {
+        setShowSubscribeGate(true);
+        return;
+      }
+      if (!selectedYear || !selectedSubject) return;
+
+      createSession.mutate({ data: { year: selectedYear, subject: selectedSubject, week } }, {
+        onSuccess: (session) => setLocation(`/quiz/${session.id}`),
+        onError: (err: unknown) => {
+          // 403 = subscription expired between page load and button tap
+          const status = (err as { status?: number })?.status;
+          if (status === 403) {
+            setShowSubscribeGate(true);
+          }
+        },
+      });
       return;
     }
+
+    // Offline path — enforce expiry using cached subscription end date
+    if (!isSubscriptionActiveOffline()) {
+      toast({
+        title: 'Subscription expired',
+        description: 'Your subscription has expired. Connect to the internet to renew.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!selectedYear || !selectedSubject) return;
 
-    // Offline: try to resume from a previously-cached session
-    if (!isOnline) {
-      const cachedId = getCachedSessionId(selectedYear, selectedSubject, week);
-      if (cachedId) {
-        setLocation(`/quiz/${cachedId}`);
-      } else {
-        toast({
-          title: 'Week not cached yet',
-          description: `Connect to the internet once to download all content for offline use.`,
-          variant: 'destructive',
-        });
-      }
-      return;
+    const cachedId = getCachedSessionId(selectedYear, selectedSubject, week);
+    if (cachedId) {
+      setLocation(`/quiz/${cachedId}`);
+    } else {
+      toast({
+        title: 'Week not cached yet',
+        description: `Connect to the internet once to download all content for offline use.`,
+        variant: 'destructive',
+      });
     }
-
-    createSession.mutate({ data: { year: selectedYear, subject: selectedSubject, week } }, {
-      onSuccess: (session) => setLocation(`/quiz/${session.id}`),
-    });
   };
 
   // Weeks that already have a local cache (playable offline)

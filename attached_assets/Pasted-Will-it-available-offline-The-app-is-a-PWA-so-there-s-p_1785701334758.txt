@@ -1,0 +1,82 @@
+Will it available offline
+
+The app is a PWA so there's partial offline support — but the audio cache rule has a bug. It's looking for /api/uploads/songs/ but songs are now served from /api/songs/:id/audio. Songs won't cache offline. Let me fix that and give you an accurate picture:
+
+Pushed 3f77e49. Here's what works offline after this fix:
+
+✅ Works offline (once visited online first):
+
+The full app shell loads (all JS, CSS, pages)
+Quiz questions you've already started — the API responses are cached for up to 24 hours
+Songs you've already played — now correctly cached for 30 days after first listen
+❌ Doesn't work offline:
+
+First-time login (session needs the server)
+Questions/subjects you've never opened while online
+Songs you've never played before
+So the pattern is: visit while online → it caches → works offline later. If a student plays through a week's quiz and listens to a song while connected, both will be available offline for the next day.
+
+Can all questions or documents and songs, be available or cached for offline use
+
+Now I have everything I need. I'll build a background pre-cache system: after login it silently fetches every quiz session and every song audio file so the entire app works offline.
+
+Now I'll build the pre-cache hook and wire it into the Dashboard:
+
+Now wire the hook into the Dashboard and add a subtle status bar:
+
+Now add the hook to Dashboard and show a subtle status bar:
+
+Now add the hook call and the status bar UI:
+
+Now add the subtle status bar in the JSX:
+
+Clean. Let me also update the stale toast message that told users to "play online at least once" — that's no longer needed since pre-caching handles it automatically:
+
+Pushed 2460867. Here's what happens now after Render deploys:
+
+How it works:
+
+The first time a subscribed user opens the Dashboard while online, a progress bar appears at the top — "Saving for offline…" — and quietly runs in the background
+It creates quiz sessions for every year/subject/week combination and stores them locally
+It downloads every song audio file into the browser's cache (up to 30 days)
+When done, it shows "All content saved for offline use ✓"
+After that, everything works offline:
+
+All quiz weeks are playable without internet
+All songs play without internet
+The progress bar only appears again if you upload new questions or songs (it detects the change automatically)
+What about subscriptions, how will they work to cut out users when expiry is due
+
+Let me check the full picture — both what's working and what gaps exist:
+
+Now I have the full picture. Here's what exists and what's missing:
+
+Already working:
+
+Server blocks new quiz sessions with 403 when subscriptionEnd < now ✅
+Dashboard shows locked levels via isActive from the server ✅
+Gaps:
+
+Offline: expired users can still play cached sessions — no expiry check ❌
+No expiry warning emails (3 days before, 1 day before) ❌
+No expiry notification email when it actually lapses ❌
+Fixing all three now:
+
+All three fixes in parallel — server expiry emails, offline subscription enforcement, and 403 handling:
+
+Now I'll implement all three fixes in parallel:
+
+Now update the server's GET /payments/status to send expiry warning emails, and update the client's Dashboard and Quiz offline paths:
+
+I need to add the missing imports to payments.ts, then wire up the client-side changes:
+
+Now wire up the client-side offline subscription enforcement and 403 handling in parallel:
+
+Now add the offline subscription check to the Quiz page, then typecheck everything:
+
+Now add the subscription expiry guard to the Quiz page's offline fallback path:
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+Website

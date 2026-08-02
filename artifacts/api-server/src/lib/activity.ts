@@ -13,7 +13,9 @@ export type ActivityType =
   | "payment_success"
   | "quiz_start"
   | "quiz_complete"
-  | "admin_login";
+  | "admin_login"
+  | "expiry_notice"
+  | "expiry_lapsed";
 
 export interface LogActivityOptions {
   type: ActivityType;

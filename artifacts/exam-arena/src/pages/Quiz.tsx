@@ -1,9 +1,10 @@
 import { useGetQuizSession, useSubmitQuizSession, getGetQuizSessionQueryKey } from '@workspace/api-client-react';
 import type { QuizSessionDetail } from '@workspace/api-client-react';
 import { registerSession } from '@/lib/offlineSessions';
+import { isSubscriptionActiveOffline } from '@/lib/offlineUser';
 import { useRoute, useLocation } from 'wouter';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid, WifiOff, Hand } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid, WifiOff, Hand, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackgroundParticles } from '@/components/BackgroundParticles';
 import { MusicPlayer } from '@/components/MusicPlayer';
@@ -80,12 +81,14 @@ export default function Quiz() {
   const [session, setSession] = useState<QuizSessionDetail | null>(null);
   const [showGridHint, setShowGridHint] = useState(false);
   const [motivationalMsg, setMotivationalMsg] = useState<string | null>(null);
+  const [expiredOffline, setExpiredOffline] = useState(false);
 
   // Sync session: prefer live network data; fall back to cache on error
   useEffect(() => {
     if (networkSession) {
       setSession(networkSession);
       setOfflineMode(false);
+      setExpiredOffline(false);
       cacheSession(sessionId, networkSession);
       // Register in session index so the Dashboard can navigate here offline
       if (networkSession.year && networkSession.subject && networkSession.week != null) {
@@ -94,8 +97,16 @@ export default function Quiz() {
     } else if (error && !networkSession) {
       const cached = getCachedSession(sessionId);
       if (cached) {
-        setSession(cached);
-        setOfflineMode(true);
+        // Block access if the subscription has expired while offline
+        if (!isSubscriptionActiveOffline()) {
+          setSession(null);
+          setOfflineMode(false);
+          setExpiredOffline(true);
+        } else {
+          setSession(cached);
+          setOfflineMode(true);
+          setExpiredOffline(false);
+        }
       }
     }
   }, [networkSession, error, sessionId]);
@@ -265,6 +276,8 @@ export default function Quiz() {
 
   // ── Loading / error states ───────────────────────────────────────────────
   if (isLoading && !session) return <LoadingScreen />;
+
+  if (expiredOffline) return <ExpiredScreen />;
 
   if ((error || !session) && !session) return <ErrorScreen />;
 
@@ -645,6 +658,35 @@ function ErrorScreen() {
         <h2 className="font-display text-white text-xl uppercase mb-2">Connection Lost</h2>
         <p className="text-white/65 text-sm font-bold mb-6">Could not load quiz data.</p>
         <button onClick={() => window.location.href = '/dashboard'} className="btn-game w-full py-3 text-base justify-center">
+          Back to Dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ExpiredScreen() {
+  return (
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center relative px-4">
+      <BackgroundParticles />
+      <div className="relative z-10 card-game border-l-4 border-accent p-8 max-w-sm w-full text-center">
+        <div className="w-16 h-16 rounded-2xl bg-accent/20 border-2 border-accent/50 flex items-center justify-center mx-auto mb-5">
+          <Lock className="w-8 h-8 text-accent" strokeWidth={2.5} />
+        </div>
+        <h2 className="font-display text-white text-xl uppercase mb-2">Subscription Expired</h2>
+        <p className="text-white/65 text-sm font-bold mb-6 leading-relaxed">
+          Your subscription has ended. Renew to continue practising — all your history is saved.
+        </p>
+        <button
+          onClick={() => window.location.href = '/subscribe'}
+          className="btn-game w-full py-3 text-base justify-center mb-3"
+        >
+          Renew Subscription
+        </button>
+        <button
+          onClick={() => window.location.href = '/dashboard'}
+          className="btn-game-ghost w-full py-3 text-base justify-center"
+        >
           Back to Dashboard
         </button>
       </div>
