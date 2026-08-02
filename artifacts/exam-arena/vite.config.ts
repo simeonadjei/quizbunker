@@ -65,6 +65,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Allow hero background image (2.73 MB) past the 2 MiB default limit
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Precache the full app shell built by Vite
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         // NetworkFirst for all API data (stays fresh when online)
