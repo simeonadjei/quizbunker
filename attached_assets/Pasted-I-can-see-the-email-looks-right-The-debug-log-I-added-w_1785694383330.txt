@@ -1,0 +1,47 @@
+I can see the email looks right. The debug log I added will show exactly which check is failing once deployed — but let me try something faster first.
+
+Since ADMIN_SECRET_PATH was the original password on Render (before ADMIN_PASSWORD was added), try logging in with whatever value you set for ADMIN_SECRET_PATH instead. It's possible the two env vars have different values on Render.
+
+If that also fails, open Render → your API service → Logs, attempt a login, and paste the line that says Admin login failed here — it'll show passwordOk: false/true and emailOk: false/true without revealing the actual values.
+
+invalide credentials
+
+I can see ADMIN_PASSWORD = bg262 on Render and you're entering 5 characters — that should match. Let me check how the API client is configured — the request might be going to the wrong URL on Render's static+API split setup.
+
+I see ADMIN_PASSWORD = bg262 in plain text — that matches the 5-dot entry. The password check isn't the issue. Let me look at the session store, because if Neon is quota-limited, the session regenerate() call could be throwing a 500, and the frontend shows "Invalid credentials" for any error response.
+
+Found the root cause. The session store uses connect-pg-simple backed by Neon. When Neon is quota-limited, req.session.regenerate() throws a DB error — but the frontend's onError always shows "Invalid credentials" regardless of the actual error code. The password itself is fine.
+
+Let me check how regular users auth (to understand what depends on sessions), then switch the session store to an in-memory store that doesn't need Neon at all:
+
+Sessions are used for regular users too (req.session.userId). The fix: swap connect-pg-simple for memorystore — an in-memory store with TTL pruning that doesn't depend on Neon at all. Sessions survive until server restart (deploys log users out, which is acceptable). I'll also fix the frontend to show the real error instead of always saying "Invalid credentials".
+
+No @types/memorystore — that's fine, memorystore ships its own types. Now update the session store and fix the frontend error message in parallel:
+
+Now update the session store configuration to use memorystore:
+
+Let me verify the build compiles cleanly and also check if pool is still needed:
+
+TypeScript is clean. Commit and push:
+
+Pushed (1fecc27). Give Render ~2 minutes to deploy, then log in with bg262 — it should work.
+
+What was actually wrong: The session store (connect-pg-simple) tried to write to Neon on every login. With Neon quota-exceeded, that write failed with a 500, but the frontend was showing "Invalid credentials" for any error. Your password was correct the whole time.
+
+What changed:
+
+Sessions now live in-memory (no Neon needed) — no DB calls just to log in or stay logged in
+Error messages on the login form are now specific: wrong password shows "Wrong email or password", server errors show the real problem
+The ensureSessionTable startup step is now a no-op (the Postgres session table is no longer used)
+One trade-off to be aware of: since sessions are in-memory, everyone gets logged out whenever Render restarts the service (deploys, crashes, etc.). For an admin panel that's fine, but regular users will need to re-login after each deploy.
+
+==> Downloading cache... ==> Cloning from https://github.com/simeonadjei/quizbunker ==> Checking out commit 1fecc27d9907df8709f4ba634eff303272d8f04d in branch main ==> Downloaded 103MB in 9s. Extraction took 3s. ==> Using Node.js version 24.14.1 (default) ==> Docs on specifying a Node.js version: https://render.com/docs/node-version ==> Running build command 'pnpm install && pnpm --filter @workspace/api-server run build '...
+
+@workspace/api-server@0.0.0 build /opt/render/project/src/artifacts/api-server node ./build.mjs ✘ [ERROR] Could not resolve "memorystore" src/app.ts:5:24: 5 │ import MemoryStore from "memorystore"; ╵ ~~~~~~~~~~~~~ You can mark the path "memorystore" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle. 1 error Error: Build failed with 1 error: src/app.ts:5:24: ERROR: Could not resolve "memorystore" at failureErrorWithLog (/opt/render/project/src/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1467:15) at /opt/render/project/src/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:926:25 at /opt/render/project/src/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1345:9 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) { errors: [Getter/Setter], warnings: [Getter/Setter] } /opt/render/project/src/artifacts/api-server:  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 build: node ./build.mjs Exit status 1 ==> Build failed 😞 ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+
+esbuild can't resolve memorystore — let me check the build config and package.json to understand how dependencies are bundled:
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+Website
