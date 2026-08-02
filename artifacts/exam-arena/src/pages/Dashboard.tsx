@@ -6,11 +6,12 @@ import {
 } from '@workspace/api-client-react';
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check } from 'lucide-react';
+import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check, Download, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCachedSessionId, getCachedWeeksForSubject } from '@/lib/offlineSessions';
+import { useOfflinePreCache } from '@/hooks/useOfflinePreCache';
 
 // ── Offline detection hook ─────────────────────────────────────────────────────
 function useOnlineStatus() {
@@ -313,6 +314,9 @@ export default function Dashboard() {
 
   const isSubscribed = subStatus?.isActive;
 
+  // Pre-cache all sessions + song audio for offline use once the user is subscribed and online
+  const preCache = useOfflinePreCache(!!isSubscribed && isOnline);
+
   const handleStartLevel = (week: number) => {
     if (!isSubscribed) {
       setShowSubscribeGate(true);
@@ -327,8 +331,8 @@ export default function Dashboard() {
         setLocation(`/quiz/${cachedId}`);
       } else {
         toast({
-          title: 'No offline cache for this week',
-          description: `Play Week ${week} online at least once to unlock offline access.`,
+          title: 'Week not cached yet',
+          description: `Connect to the internet once to download all content for offline use.`,
           variant: 'destructive',
         });
       }
@@ -358,6 +362,28 @@ export default function Dashboard() {
           <div className="card-game border-l-4 border-yellow-500 px-3 py-2 flex items-center gap-2">
             <WifiOff className="w-4 h-4 text-yellow-400 shrink-0" />
             <p className="text-yellow-300 font-bold text-sm">Offline — payments need internet.</p>
+          </div>
+        )}
+
+        {/* Offline pre-cache progress bar */}
+        {preCache.status === 'running' && (
+          <div className="card-game border-l-4 border-cyan-500 px-3 py-2 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Download className="w-4 h-4 text-cyan-400 shrink-0 animate-pulse" />
+              <p className="text-cyan-300 font-bold text-xs truncate">{preCache.label || 'Saving for offline…'}</p>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="h-full bg-cyan-400 rounded-full transition-all duration-300"
+                style={{ width: `${preCache.progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+        {preCache.status === 'done' && (
+          <div className="card-game border-l-4 border-green-500 px-3 py-2 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+            <p className="text-green-300 font-bold text-xs">All content saved for offline use ✓</p>
           </div>
         )}
 
