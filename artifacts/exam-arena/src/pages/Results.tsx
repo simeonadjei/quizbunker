@@ -1,5 +1,6 @@
-import { useGetQuizSession, useGetCurrentUser, getGetQuizSessionQueryKey, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
+import { useGetQuizSession, getGetQuizSessionQueryKey } from '@workspace/api-client-react';
 import { useRoute } from 'wouter';
+import { useUser } from '@/hooks/useUser';
 import { Layout } from '@/components/Layout';
 import { Certificate } from '@/components/Certificate';
 import { Loader2, Trophy, Skull, Target, CheckCircle2, XCircle, Star } from 'lucide-react';
@@ -15,9 +16,7 @@ export default function Results() {
     query: { enabled: !!sessionId, queryKey: getGetQuizSessionQueryKey(sessionId) }
   });
 
-  const { data: currentUser } = useGetCurrentUser({
-    query: { queryKey: getGetCurrentUserQueryKey() }
-  });
+  const { user: currentUser } = useUser();
 
   if (isLoading) {
     return (

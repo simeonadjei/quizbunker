@@ -1,6 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { useLoginUser, useResendVerification, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { Link, useLocation } from 'wouter';
+import { cacheUser } from '@/lib/offlineUser';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,7 +40,9 @@ export default function Login() {
     setUnverifiedEmail(null);
     setResentOk(false);
     login.mutate({ data: values }, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        // Cache user for offline access
+        cacheUser(data.user);
         queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
         setLocation(nextUrl);
       },

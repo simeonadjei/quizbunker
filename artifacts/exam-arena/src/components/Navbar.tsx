@@ -1,20 +1,28 @@
 import { Link, useLocation } from 'wouter';
-import { useGetCurrentUser, useLogoutUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
+import { useLogoutUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, History, Sparkles, User as UserIcon, Gamepad2 } from 'lucide-react';
+import { LogOut, History, Sparkles, User as UserIcon, Gamepad2, WifiOff } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
+import { clearCachedUser } from '@/lib/offlineUser';
 
 export function Navbar() {
-  const { data: user } = useGetCurrentUser({ query: { enabled: true, queryKey: getGetCurrentUserQueryKey() } });
+  const { user, isOfflineFallback } = useUser();
   const logout = useLogoutUser();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
   const handleLogout = () => {
+    clearCachedUser();
     logout.mutate(undefined, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
         setLocation('/');
-      }
+      },
+      onError: () => {
+        // Even if network fails, we've cleared the local cache — send to home
+        queryClient.removeQueries({ queryKey: getGetCurrentUserQueryKey() });
+        setLocation('/');
+      },
     });
   };
 
@@ -56,7 +64,9 @@ export function Navbar() {
               </Link>
               <div className="hud-badge pl-1 pr-2 sm:pr-3 hidden sm:flex">
                 <div className="bg-primary/30 p-1 rounded-full border border-primary/50">
-                  <UserIcon className="w-3.5 h-3.5 text-primary" />
+                  {isOfflineFallback
+                    ? <WifiOff className="w-3.5 h-3.5 text-yellow-400" />
+                    : <UserIcon className="w-3.5 h-3.5 text-primary" />}
                 </div>
                 <span className="ml-1 truncate max-w-[80px] text-xs">{user.name.split(' ')[0].toUpperCase()}</span>
               </div>

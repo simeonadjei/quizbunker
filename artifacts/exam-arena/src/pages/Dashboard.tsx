@@ -10,6 +10,7 @@ import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, 
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { getCachedSessionId, getCachedWeeksForSubject } from '@/lib/offlineSessions';
 
 // ── Offline detection hook ─────────────────────────────────────────────────────
 function useOnlineStatus() {
@@ -295,6 +296,7 @@ function ReferralPanel() {
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const isOnline = useOnlineStatus();
+  const { toast } = useToast();
   const { data: filters, isLoading: loadingFilters } = useGetQuestionFilters({ query: { enabled: true, queryKey: getGetQuestionFiltersQueryKey() } });
   const { data: subStatus, isLoading: loadingSub } = useGetPaymentStatus({ query: { enabled: true, queryKey: getGetPaymentStatusQueryKey() } });
   const createSession = useCreateQuizSession();
@@ -317,10 +319,32 @@ export default function Dashboard() {
       return;
     }
     if (!selectedYear || !selectedSubject) return;
+
+    // Offline: try to resume from a previously-cached session
+    if (!isOnline) {
+      const cachedId = getCachedSessionId(selectedYear, selectedSubject, week);
+      if (cachedId) {
+        setLocation(`/quiz/${cachedId}`);
+      } else {
+        toast({
+          title: 'No offline cache for this week',
+          description: `Play Week ${week} online at least once to unlock offline access.`,
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
     createSession.mutate({ data: { year: selectedYear, subject: selectedSubject, week } }, {
-      onSuccess: (session) => setLocation(`/quiz/${session.id}`)
+      onSuccess: (session) => setLocation(`/quiz/${session.id}`),
     });
   };
+
+  // Weeks that already have a local cache (playable offline)
+  const cachedWeeks =
+    selectedYear && selectedSubject && !isOnline
+      ? getCachedWeeksForSubject(selectedYear, selectedSubject)
+      : new Set<number>();
 
   return (
     <Layout>
@@ -471,6 +495,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
               {filters.weeks.map(w => {
                 const unlocked = !!isSubscribed;
+                const isCachedOffline = cachedWeeks.has(w);
                 return (
                   <button
                     key={w}
@@ -478,17 +503,22 @@ export default function Dashboard() {
                     disabled={createSession.isPending}
                     className={cn(
                       'relative aspect-square rounded-xl flex flex-col items-center justify-center font-display text-lg transition-all duration-150 border-2 select-none',
-                      unlocked
+                      unlocked && !isCachedOffline
                         ? 'bg-black/30 border-white/20 text-white active:scale-90 active:translate-y-0.5 hover:border-primary hover:bg-primary/20'
-                        : 'bg-black/20 border-white/10 text-white/30 hover:border-accent/30 hover:bg-accent/5'
+                        : unlocked && isCachedOffline
+                          ? 'bg-secondary/15 border-secondary/60 text-white active:scale-90 active:translate-y-0.5'
+                          : 'bg-black/20 border-white/10 text-white/30 hover:border-accent/30 hover:bg-accent/5'
                     )}
                     style={unlocked ? { boxShadow: '0 3px 0 rgba(0,0,0,0.35)' } : undefined}
+                    title={isCachedOffline ? `Week ${w} — available offline` : undefined}
                   >
                     {createSession.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : unlocked ? (
                       <>
-                        <Play className="w-3 h-3 mb-0.5 opacity-50" fill="currentColor" strokeWidth={0} />
+                        {isCachedOffline
+                          ? <WifiOff className="w-3 h-3 mb-0.5 text-secondary opacity-80" strokeWidth={2} />
+                          : <Play className="w-3 h-3 mb-0.5 opacity-50" fill="currentColor" strokeWidth={0} />}
                         <span>{w}</span>
                       </>
                     ) : (

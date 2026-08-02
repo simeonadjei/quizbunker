@@ -1,5 +1,6 @@
 import { useGetQuizSession, useSubmitQuizSession, getGetQuizSessionQueryKey } from '@workspace/api-client-react';
 import type { QuizSessionDetail } from '@workspace/api-client-react';
+import { registerSession } from '@/lib/offlineSessions';
 import { useRoute, useLocation } from 'wouter';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Loader2, ArrowLeft, ArrowRight, Target, ShieldAlert, Sparkles, CheckCircle2, XCircle, Lightbulb, LayoutGrid, WifiOff, Hand } from 'lucide-react';
@@ -86,6 +87,10 @@ export default function Quiz() {
       setSession(networkSession);
       setOfflineMode(false);
       cacheSession(sessionId, networkSession);
+      // Register in session index so the Dashboard can navigate here offline
+      if (networkSession.year && networkSession.subject && networkSession.week != null) {
+        registerSession(networkSession.year, networkSession.subject, networkSession.week, sessionId);
+      }
     } else if (error && !networkSession) {
       const cached = getCachedSession(sessionId);
       if (cached) {
@@ -104,6 +109,8 @@ export default function Quiz() {
   const [submitOfflineError, setSubmitOfflineError] = useState(false);
   const feedbackRef  = useRef<HTMLDivElement>(null);
   const optionsRef   = useRef<HTMLDivElement>(null);
+  // Tracks whether we were offline so we can auto-submit on reconnect
+  const wasOfflineRef = useRef(false);
 
   // Merge server-returned answers on session load (don't clobber local answers)
   useEffect(() => {
@@ -220,12 +227,8 @@ export default function Quiz() {
   const handleNext = () => { if (currentQIndex < questions.length - 1) setCurrentQIndex(p => p + 1); };
   const handlePrev = () => { if (currentQIndex > 0) setCurrentQIndex(p => p - 1); };
 
-  const handleSubmit = () => {
-    if (offlineMode) {
-      setSubmitOfflineError(true);
-      return;
-    }
-    const formattedAnswers = Object.entries(answers).map(([qId, ans]) => ({
+  const doSubmit = (currentAnswers: Record<number, string>) => {
+    const formattedAnswers = Object.entries(currentAnswers).map(([qId, ans]) => ({
       questionId: Number(qId),
       selectedAnswer: ans,
     }));
@@ -236,6 +239,29 @@ export default function Quiz() {
       },
     });
   };
+
+  const handleSubmit = () => {
+    if (offlineMode) {
+      setSubmitOfflineError(true);
+      wasOfflineRef.current = true; // flag: auto-submit when reconnected
+      return;
+    }
+    doSubmit(answers);
+  };
+
+  // ── Auto-sync on reconnect ──────────────────────────────────────────────────
+  // When offlineMode transitions from true → false (network restored) and the
+  // quiz is complete, submit the queued answers automatically.
+  useEffect(() => {
+    const prevWasOffline = wasOfflineRef.current;
+    if (prevWasOffline && !offlineMode && isComplete && !session?.completedAt) {
+      wasOfflineRef.current = false;
+      setSubmitOfflineError(false);
+      doSubmit(answers);
+    }
+    if (offlineMode) wasOfflineRef.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offlineMode]);
 
   // ── Loading / error states ───────────────────────────────────────────────
   if (isLoading && !session) return <LoadingScreen />;
