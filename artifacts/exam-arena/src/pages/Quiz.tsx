@@ -78,6 +78,7 @@ export default function Quiz() {
   const [offlineMode, setOfflineMode] = useState(false);
   const [session, setSession] = useState<QuizSessionDetail | null>(null);
   const [showGridHint, setShowGridHint] = useState(false);
+  const [motivationalMsg, setMotivationalMsg] = useState<string | null>(null);
 
   // Sync session: prefer live network data; fall back to cache on error
   useEffect(() => {
@@ -125,6 +126,58 @@ export default function Quiz() {
   const isComplete      = Object.keys(answers).length === questions.length && questions.length > 0;
   const isCurrentRevealed = currentQuestion ? !!revealed[currentQuestion.id] : false;
   const isLastQuestion  = currentQIndex === questions.length - 1;
+
+  // ── Motivational ticker — updates every 5 minutes based on performance ──
+  useEffect(() => {
+    if (!session) return;
+
+    const CORRECT_MSGS = [
+      '🔥 You\'re on fire! Keep crushing it!',
+      '⚡ Incredible! You\'re dominating this quiz!',
+      '🏆 Champion energy! Don\'t stop now!',
+      '✨ Your hard work is showing — brilliant!',
+      '💪 Unstoppable! Keep that momentum going!',
+      '🎯 Laser focus — you\'re acing this!',
+      '🚀 Sky\'s the limit — you\'re soaring!',
+    ];
+    const WRONG_MSGS = [
+      '💪 Every mistake is a lesson — you\'ve got this!',
+      '🌟 Champions are made through challenges — keep pushing!',
+      '🔄 Reset, refocus, and rise — you\'re still in this!',
+      '🧠 Your brain is growing with every question — trust the process!',
+      '❤️ Don\'t give up — every great student started where you are!',
+      '⚡ Setbacks are setups for comebacks — keep going!',
+      '🎯 Stay locked in — you\'ll crack it!',
+    ];
+    const MIXED_MSGS = [
+      '🚀 Solid progress — keep the momentum!',
+      '⚡ You\'re building real knowledge — stay focused!',
+      '🌟 Great effort! Every question makes you stronger!',
+      '🔥 You\'re making progress — one question at a time!',
+      '💡 Stay sharp — you\'re getting there!',
+    ];
+
+    const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+
+    const updateMsg = () => {
+      const answeredIds = Object.keys(answers).map(Number);
+      if (answeredIds.length === 0) return;
+      const correctCount = answeredIds.filter(id => {
+        const q = session.questions.find(q => q.id === id);
+        return q && answers[id] === String(q.correctAnswer).trim().toUpperCase();
+      }).length;
+      const ratio = correctCount / answeredIds.length;
+      if (ratio >= 0.65)      setMotivationalMsg(pick(CORRECT_MSGS));
+      else if (ratio <= 0.35) setMotivationalMsg(pick(WRONG_MSGS));
+      else                    setMotivationalMsg(pick(MIXED_MSGS));
+    };
+
+    // First flash after 20 s, then every 5 minutes
+    const firstTimer = setTimeout(updateMsg, 20_000);
+    const interval   = setInterval(updateMsg, 5 * 60 * 1000);
+    return () => { clearTimeout(firstTimer); clearInterval(interval); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id]);
 
   // Periodic hint for the grid (week-switcher) button — every 6 minutes
   useEffect(() => {
@@ -434,6 +487,45 @@ export default function Quiz() {
               </div>
             );
           })()}
+
+          {/* ── Motivational scrolling ticker ── */}
+          {motivationalMsg && (
+            <div
+              className="overflow-hidden rounded-xl px-0 py-2.5 border animate-in fade-in duration-500"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,160,0,0.08), rgba(0,200,160,0.08))',
+                borderColor: 'rgba(255,160,0,0.25)',
+              }}
+            >
+              <div className="flex items-center gap-2 px-3 mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'hsl(45 100% 65%)' }}>
+                  Coach says
+                </span>
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,160,0,0.2)' }} />
+                <button
+                  onClick={() => setMotivationalMsg(null)}
+                  className="text-white/25 hover:text-white/60 text-[10px] leading-none transition-colors"
+                  aria-label="Dismiss"
+                >✕</button>
+              </div>
+              <div className="relative overflow-hidden">
+                <p
+                  className="text-sm font-bold whitespace-nowrap"
+                  style={{
+                    color: 'hsl(45 100% 82%)',
+                    animationName: 'motivationalScroll',
+                    animationDuration: '18s',
+                    animationTimingFunction: 'linear',
+                    animationIterationCount: 'infinite',
+                    display: 'inline-block',
+                    paddingLeft: '100%',
+                  }}
+                >
+                  {motivationalMsg}&nbsp;&nbsp;&nbsp;&nbsp;{motivationalMsg}
+                </p>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

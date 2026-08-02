@@ -70,7 +70,7 @@ export function BackgroundParticles() {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
 
       {/* ── Ambient gradient base ── */}
       <div
@@ -164,7 +164,7 @@ export function BackgroundParticles() {
       {floaters.map((p) => (
         <div
           key={p.id}
-          className="absolute animate-float mix-blend-screen"
+          className="absolute animate-float"
           style={{
             left:       `${p.x}%`,
             top:        `${p.y}%`,
