@@ -99,6 +99,28 @@ export async function ensureSessionTable(): Promise<void> {
 }
 
 /**
+ * Ensure the songs table has the file_data and mime_type columns.
+ * These were added to the Drizzle schema but may not have been applied to the
+ * production Neon database yet. `ADD COLUMN IF NOT EXISTS` is idempotent —
+ * safe to run on every startup whether the columns exist or not.
+ */
+export async function ensureSongsColumns(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      ALTER TABLE songs
+        ADD COLUMN IF NOT EXISTS file_data  TEXT,
+        ADD COLUMN IF NOT EXISTS mime_type  TEXT
+    `);
+    logger.info("ensureSongsColumns: columns present");
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, "ensureSongsColumns failed — songs upload may not work");
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Backfill 2-day trials for every user who has never had a subscription
  * (plan = 'none') or whose trial has already expired.
  * Safe to run on every startup — won't touch active trials or paid plans.

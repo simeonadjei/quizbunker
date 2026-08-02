@@ -1,4 +1,4 @@
-import app, { ensureSessionTable, backfillTrials } from "./app";
+import app, { ensureSessionTable, backfillTrials, ensureSongsColumns } from "./app";
 import { logEmailConfigStatus } from "./lib/email";
 import { logger } from "./lib/logger";
 
@@ -26,6 +26,9 @@ Promise.all([
   ),
   backfillTrials().catch((err: Error) =>
     logger.warn({ err: err.message }, "backfillTrials failed — server will still start"),
+  ),
+  ensureSongsColumns().catch((err: Error) =>
+    logger.warn({ err: err.message }, "ensureSongsColumns failed — server will still start"),
   ),
 ]).then(() => {
   logEmailConfigStatus();
