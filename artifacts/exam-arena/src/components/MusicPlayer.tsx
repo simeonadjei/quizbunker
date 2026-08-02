@@ -1,8 +1,10 @@
 import { useMusic } from '@/contexts/MusicContext';
-import { SkipBack, SkipForward, Volume2, VolumeX, Music2, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { SkipBack, SkipForward, Volume2, VolumeX, Music2, ChevronDown, Pause, Play } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+
+const HINT_KEY = 'qb_music_hint_seen';
 
 interface MusicPlayerProps {
   /** Tailwind class for bottom position, e.g. "bottom-4" or "bottom-20" */
@@ -10,8 +12,28 @@ interface MusicPlayerProps {
 }
 
 export function MusicPlayer({ bottomClass = 'bottom-4' }: MusicPlayerProps) {
-  const { isPlaying, nextSong, prevSong, currentSong, volume, setVolume, _startPlayback } = useMusic();
+  const { isPlaying, nextSong, prevSong, currentSong, volume, setVolume, togglePlayPause, _startPlayback } = useMusic();
   const [expanded, setExpanded] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+
+  // Show hint on first visit, auto-dismiss after 6 s
+  useEffect(() => {
+    if (!currentSong) return;
+    const seen = localStorage.getItem(HINT_KEY);
+    if (!seen) {
+      setShowHint(true);
+      const t = setTimeout(() => {
+        setShowHint(false);
+        localStorage.setItem(HINT_KEY, '1');
+      }, 6000);
+      return () => clearTimeout(t);
+    }
+  }, [currentSong]);
+
+  const dismissHint = () => {
+    setShowHint(false);
+    localStorage.setItem(HINT_KEY, '1');
+  };
 
   if (!currentSong) return null;
 
@@ -91,25 +113,72 @@ export function MusicPlayer({ bottomClass = 'bottom-4' }: MusicPlayerProps) {
         </div>
       )}
 
-      {/* ── Collapsed pill button ──────────────────────────────────── */}
+      {/* ── Collapsed pill ─────────────────────────────────────────── */}
       {!expanded && (
-        <button
-          onClick={() => { _startPlayback(); setExpanded(true); }}
-          aria-label="Open music player"
-          className={cn(
-            'relative w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-[0_4px_16px_rgba(0,0,0,0.5)] transition-all active:scale-90',
-            isPlaying
-              ? 'border-secondary/70 bg-gradient-to-br from-secondary/80 to-[#0b5c5c]'
-              : 'border-white/20 bg-black/60'
+        <div className="relative flex items-center gap-0">
+
+          {/* First-visit hint callout */}
+          {showHint && (
+            <div
+              className="absolute right-14 bottom-0 flex items-center gap-1.5 animate-in fade-in slide-in-from-right-4 duration-300"
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              <div
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white shadow-lg border border-secondary/40"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0,0,0,0.88), rgba(10,30,25,0.94))',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                }}
+              >
+                <span className="text-base leading-none">👆</span>
+                <span className="text-secondary/90">Tap icon to adjust volume</span>
+                <button
+                  onClick={dismissHint}
+                  className="ml-1 text-white/30 hover:text-white/70 text-[10px] leading-none"
+                  aria-label="Dismiss"
+                >✕</button>
+              </div>
+              {/* Pointer arrow */}
+              <div
+                className="w-2.5 h-2.5 rotate-45 border-r border-t border-secondary/40 -ml-[7px] flex-shrink-0"
+                style={{ background: 'rgba(10,30,25,0.94)' }}
+              />
+            </div>
           )}
-          style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
-        >
-          <Music2 className={cn('w-5 h-5', isPlaying ? 'text-white' : 'text-white/50')} />
-          {/* Spinning ring when playing */}
-          {isPlaying && (
-            <div className="absolute inset-[-3px] rounded-full border-[2px] border-transparent border-t-secondary/70 animate-[spin_2s_linear_infinite]" />
-          )}
-        </button>
+
+          {/* Pause / Play button */}
+          <button
+            onClick={() => { dismissHint(); togglePlayPause(); }}
+            aria-label={isPlaying ? 'Pause music' : 'Play music'}
+            className={cn(
+              'w-12 h-12 rounded-full flex items-center justify-center border-2 shadow-[0_4px_16px_rgba(0,0,0,0.5)] transition-all active:scale-90',
+              isPlaying
+                ? 'border-secondary/70 bg-gradient-to-br from-secondary/80 to-[#0b5c5c]'
+                : 'border-white/20 bg-black/60'
+            )}
+            style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+          >
+            {isPlaying
+              ? <Pause className="w-5 h-5 text-white" strokeWidth={2.5} />
+              : <Play  className="w-5 h-5 text-white/50" strokeWidth={2.5} />}
+
+            {/* Spinning ring when playing */}
+            {isPlaying && (
+              <div className="absolute inset-[-3px] rounded-full border-[2px] border-transparent border-t-secondary/70 animate-[spin_2s_linear_infinite]" />
+            )}
+          </button>
+
+          {/* Expand (music note) button */}
+          <button
+            onClick={() => { dismissHint(); _startPlayback(); setExpanded(true); }}
+            aria-label="Open music player"
+            className="w-6 h-6 -ml-1.5 z-10 rounded-full flex items-center justify-center bg-black/70 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all active:scale-90 shadow"
+            style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+          >
+            <Music2 className="w-3 h-3" strokeWidth={2.5} />
+          </button>
+        </div>
       )}
 
       <style>{`

@@ -15,6 +15,7 @@ interface MusicContextType {
   setVolume: (v: number) => void;
   nextSong: () => void;
   prevSong: () => void;
+  togglePlayPause: () => void;
   /** Internal — called synchronously inside a direct click/tap handler */
   _startPlayback: () => void;
 }
@@ -171,8 +172,23 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     if (audioRef.current) audioRef.current.volume = v;
   }, []);
 
+  const togglePlayPause = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!startedRef.current) {
+      // First play — must go through _startPlayback (requires click context)
+      _startPlayback();
+      return;
+    }
+    if (audio.paused) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [_startPlayback]);
+
   return (
-    <MusicContext.Provider value={{ isPlaying, currentSong, volume, setVolume, nextSong, prevSong, _startPlayback }}>
+    <MusicContext.Provider value={{ isPlaying, currentSong, volume, setVolume, nextSong, prevSong, togglePlayPause, _startPlayback }}>
       {children}
     </MusicContext.Provider>
   );
