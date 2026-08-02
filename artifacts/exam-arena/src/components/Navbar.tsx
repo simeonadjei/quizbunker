@@ -20,21 +20,21 @@ export function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-white/10 shadow-lg">
-      <div className="max-w-screen-lg mx-auto px-2.5 sm:px-4 h-14 flex items-center justify-between gap-1.5 sm:gap-3">
+      <div className="max-w-screen-lg mx-auto px-2.5 sm:px-4 h-14 lg:h-24 flex items-center justify-between gap-1.5 sm:gap-3">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink min-w-0 group">
+        <Link href="/" className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 shrink min-w-0 group">
           <img
             src="/logo.png"
             alt="Quiz Bunker Logo"
-            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-cover group-active:translate-y-0.5 transition-transform shrink-0"
+            className="h-8 w-8 sm:h-9 sm:w-9 lg:h-20 lg:w-20 rounded-xl lg:rounded-2xl object-cover group-active:translate-y-0.5 transition-transform shrink-0"
             style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.4)' }}
           />
           <div className="flex flex-col leading-none min-w-0">
-            <span className="font-display text-xs sm:text-sm leading-tight text-white tracking-wide whitespace-nowrap truncate">
+            <span className="font-display text-xs sm:text-sm lg:text-3xl leading-tight text-white tracking-wide whitespace-nowrap truncate">
               QUIZ <span className="text-game-title-orange" style={{ WebkitTextStroke: '1px rgba(0,0,0,0.5)' }}>BUNKER</span>
             </span>
-            <span className="font-display text-[7px] sm:text-[8px] text-secondary tracking-widest leading-none whitespace-nowrap hidden sm:block">FOR GHANA SHS STUDENTS</span>
+            <span className="font-display text-[7px] sm:text-[8px] lg:text-sm text-secondary tracking-widest leading-none whitespace-nowrap hidden sm:block">FOR GHANA SHS STUDENTS</span>
           </div>
         </Link>
 

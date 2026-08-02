@@ -113,7 +113,7 @@ export default function Landing() {
           </div>
 
           {/* ── Hero ──────────────────────────────────────────────── */}
-          <div className="w-full mt-4 sm:mt-8 lg:mt-16 mb-3 lg:mb-6 relative z-10">
+          <div className="w-full mt-4 sm:mt-8 lg:mt-12 mb-3 lg:mb-6 relative z-10">
 
             {/* Logo image — visible on mobile; hidden on desktop (it's the watermark there) */}
             <div className="flex justify-center mb-3 lg:hidden">
@@ -169,9 +169,9 @@ export default function Landing() {
 
             {/* Tagline */}
             <p className="font-bold text-base sm:text-lg lg:text-xl leading-relaxed mt-2 lg:mt-4"
-              style={{ color: 'hsl(210 80% 95%)', textShadow: '0 0 20px hsl(210 80% 70% / 0.4)' }}>
+              style={{ color: 'hsl(210 80% 95%)' }}>
               Ghana's top exam practice platform.<br />
-              <span style={{ color: 'hsl(45 100% 78%)', textShadow: '0 0 16px hsl(45 100% 60% / 0.6)' }}>
+              <span style={{ color: 'hsl(45 100% 78%)' }}>
                 Crush likely examinable questions.
               </span>
             </p>
@@ -250,28 +250,11 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* ── WhatsApp Share ─────────────────────────────────────── */}
-          <div className="w-full mt-4 lg:mt-8 flex justify-center relative z-10">
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(`🎓 Check out Quiz Bunker — Ghana's top exam practice platform. Crush likely examinable questions! 🚀\n\n${typeof window !== 'undefined' ? window.location.origin : 'https://quizbunker.com'}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 lg:px-8 py-2.5 lg:py-3.5 rounded-xl lg:rounded-2xl text-sm lg:text-base font-bold transition-transform hover:scale-105 active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
-                color: '#fff',
-                boxShadow: '0 4px 0 #075E54, 0 6px 20px rgba(18,140,126,0.35)',
-              }}
-            >
-              <MessageCircle className="w-4 h-4 lg:w-5 lg:h-5" />
-              Share on WhatsApp
-            </a>
-          </div>
+          {/* ── Footer row: WhatsApp share + credits (horizontal on desktop) ── */}
+          <div className="w-full mt-6 lg:mt-10 mb-2 relative z-10">
 
-          {/* ── Credits footer ─────────────────────────────────────── */}
-          <footer className="w-full mt-8 lg:mt-14 mb-2 relative z-10">
-            {/* Divider with glow */}
-            <div className="relative flex items-center justify-center mb-6 lg:mb-8">
+            {/* Divider */}
+            <div className="relative flex items-center justify-center mb-5 lg:mb-6">
               <div className="h-px flex-1 rounded-full" style={{
                 background: 'linear-gradient(90deg, transparent, hsl(40 100% 55% / 0.4), hsl(175 100% 50% / 0.4), transparent)',
               }} />
@@ -285,67 +268,86 @@ export default function Landing() {
               }} />
             </div>
 
-            {/* Credits card */}
+            {/* Credits card — stacked on mobile, horizontal on desktop */}
             <div
-              className="rounded-2xl lg:rounded-3xl px-5 lg:px-10 py-5 lg:py-8 flex flex-col items-center gap-3 lg:gap-5"
+              className="rounded-2xl lg:rounded-3xl px-5 lg:px-10 py-5 lg:py-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6"
               style={{
                 background: 'linear-gradient(135deg, hsl(230 60% 12% / 0.7), hsl(220 50% 10% / 0.85))',
                 border: '1px solid hsl(215 50% 30% / 0.35)',
                 boxShadow: '0 0 40px hsl(220 60% 15% / 0.5), inset 0 1px 0 hsl(215 80% 70% / 0.07)',
               }}
             >
-              {/* Copyright line */}
-              <div className="flex items-center gap-2">
+              {/* Copyright */}
+              <div className="flex items-center justify-center lg:justify-start gap-2 shrink-0">
                 <Shield className="w-4 h-4 lg:w-5 lg:h-5 shrink-0" style={{ color: 'hsl(175 100% 60%)' }} />
                 <p className="text-sm lg:text-base font-semibold" style={{ color: 'hsl(220 20% 65%)' }}>
                   © 2026 Quiz Bunker · All rights reserved
                 </p>
               </div>
 
-              {/* Developer credit */}
-              <div
-                className="inline-flex items-center gap-3 px-5 lg:px-7 py-2.5 lg:py-3.5 rounded-xl lg:rounded-2xl"
-                style={{
-                  background: 'linear-gradient(135deg, hsl(40 100% 55% / 0.12), hsl(28 100% 50% / 0.08))',
-                  border: '1px solid hsl(40 100% 55% / 0.25)',
-                }}
-              >
+              {/* Developer credit + buttons row */}
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-end gap-3 lg:gap-4">
+                {/* Developer pill */}
                 <div
-                  className="w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-sm lg:text-base font-display font-bold shrink-0"
+                  className="inline-flex items-center gap-3 px-4 lg:px-5 py-2 lg:py-2.5 rounded-xl lg:rounded-2xl shrink-0"
                   style={{
-                    background: 'linear-gradient(135deg, hsl(40 100% 55%), hsl(28 100% 50%))',
-                    color: '#000',
-                    boxShadow: '0 0 12px hsl(40 100% 55% / 0.4)',
+                    background: 'linear-gradient(135deg, hsl(40 100% 55% / 0.12), hsl(28 100% 50% / 0.08))',
+                    border: '1px solid hsl(40 100% 55% / 0.25)',
                   }}
                 >
-                  SA
+                  <div
+                    className="w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center text-sm font-display font-bold shrink-0"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(40 100% 55%), hsl(28 100% 50%))',
+                      color: '#000',
+                      boxShadow: '0 0 12px hsl(40 100% 55% / 0.4)',
+                    }}
+                  >
+                    SA
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] lg:text-xs uppercase tracking-widest font-bold"
+                      style={{ color: 'hsl(220 20% 55%)' }}>Developed by</p>
+                    <p className="text-sm lg:text-base font-bold" style={{ color: 'hsl(45 100% 72%)' }}>
+                      Simeon Adjei
+                    </p>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="text-[10px] lg:text-xs uppercase tracking-widest font-bold"
-                    style={{ color: 'hsl(220 20% 55%)' }}>Developed by</p>
-                  <p className="text-sm lg:text-base font-bold" style={{ color: 'hsl(45 100% 72%)' }}>
-                    Simeon Adjei
-                  </p>
-                </div>
-              </div>
 
-              {/* Contact button */}
-              <a
-                href="https://wa.me/233540984944"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 px-6 lg:px-8 py-2.5 lg:py-3.5 rounded-xl lg:rounded-2xl text-sm lg:text-base font-bold transition-all hover:scale-105 active:scale-95"
-                style={{
-                  background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
-                  color: '#fff',
-                  boxShadow: '0 4px 0 #075E54, 0 6px 20px rgba(18,140,126,0.3)',
-                }}
-              >
-                <MessageCircle className="w-4 h-4 lg:w-5 lg:h-5" />
-                Contact Developer
-              </a>
+                {/* Share on WhatsApp */}
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`🎓 Check out Quiz Bunker — Ghana's top exam practice platform. Crush likely examinable questions! 🚀\n\n${typeof window !== 'undefined' ? window.location.origin : 'https://quizbunker.com'}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl text-sm lg:text-base font-bold transition-transform hover:scale-105 active:scale-95 shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                    color: '#fff',
+                    boxShadow: '0 4px 0 #075E54, 0 6px 20px rgba(18,140,126,0.35)',
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+                  Share on WhatsApp
+                </a>
+
+                {/* Contact Developer */}
+                <a
+                  href="https://wa.me/233540984944"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2.5 px-5 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl text-sm lg:text-base font-bold transition-all hover:scale-105 active:scale-95 shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                    color: '#fff',
+                    boxShadow: '0 4px 0 #075E54, 0 6px 20px rgba(18,140,126,0.3)',
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+                  Contact Developer
+                </a>
+              </div>
             </div>
-          </footer>
+          </div>
 
           {/* bottom breathing room */}
           <div className="h-6 lg:h-12" />

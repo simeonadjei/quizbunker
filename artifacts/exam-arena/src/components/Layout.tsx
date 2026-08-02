@@ -18,8 +18,8 @@ export function Layout({ children, wide = false }: LayoutProps) {
     <div className="min-h-[100dvh] w-full flex flex-col relative bg-background">
       {!isAdmin && <BackgroundParticles />}
       {!isAdmin && <Navbar />}
-      {/* pt-14 clears the fixed 56px navbar; pb-24 clears the music player */}
-      <main className={`flex-1 relative z-10 w-full flex flex-col items-center ${!isAdmin ? 'pt-14 pb-24' : ''}`}>
+      {/* pt-14 clears the fixed 56px navbar (lg:pt-24 clears the taller desktop navbar); pb-24 clears the music player */}
+      <main className={`flex-1 relative z-10 w-full flex flex-col items-center ${!isAdmin ? 'pt-14 lg:pt-24 pb-24' : ''}`}>
         <div className={
           isAdmin
             ? 'w-full flex flex-col flex-1'
