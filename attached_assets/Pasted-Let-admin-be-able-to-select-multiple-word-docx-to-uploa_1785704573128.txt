@@ -1,0 +1,40 @@
+Let admin be able to select multiple word docx to upload in the bulk ingest questions
+
+Now I have the full picture. The QuestionUploader handles one file at a time — I'll update it to support multiple files with progress tracking, uploading one-by-one (same pattern as the song uploader).
+
+Typecheck clean. Let me commit and push to GitHub.
+
+Pushed — commit 6331c92. Here's what changed in the admin panel:
+
+File picker now accepts multiple .docx / .txt files in one selection
+Selected file list appears below the picker showing each filename and size
+Files upload one at a time (so none hit the server timeout) with a live counter — 2/5 — Week3_Science.docx
+After all uploads finish, a summary panel shows total inserted, skipped, and any per-file errors with the specific failure message
+How many songs can be uploaded as of now in the system
+
+There's no hard cap on the number of songs — the system doesn't enforce a count limit. What does apply:
+
+Per-file size limit: 50 MB per song (set in the multer config)
+Storage: Songs are stored as binary blobs directly in the PostgreSQL database (not on disk), so the practical ceiling is your database storage quota on Neon
+No count check anywhere in the upload route — you can upload as many tracks as you want
+The only real constraint is database size. Want me to add a configurable song count limit, or check how much storage the current songs are using?
+
+On laptop the front page looks packed together, even the word Quiz on top of the Bunker is not seen, remove the dark background color, give it a bright colorful ones even futuristic one, to make things simple, watch this attached pic, arrange the buttons like this let the screen be arranged like this with same background colors
+
+I can see the full current page. I'll rewrite the landing page to match the reference — bright blue-to-purple sky background, feature badges flanking the logo left and right, and the "THINK. PLAY. CONQUER!" layout.
+
+The screenshot was taken during page load. Let me wait and grab a fresh one.
+
+The body has a dark bg-background baked into the CSS. My full-page div sets its own gradient but the screenshot was taken mid-load. I also need to bring the Navbar back since I dropped Layout. Let me use Layout but override the background from within using a fixed cover layer.
+
+The screenshots keep showing the old state — let me verify the file actually saved and check the Vite logs.
+
+The file is correct but the screenshot tool keeps catching the page before full React render. The core issue is the dark body background and the Layout wrapper being dropped (losing the Navbar). Let me fix this properly — use Layout but override the background with a useEffect body class, and ensure the full bright background renders correctly.
+
+The screenshot tool keeps catching the loading splash. I can also see a React error in the console — <a> inside <Link> (which already renders <a>) is invalid. Let me fix both: drop Layout entirely (render Navbar + MusicPlayer directly so I own the background), and fix the Link nesting.
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+QuizBunker
+Website
