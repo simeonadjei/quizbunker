@@ -150,22 +150,28 @@ router.post("/admin/auth", async (req, res) => {
   const adminEmail = process.env.ADMIN_EMAIL;
 
   // Accept ADMIN_PASSWORD or ADMIN_SECRET_PATH as the password.
-  // This allows Render deployments to work with only ADMIN_SECRET_PATH set.
   // Trim all values to avoid whitespace issues from env var copy-paste.
   const passwordOk =
     (adminPassword && password?.trim() === adminPassword.trim()) ||
     (adminSecretPath && password?.trim() === adminSecretPath.trim());
-  const emailOk = !adminEmail || (email && email.trim().toLowerCase() === adminEmail.trim().toLowerCase());
+
+  // Email check is optional: only enforce it when the user actually typed
+  // something in the email field AND ADMIN_EMAIL is configured.
+  // This lets the admin log in with just the password (email left blank).
+  const submittedEmail = email?.trim().toLowerCase() ?? "";
+  const emailOk =
+    !submittedEmail ||          // blank email → skip the check
+    !adminEmail ||              // ADMIN_EMAIL not configured → skip
+    submittedEmail === adminEmail.trim().toLowerCase();
 
   if (!passwordOk || !emailOk) {
-    // Log which check failed (no secret values exposed)
     logger.warn({
       passwordOk,
       emailOk,
       hasAdminPassword: !!adminPassword,
       hasAdminSecretPath: !!adminSecretPath,
       hasAdminEmail: !!adminEmail,
-      submittedEmailLen: email?.length ?? 0,
+      submittedEmailLen: submittedEmail.length,
       submittedPasswordLen: password?.length ?? 0,
     }, "Admin login failed");
     return res.status(401).json({ error: "Invalid credentials" });
