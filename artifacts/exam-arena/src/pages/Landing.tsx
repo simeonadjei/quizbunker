@@ -39,7 +39,7 @@ export default function Landing() {
         <div className="flex-1 lg:hidden" />
 
         {/* Mandela ticker — mobile: in flow; desktop: absolute in yellow bulb */}
-        <div className="w-full max-w-xl mx-auto mb-3 lg:absolute lg:top-[18%] lg:-translate-y-1/2 lg:left-0 lg:right-0 lg:max-w-none lg:px-0">
+        <div className="w-full max-w-xl mx-auto mb-3 lg:absolute lg:top-[13%] lg:-translate-y-1/2 lg:left-0 lg:right-0 lg:max-w-none lg:px-0">
           <MandelaTicker />
         </div>
 
@@ -86,14 +86,14 @@ function MandelaTicker() {
       >
         {/* Gold opening mark */}
         <div className="text-center mb-0.5">
-          <span style={{ fontSize: 16, lineHeight: 1, color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif' }}>"</span>
+          <span style={{ fontSize: 28, lineHeight: 1, color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif' }}>"</span>
         </div>
         {/* Centered static quote */}
         <div className="px-4 text-center">
           <p
             style={{
               fontFamily: 'Georgia, serif',
-              fontSize: 'clamp(7px, 0.95vw, 10px)',
+              fontSize: 'clamp(14px, 2.8vw, 22px)',
               lineHeight: 1.5,
               color: 'rgba(255,255,255,0.95)',
               fontStyle: 'italic',
@@ -108,7 +108,7 @@ function MandelaTicker() {
           className="text-center mt-1"
           style={{
             fontFamily: "'Fredoka One', cursive",
-            fontSize: 'clamp(11px, 1.1vw, 14px)',
+            fontSize: 'clamp(20px, 3.3vw, 32px)',
             color: '#facc15',
             letterSpacing: '0.08em',
             textShadow: '0 0 12px rgba(250,204,21,0.55)',
@@ -133,10 +133,10 @@ function MandelaTicker() {
           {/* Repeat twice so the loop is seamless */}
           {[0, 1].map((i) => (
             <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 16, whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#facc15', opacity: 0.85, fontFamily: 'Georgia, serif', fontSize: 18 }}>"</span>
+              <span style={{ color: '#facc15', opacity: 0.85, fontFamily: 'Georgia, serif', fontSize: 54 }}>"</span>
               <span style={{
                 fontFamily: 'Georgia, serif',
-                fontSize: '15px',
+                fontSize: '45px',
                 color: 'rgba(255,255,255,0.95)',
                 fontStyle: 'italic',
                 textShadow: '0 1px 6px rgba(0,0,0,0.8)',
@@ -145,14 +145,14 @@ function MandelaTicker() {
               </span>
               <span style={{
                 fontFamily: "'Fredoka One', cursive",
-                fontSize: '17px',
+                fontSize: '51px',
                 color: '#facc15',
                 letterSpacing: '0.06em',
                 textShadow: '0 0 10px rgba(250,204,21,0.5)',
               }}>
                 — Nelson Mandela
               </span>
-              <span style={{ color: 'rgba(250,204,21,0.35)', fontSize: 20 }}>✦</span>
+              <span style={{ color: 'rgba(250,204,21,0.35)', fontSize: 60 }}>✦</span>
             </span>
           ))}
         </div>

@@ -142,20 +142,31 @@ app.get("/api/admin/auth-status", (_req, res) => {
   });
 });
 
-app.use(
-  session({
-    store: sessionStore,
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production" || !!process.env.REPL_ID,
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: (process.env.NODE_ENV === "production" || !!process.env.REPL_ID) ? "none" : "lax",
-    },
-  }),
-);
+// Wrap session middleware so a PgStore / Neon outage never propagates to
+// next(err) and returns 500.  Instead the request continues without a session
+// (the stateless HMAC token still authenticates admin requests).
+const sessionMiddleware = session({
+  store: sessionStore,
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production" || !!process.env.REPL_ID,
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    sameSite: (process.env.NODE_ENV === "production" || !!process.env.REPL_ID) ? "none" : "lax",
+  },
+});
+
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  sessionMiddleware(req, res, (err?: unknown) => {
+    if (err) {
+      logger.warn({ err: (err as Error)?.message ?? String(err) }, "Session middleware error — proceeding without session");
+      return next(); // continue WITHOUT session rather than returning 500
+    }
+    next();
+  });
+});
 
 // Serve uploaded songs statically at /api/uploads/songs
 const songsDir = path.join(process.cwd(), "uploads", "songs");
