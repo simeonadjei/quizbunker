@@ -107,14 +107,13 @@ export async function ensureSessionTable(): Promise<void> {
 export async function ensureSongsColumns(): Promise<void> {
   const client = await pool.connect();
   try {
-    await client.query(`
-      ALTER TABLE songs
-        ADD COLUMN IF NOT EXISTS file_data  TEXT,
-        ADD COLUMN IF NOT EXISTS mime_type  TEXT
-    `);
-    logger.info("ensureSongsColumns: columns present");
+    // Add columns individually so a partial failure is visible
+    await client.query(`ALTER TABLE songs ADD COLUMN IF NOT EXISTS file_data TEXT`);
+    await client.query(`ALTER TABLE songs ADD COLUMN IF NOT EXISTS mime_type TEXT`);
+    logger.info("ensureSongsColumns: file_data + mime_type columns confirmed");
   } catch (err) {
-    logger.warn({ err: (err as Error).message }, "ensureSongsColumns failed — songs upload may not work");
+    // Re-throw so the caller knows the migration failed
+    throw new Error(`ensureSongsColumns failed: ${(err as Error).message}`);
   } finally {
     client.release();
   }

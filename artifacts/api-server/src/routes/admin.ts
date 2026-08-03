@@ -522,7 +522,7 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
 
   try {
     const [last] = await db
-      .select()
+      .select({ sortOrder: songsTable.sortOrder })
       .from(songsTable)
       .orderBy(desc(songsTable.sortOrder))
       .limit(1);

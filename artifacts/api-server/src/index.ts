@@ -27,9 +27,8 @@ Promise.all([
   backfillTrials().catch((err: Error) =>
     logger.warn({ err: err.message }, "backfillTrials failed — server will still start"),
   ),
-  ensureSongsColumns().catch((err: Error) =>
-    logger.warn({ err: err.message }, "ensureSongsColumns failed — server will still start"),
-  ),
+  // Songs columns must exist before any request — do NOT swallow failure
+  ensureSongsColumns(),
 ]).then(() => {
   logEmailConfigStatus();
 
