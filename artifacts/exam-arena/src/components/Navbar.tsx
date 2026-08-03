@@ -31,15 +31,15 @@ export function Navbar() {
       <div className="max-w-screen-lg mx-auto px-2.5 sm:px-4 h-14 lg:h-24 flex items-center justify-between gap-1.5 sm:gap-3">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 shrink min-w-0 group">
+        <Link href="/" className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 shrink min-w-0 lg:shrink-0 group">
           <img
             src="/logo.png"
             alt="Quiz Bunker Logo"
             className="h-8 w-8 sm:h-9 sm:w-9 lg:h-20 lg:w-20 rounded-xl lg:rounded-2xl object-cover group-active:translate-y-0.5 transition-transform shrink-0"
             style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.4)' }}
           />
-          <div className="flex flex-col leading-none min-w-0">
-            <span className="font-display text-xs sm:text-sm lg:text-3xl leading-tight text-white tracking-wide whitespace-nowrap truncate">
+          <div className="flex flex-col leading-none min-w-0 lg:min-w-max">
+            <span className="font-display text-xs sm:text-sm lg:text-3xl leading-tight text-white tracking-wide whitespace-nowrap truncate lg:overflow-visible">
               QUIZ <span className="text-game-title-orange" style={{ WebkitTextStroke: '1px rgba(0,0,0,0.5)' }}>BUNKER</span>
             </span>
             <span className="font-display text-[7px] sm:text-[8px] lg:text-sm text-secondary tracking-widest leading-none whitespace-nowrap hidden sm:block">Quiz for Ghana students</span>
@@ -102,8 +102,8 @@ export function Navbar() {
               >
                 🚀 CREATE ACCOUNT
               </Link>
-              {/* Subtitle — desktop only, right of CREATE ACCOUNT */}
-              <div className="hidden lg:flex flex-col justify-center ml-3 pl-3 border-l border-white/20">
+              {/* Subtitle — only on extra-large screens where there's room */}
+              <div className="hidden xl:flex flex-col justify-center ml-3 pl-3 border-l border-white/20">
                 <span className="font-bold text-lg text-white/95 leading-tight whitespace-nowrap">Ghana's top exam practice platform.</span>
                 <span className="font-bold text-base leading-tight whitespace-nowrap" style={{ color: '#fde68a' }}>Crush likely examinable questions.</span>
               </div>
