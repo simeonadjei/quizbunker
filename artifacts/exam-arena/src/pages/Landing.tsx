@@ -152,8 +152,10 @@ export default function Landing() {
               {LEFT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} />)}
             </div>
 
-            {/* Centre — intentionally empty so background QUIZ BUNKER text shows */}
-            <div />
+            {/* Centre — Mandela quote below BUNKER text */}
+            <div className="flex flex-col items-center justify-end pb-8">
+              <MandelaQuote />
+            </div>
 
             {/* Right column */}
             <div className="flex flex-col justify-center gap-4">
@@ -163,20 +165,59 @@ export default function Landing() {
 
           {/* ══ MOBILE / TABLET ════════════════════════════════════ */}
           <div className="lg:hidden flex flex-col gap-4">
-            <div className="flex justify-center pt-4">
-              <CtaButton user={user} isLoading={isLoading} />
-            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
               {[...LEFT_BTNS, ...RIGHT_BTNS].map((b) => (
                 <FeatureBtn key={b.title} {...b} />
               ))}
             </div>
+            <MandelaQuote />
           </div>
 
           {/* Footer — centered below THINK. PLAY. CONQUER! */}
           <Footer />
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── Mandela quote ────────────────────────────────────────────────────── */
+function MandelaQuote() {
+  return (
+    <div
+      className="flex flex-col items-center text-center px-4 py-4 rounded-2xl max-w-xs"
+      style={{
+        background: 'rgba(10,6,30,0.65)',
+        border: '1px solid rgba(250,204,21,0.25)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+    >
+      <span style={{ fontSize: 48, lineHeight: 1, color: '#facc15', opacity: 0.7, fontFamily: 'Georgia, serif' }}>"</span>
+      <p
+        style={{
+          fontFamily: 'Georgia, serif',
+          fontSize: 'clamp(13px,1.3vw,16px)',
+          lineHeight: 1.6,
+          color: 'rgba(255,255,255,0.93)',
+          fontStyle: 'italic',
+          textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+          margin: '-8px 0 10px',
+        }}
+      >
+        Education is the most powerful weapon which you can use to change the world.
+      </p>
+      <p
+        style={{
+          fontFamily: "'Fredoka One', cursive",
+          fontSize: 'clamp(12px,1.1vw,14px)',
+          color: '#facc15',
+          letterSpacing: '0.06em',
+          textShadow: '0 0 10px rgba(250,204,21,0.5)',
+        }}
+      >
+        — Nelson Mandela
+      </p>
     </div>
   );
 }
@@ -221,58 +262,60 @@ function CtaButton({ user, isLoading }: { user: unknown; isLoading: boolean }) {
 /* ─── Footer ───────────────────────────────────────────────────────────── */
 function Footer() {
   return (
-    <div
-      className="rounded-2xl px-6 py-6 flex flex-col items-center gap-5"
-      style={{
-        background: 'rgba(10,6,30,0.78)',
-        border: '1.5px solid rgba(129,140,248,0.4)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-      }}
-    >
-      {/* Credits */}
-      <p
-        className="text-xl sm:text-2xl lg:text-3xl font-bold text-center leading-snug"
-        style={{ color: 'rgba(199,210,254,0.97)', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+    <div className="flex justify-center">
+      <div
+        className="rounded-xl px-4 py-3 flex flex-col items-center gap-2 w-full max-w-lg"
+        style={{
+          background: 'rgba(10,6,30,0.78)',
+          border: '1px solid rgba(129,140,248,0.35)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+        }}
       >
-        © 2026 <span style={{ color: '#facc15' }}>Quiz Bunker</span>
-        <span style={{ color: 'rgba(165,180,252,0.55)', margin: '0 10px' }}>·</span>
-        Developed by{' '}
-        <span style={{ color: '#facc15', fontStyle: 'italic' }}>Simeon Adjei</span>
-      </p>
+        {/* Credits — half size */}
+        <p
+          className="text-sm sm:text-base font-bold text-center leading-snug"
+          style={{ color: 'rgba(199,210,254,0.97)', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+        >
+          © 2026 <span style={{ color: '#facc15' }}>Quiz Bunker</span>
+          <span style={{ color: 'rgba(165,180,252,0.45)', margin: '0 6px' }}>·</span>
+          Developed by{' '}
+          <span style={{ color: '#facc15', fontStyle: 'italic' }}>Simeon Adjei</span>
+        </p>
 
-      {/* WhatsApp buttons — 3× size, centered */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-5 flex-wrap">
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(`🎓 Check out Quiz Bunker — Ghana's top exam practice platform! 🚀\n\n${typeof window !== 'undefined' ? window.location.origin : 'https://quizbunker.com'}`)}`}
-          target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
-          style={{
-            background: 'linear-gradient(135deg,#25D366,#128C7E)',
-            color: '#fff',
-            fontSize: 'clamp(20px,2.5vw,28px)',
-            padding: '10px 22px',
-            boxShadow: '0 4px 0 #075E54, 0 8px 18px rgba(18,140,126,0.45)',
-          }}
-        >
-          <MessageCircle style={{ width: 26, height: 26, flexShrink: 0 }} />
-          Share on WhatsApp
-        </a>
-        <a
-          href="https://wa.me/233540984944"
-          target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
-          style={{
-            background: 'linear-gradient(135deg,#25D366,#128C7E)',
-            color: '#fff',
-            fontSize: 'clamp(20px,2.5vw,28px)',
-            padding: '10px 22px',
-            boxShadow: '0 4px 0 #075E54, 0 8px 18px rgba(18,140,126,0.45)',
-          }}
-        >
-          <MessageCircle style={{ width: 26, height: 26, flexShrink: 0 }} />
-          Contact Developer
-        </a>
+        {/* WhatsApp buttons — compact */}
+        <div className="flex flex-row items-center justify-center gap-3 flex-wrap">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`🎓 Check out Quiz Bunker — Ghana's top exam practice platform! 🚀\n\n${typeof window !== 'undefined' ? window.location.origin : 'https://quizbunker.com'}`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg font-bold transition-transform hover:scale-105 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg,#25D366,#128C7E)',
+              color: '#fff',
+              fontSize: 'clamp(11px,1.2vw,14px)',
+              padding: '7px 14px',
+              boxShadow: '0 3px 0 #075E54',
+            }}
+          >
+            <MessageCircle style={{ width: 15, height: 15, flexShrink: 0 }} />
+            Share on WhatsApp
+          </a>
+          <a
+            href="https://wa.me/233540984944"
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg font-bold transition-transform hover:scale-105 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg,#25D366,#128C7E)',
+              color: '#fff',
+              fontSize: 'clamp(11px,1.2vw,14px)',
+              padding: '7px 14px',
+              boxShadow: '0 3px 0 #075E54',
+            }}
+          >
+            <MessageCircle style={{ width: 15, height: 15, flexShrink: 0 }} />
+            Contact Developer
+          </a>
+        </div>
       </div>
     </div>
   );
