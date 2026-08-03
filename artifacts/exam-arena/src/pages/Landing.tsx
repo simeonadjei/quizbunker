@@ -14,9 +14,10 @@ export default function Landing() {
         className="fixed inset-0 z-0"
         style={{
           backgroundImage: `url(${import.meta.env.BASE_URL}hero-bg.png)`,
-          backgroundSize: 'cover',
+          backgroundSize: 'contain',
           backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',
+          backgroundColor: '#050319',
         }}
       />
       {/* Dark overlay */}
