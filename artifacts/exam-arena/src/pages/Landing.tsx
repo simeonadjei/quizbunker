@@ -43,14 +43,6 @@ export default function Landing() {
           <MandelaTicker />
         </div>
 
-        {/*
-          SpinningQ — visible on mobile only, overlaid on the background Q platform.
-          Hidden on desktop where the background Q is not the focal point.
-        */}
-        <div className="flex justify-center mb-3 lg:hidden">
-          <SpinningQ />
-        </div>
-
         {/* Desktop: flex fill so Footer stays pinned at the bottom */}
         <div className="hidden lg:block lg:flex-1" />
 
@@ -73,30 +65,6 @@ export default function Landing() {
           animation-play-state: paused;
         }
 
-        /* Clockwise (left → right) spin for the Q letter */
-        @keyframes spin-cw {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-        /* Clockwise ring — same direction, slower */
-        @keyframes spin-ring-cw {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-        /* Counter-clockwise outer ring */
-        @keyframes spin-ring-ccw {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(-360deg); }
-        }
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 28px 8px rgba(99,102,241,0.55), 0 0 60px 18px rgba(99,102,241,0.22); }
-          50%       { box-shadow: 0 0 44px 16px rgba(139,92,246,0.75), 0 0 90px 32px rgba(139,92,246,0.32); }
-        }
-
-        .q-spin      { animation: spin-cw       3.5s linear infinite; }
-        .q-ring-cw   { animation: spin-ring-cw  5s   linear infinite; }
-        .q-ring-ccw  { animation: spin-ring-ccw 7s   linear infinite; }
-        .q-glow      { animation: pulse-glow    2.5s ease-in-out infinite; }
       `}</style>
     </div>
   );
@@ -198,66 +166,6 @@ function MandelaTicker() {
         </span>
       </div>
     </>
-  );
-}
-
-/* ─── Spinning Q — overlaid on top of the background Q platform ────────── */
-function SpinningQ() {
-  const SIZE = 130;
-  return (
-    <div
-      className="relative flex items-center justify-center"
-      style={{ width: SIZE, height: SIZE }}
-    >
-      {/* Outermost ring — counter-clockwise */}
-      <div
-        className="q-ring-ccw absolute inset-0 rounded-full"
-        style={{
-          border: '3px solid transparent',
-          borderTopColor: 'rgba(129,140,248,0.85)',
-          borderRightColor: 'rgba(167,139,250,0.6)',
-          borderBottomColor: 'rgba(99,102,241,0.3)',
-          borderLeftColor: 'transparent',
-        }}
-      />
-      {/* Middle ring — clockwise */}
-      <div
-        className="q-ring-cw absolute rounded-full"
-        style={{
-          inset: 10,
-          border: '3px solid transparent',
-          borderTopColor: 'rgba(250,204,21,0.9)',
-          borderRightColor: 'rgba(251,146,60,0.6)',
-          borderBottomColor: 'rgba(250,204,21,0.3)',
-          borderLeftColor: 'transparent',
-          borderRadius: '50%',
-        }}
-      />
-      {/* Inner glowing disc */}
-      <div
-        className="q-glow absolute rounded-full"
-        style={{
-          inset: 20,
-          background: 'radial-gradient(circle at 40% 35%, rgba(139,92,246,0.92), rgba(20,15,60,0.98))',
-          border: '2px solid rgba(129,140,248,0.65)',
-        }}
-      />
-      {/* Q letter — spins clockwise (left → right) */}
-      <span
-        className="q-spin relative z-10 select-none"
-        style={{
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 54,
-          fontWeight: 900,
-          color: '#fff',
-          textShadow: '0 0 20px rgba(99,102,241,0.95), 0 2px 0 rgba(0,0,0,0.7)',
-          lineHeight: 1,
-          display: 'block',
-        }}
-      >
-        Q
-      </span>
-    </div>
   );
 }
 
