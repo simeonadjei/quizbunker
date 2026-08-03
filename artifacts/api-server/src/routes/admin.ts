@@ -448,16 +448,25 @@ router.post(
     let inserted = 0;
     let skipped = 0;
 
-    for (const q of questions) {
+    // Batch insert in chunks of 100 — reduces N round-trips to ceil(N/100).
+    // ON CONFLICT DO NOTHING silently skips duplicates; we count skips by
+    // comparing attempted chunk size vs returned rows.
+    const CHUNK = 100;
+    for (let i = 0; i < questions.length; i += CHUNK) {
+      const chunk = questions.slice(i, i + CHUNK);
       try {
-        await db.insert(questionsTable).values(q);
-        inserted++;
+        const rows = await db
+          .insert(questionsTable)
+          .values(chunk)
+          .onConflictDoNothing()
+          .returning({ id: questionsTable.id });
+        inserted += rows.length;
+        skipped += chunk.length - rows.length;
       } catch (e: unknown) {
-        if ((e as { code?: string }).code === "23505") {
-          skipped++;
-        } else {
-          errors.push(`Q${q.questionNumber}: ${(e as Error).message}`);
-        }
+        errors.push(
+          `Chunk ${Math.floor(i / CHUNK) + 1} (Q${chunk[0].questionNumber}–Q${chunk[chunk.length - 1].questionNumber}): ${(e as Error).message}`,
+        );
+        skipped += chunk.length;
       }
     }
 
