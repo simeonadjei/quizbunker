@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import pgSession from "connect-pg-simple";
 import path from "path";
 import fs from "fs";
 import router from "./routes";
@@ -60,20 +60,23 @@ function isOriginAllowed(origin: string): boolean {
   return false;
 }
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow server-to-server calls (no Origin header) and approved origins
-      if (!origin || isOriginAllowed(origin)) {
-        callback(null, true);
-      } else {
-        logger.warn({ origin }, "CORS: blocked request from unlisted origin");
-        callback(new Error(`CORS: origin '${origin}' is not allowed`));
-      }
-    },
-    credentials: true,
-  }),
-);
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server calls (no Origin header) and approved origins
+    if (!origin || isOriginAllowed(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn({ origin }, "CORS: blocked request from unlisted origin");
+      callback(new Error(`CORS: origin '${origin}' is not allowed`));
+    }
+  },
+  credentials: true,
+};
+
+// cors() automatically handles OPTIONS preflight (preflightContinue defaults to
+// false), so credentials and headers are returned correctly for multipart
+// uploads from cross-origin Render deployments.
+app.use(cors(corsOptions));
 
 // Capture raw body for Paystack webhook signature verification
 app.use(
@@ -86,17 +89,22 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-const SessionStore = MemoryStore(session);
+const PgStore = pgSession(session);
 
-// Sessions are kept in-memory (no Neon dependency) with TTL-based pruning
-// every 60 minutes. Sessions are lost on server restart, which means users
-// must re-login after a deploy — acceptable trade-off for reliability.
-const sessionStore = new SessionStore({ checkPeriod: 60 * 60 * 1000 });
+// Sessions are stored in PostgreSQL so they survive server restarts and
+// redeployments.  connect-pg-simple creates the `session` table automatically
+// the first time the store is used (createTableIfMissing: true).
+const sessionStore = new PgStore({
+  pool,
+  tableName: "express_sessions",
+  createTableIfMissing: true,
+  // Prune expired sessions every hour
+  pruneSessionInterval: 60 * 60,
+});
 
 // ensureSessionTable is kept as a no-op so index.ts can still call it safely.
-// The user_sessions Postgres table is no longer used.
 export async function ensureSessionTable(): Promise<void> {
-  // no-op: sessions are now in-memory via memorystore
+  // no-op: connect-pg-simple creates the sessions table automatically
 }
 
 /**
