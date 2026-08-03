@@ -68,9 +68,9 @@ for (const dir of [uploadsBase, songsDir, questionsDir]) {
   }
 }
 
-// Multer for question files (.docx / .txt)
+// Multer for question files — memory storage avoids ephemeral-disk issues on Render
 const questionUpload = multer({
-  dest: questionsDir,
+  storage: multer.memoryStorage(),
   fileFilter: (_req, file, cb) => {
     const allowed = [".docx", ".doc", ".txt"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -510,13 +510,13 @@ router.post(
 
     try {
       if (ext === ".docx" || ext === ".doc") {
-        const result = await mammoth.extractRawText({ path: req.file.path });
+        const result = await mammoth.extractRawText({ buffer: req.file.buffer });
         rawText = result.value;
       } else {
-        rawText = fs.readFileSync(req.file.path, "utf-8");
+        rawText = req.file.buffer.toString("utf-8");
       }
-    } finally {
-      fs.unlink(req.file.path, () => {});
+    } catch (parseErr: unknown) {
+      return res.status(400).json({ error: `Failed to read file: ${(parseErr as Error).message}` });
     }
 
     const { questions, errors } = parseQuestionText(rawText, overrideYear, overrideSubject);
