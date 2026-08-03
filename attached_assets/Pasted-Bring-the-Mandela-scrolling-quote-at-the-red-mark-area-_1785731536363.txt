@@ -1,0 +1,42 @@
+Bring the Mandela scrolling quote at the red mark area, let the Q symbol below the red mark be spinning from left to right
+
+Looking at the image clearly — the red mark is in the lower-middle area of the page, just above the big circular Q symbol. I need to:
+
+Push the Mandela ticker down to that lower position
+Add a spinning Q overlay on top of the background Q
+The screenshots keep catching the page mid-load. The code is correct — let me push these changes to GitHub now.
+
+Pushed as commit d518356. Here's what changed on the front page:
+
+Mandela scrolling ticker — moved down to the red-mark zone (lower area, right where you marked it), sitting just above the Q symbol
+Spinning Q — a glowing purple Q element overlaid on top of the background Q, with two animations: the Q letter spins clockwise (left to right) continuously, while an outer ring counter-rotates around it with a pulsing glow effect
+Render will auto-deploy from the push.
+
+Quiz for Ghana SHS students are covered by the buttons, push the buttons to the right so it's not covered
+
+The problem is clear: the logo has shrink min-w-0 which lets the text compress and truncate to "QUIZ ..." on desktop. The desktop subtitle block ("Ghana's top exam practice platform") also crowds the navbar on 1024px screens. Two fixes: lock the logo to shrink-0 on desktop, and hide the subtitle until extra-large screens.
+
+Now also push the desktop subtitle to only appear on extra-large screens (≥1280px) so it doesn't crowd the navbar at 1024px, then commit and push:
+
+Pushed as commit ca0458d. Two targeted fixes applied to the Navbar:
+
+Logo no longer shrinks on desktop — added lg:shrink-0 and lg:min-w-max so "QUIZ BUNKER" and "Quiz for Ghana students" always display in full without truncating to "QUIZ ..."
+Desktop subtitle moved to extra-large only — "Ghana's top exam practice platform / Crush likely examinable questions" now only appears at ≥1280px wide screens where there's genuinely enough room, keeping the 1024px navbar clean
+Render will auto-deploy from the push.
+
+The error is SELECT * FROM songs ... ORDER BY sort_order DESC LIMIT 1 — this is the pre-insert sort-order check, but the Render production DB is missing the file_data and mime_type columns. Also the GET /songs route does an unscoped db.select() which pulls all columns including those two, so the music player would fail too. I'll scope every song query that doesn't need those columns, and also make the GET /songs route run ensureSongsColumns() inline so Render's DB gets the columns the very first time any song request hits it.
+
+The issue is clear: ensureSongsColumns() currently runs after the sort-order query in the upload handler — so if the Render DB still lacks file_data/mime_type, the SELECT * sort-order check explodes before the migration even runs. I'll fix three things in parallel:
+
+Move ensureSongsColumns() to the very top of the upload handler (before any songs query)
+Scope GET /songs to never touch fileData/mimeType (music player doesn't need them)
+Scope the DELETE /admin/songs/:id helper select to only what it needs
+Now fix the GET /songs scope and the DELETE /admin/songs/:id helper select in parallel:
+
+Now fix the DELETE /admin/songs/:id unscoped select and commit everything:
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+QuizBunker
+Website
