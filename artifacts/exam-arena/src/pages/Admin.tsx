@@ -18,8 +18,19 @@ import {
   getListAdminActivityQueryKey,
   getListAdminPaymentsQueryKey,
   getListAdminReferralsQueryKey,
+  setAuthTokenGetter,
   type AdminSubscribeInputPlan,
 } from '@workspace/api-client-react';
+
+// Module-level storage for the admin HMAC token.
+// Kept outside React state so it survives re-renders and is available
+// immediately in every customFetch call after login.
+let _adminToken: string | null = null;
+
+function storeAdminToken(token: string | null) {
+  _adminToken = token;
+  setAuthTokenGetter(token ? () => _adminToken : null);
+}
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -50,7 +61,7 @@ export default function AdminPortal() {
             <p className="text-gray-500 text-sm mt-1">UNAUTHORIZED ACCESS STRICTLY PROHIBITED</p>
           </div>
           <button
-            onClick={() => setIsAuthenticated(false)}
+            onClick={() => { storeAdminToken(null); setIsAuthenticated(false); }}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-red-950 border border-zinc-700 hover:border-red-500/60 text-zinc-400 hover:text-red-400 text-sm font-bold rounded transition-colors shrink-0"
             title="Lock screen"
           >
@@ -485,7 +496,14 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     login.mutate({ data: { email, password } }, {
-      onSuccess: () => onLogin(),
+      onSuccess: (result) => {
+        // Server returns an HMAC token valid for 24 h alongside the session cookie.
+        // Store it so every subsequent admin request includes it as a Bearer token —
+        // this keeps admin auth working even when the Neon session store is flaky.
+        const token = (result as { message: string; adminToken?: string }).adminToken;
+        if (token) storeAdminToken(token);
+        onLogin();
+      },
       onError: (err: unknown) => {
         const status = (err as { status?: number })?.status ?? (err as { response?: { status?: number } })?.response?.status;
         const description = status === 401
@@ -500,14 +518,14 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="border border-red-500/50 p-8 bg-zinc-950 w-full max-w-sm rounded font-mono shadow-[0_0_30px_-5px_rgba(239,68,68,0.3)]">
-        <ShieldAlert className="w-12 h-12 text-red-500 mx-auto mb-6" />
-        <h2 className="text-red-500 text-center mb-6 text-xl">AUTHENTICATION REQUIRED</h2>
+      <form onSubmit={handleSubmit} className="border border-red-500/50 p-10 bg-zinc-950 w-full max-w-2xl rounded font-mono shadow-[0_0_60px_-5px_rgba(239,68,68,0.4)]">
+        <ShieldAlert className="w-24 h-24 text-red-500 mx-auto mb-8" />
+        <h2 className="text-red-500 text-center mb-8 text-3xl tracking-widest">AUTHENTICATION REQUIRED</h2>
         <Input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-black border-red-500/30 text-red-500 focus-visible:ring-red-500 rounded-none mb-3"
+          className="bg-black border-red-500/30 text-red-500 focus-visible:ring-red-500 rounded-none mb-4 h-14 text-lg"
           placeholder="ADMIN EMAIL"
           autoComplete="email"
         />
@@ -515,13 +533,13 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="bg-black border-red-500/30 text-red-500 focus-visible:ring-red-500 rounded-none mb-4"
+          className="bg-black border-red-500/30 text-red-500 focus-visible:ring-red-500 rounded-none mb-6 h-14 text-lg"
           placeholder="ENTER PASSKEY"
           autoComplete="current-password"
         />
         <Button
           type="submit"
-          className="w-full bg-red-950 hover:bg-red-900 text-red-500 border border-red-500 rounded-none"
+          className="w-full bg-red-950 hover:bg-red-900 text-red-500 border border-red-500 rounded-none h-14 text-xl tracking-widest"
           disabled={login.isPending}
         >
           {login.isPending ? "VERIFYING..." : "ACCESS"}

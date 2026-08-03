@@ -17,6 +17,46 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
+// ── Stateless admin token (HMAC-signed, 24 h TTL) ───────────────────────────
+// Issued on successful login so admin requests work even when the Neon session
+// store is temporarily unavailable (e.g. free-tier data-transfer quota hit).
+
+function generateAdminToken(): string {
+  const secret = process.env.SESSION_SECRET ?? "fallback";
+  const expiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  const payload = `admin:${expiry}`;
+  const sig = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+  return `${expiry}.${sig}`;
+}
+
+function validateAdminToken(token: string): boolean {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return false;
+  const dotIdx = token.indexOf(".");
+  if (dotIdx === -1) return false;
+  const expiryStr = token.slice(0, dotIdx);
+  const sig = token.slice(dotIdx + 1);
+  const expiry = parseInt(expiryStr, 10);
+  if (isNaN(expiry) || Date.now() > expiry) return false;
+  const payload = `admin:${expiry}`;
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+  // Use constant-time comparison to prevent timing attacks
+  try {
+    const sigBuf = Buffer.from(sig, "hex");
+    const expBuf = Buffer.from(expected, "hex");
+    if (sigBuf.length !== expBuf.length) return false;
+    return crypto.timingSafeEqual(sigBuf, expBuf);
+  } catch {
+    return false;
+  }
+}
+
 // Set up upload directories relative to process.cwd() (artifacts/api-server in dev)
 const uploadsBase = path.join(process.cwd(), "uploads");
 const songsDir = path.join(uploadsBase, "songs");
@@ -52,13 +92,24 @@ const songUpload = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 });
 
-// Admin auth middleware
+// Admin auth middleware — accepts session cookie OR a Bearer token issued at login
 function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  if (!req.session.isAdmin) {
-    res.status(401).json({ error: "Admin access required" });
+  // Primary: session-backed auth (persists across page reloads)
+  if (req.session.isAdmin) {
+    next();
     return;
   }
-  next();
+  // Fallback: stateless HMAC token sent as Authorization: Bearer <token>
+  // Used when the Neon session store is temporarily unavailable.
+  const authHeader = req.headers["authorization"] as string | undefined;
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    if (validateAdminToken(token)) {
+      next();
+      return;
+    }
+  }
+  res.status(401).json({ error: "Admin access required" });
 }
 
 const PLAN_MONTHS: Record<string, number> = {
@@ -107,15 +158,31 @@ router.post("/admin/auth", async (req, res) => {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
-  await new Promise<void>((resolve, reject) =>
-    req.session.regenerate((err) => (err ? reject(err) : resolve())),
-  );
-  req.session.isAdmin = true;
+  // Try to establish a persistent session.
+  // Wrap in try-catch so a Neon quota blip or session-store outage does NOT
+  // block the admin from logging in — the HMAC token below is the fallback.
+  try {
+    await new Promise<void>((resolve, reject) =>
+      req.session.regenerate((err) => (err ? reject(err) : resolve())),
+    );
+    req.session.isAdmin = true;
+  } catch (sessionErr) {
+    logger.warn(
+      { err: (sessionErr as Error).message },
+      "Admin login: session store unavailable — token-only auth will be used",
+    );
+    // Session isn't persisted but the stateless token below still works.
+  }
+
+  // Always issue a stateless HMAC token valid for 24 h.
+  // The frontend stores this and sends it as Authorization: Bearer <token>
+  // with every admin request so auth survives even without a working session.
+  const adminToken = generateAdminToken();
 
   const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim() || req.socket?.remoteAddress || null;
   db.insert(activityLogsTable).values({ type: "admin_login", userEmail: email ?? null, ip }).catch(() => {});
 
-  return res.json({ message: "Authenticated" });
+  return res.json({ message: "Authenticated", adminToken });
 });
 
 // POST /admin/test-email
