@@ -4,8 +4,9 @@ import path from "path";
 import fs from "fs";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { db, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable, referralEarningsTable } from "@workspace/db";
+import { db, pool, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable, referralEarningsTable } from "@workspace/db";
 import { eq, desc, count, gt, and } from "drizzle-orm";
+import { ensureSongsColumns } from "../lib/db-migrations";
 import { parseQuestionText } from "../lib/parser";
 import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
@@ -508,7 +509,7 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
           : (err as Error).message ?? "File upload failed";
       return res.status(400).json({ error: msg });
     }
-    next();
+    return next();
   });
 }, async (req, res) => {
   const file = req.file as Express.Multer.File | undefined;
@@ -539,6 +540,10 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
 
     logger.info({ title, fileSizeMB, mimeType }, "Inserting song into DB");
 
+    // Ensure file_data / mime_type columns exist before every insert — guards
+    // against Render environments where the startup migration ran but failed silently.
+    await ensureSongsColumns();
+
     const [song] = await db
       .insert(songsTable)
       .values({
@@ -550,7 +555,12 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
         fileData,
         mimeType,
       })
-      .returning();
+      .returning({
+        id: songsTable.id,
+        title: songsTable.title,
+        sortOrder: songsTable.sortOrder,
+        isActive: songsTable.isActive,
+      });
 
     const audioUrl = `/api/songs/${song.id}/audio`;
     await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));

@@ -8,6 +8,7 @@ import fs from "fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
+export { ensureSongsColumns } from "./lib/db-migrations";
 
 // Session type augmentation
 import "./lib/session.d.ts";
@@ -96,27 +97,6 @@ const sessionStore = new SessionStore({ checkPeriod: 60 * 60 * 1000 });
 // The user_sessions Postgres table is no longer used.
 export async function ensureSessionTable(): Promise<void> {
   // no-op: sessions are now in-memory via memorystore
-}
-
-/**
- * Ensure the songs table has the file_data and mime_type columns.
- * These were added to the Drizzle schema but may not have been applied to the
- * production Neon database yet. `ADD COLUMN IF NOT EXISTS` is idempotent —
- * safe to run on every startup whether the columns exist or not.
- */
-export async function ensureSongsColumns(): Promise<void> {
-  const client = await pool.connect();
-  try {
-    // Add columns individually so a partial failure is visible
-    await client.query(`ALTER TABLE songs ADD COLUMN IF NOT EXISTS file_data TEXT`);
-    await client.query(`ALTER TABLE songs ADD COLUMN IF NOT EXISTS mime_type TEXT`);
-    logger.info("ensureSongsColumns: file_data + mime_type columns confirmed");
-  } catch (err) {
-    // Re-throw so the caller knows the migration failed
-    throw new Error(`ensureSongsColumns failed: ${(err as Error).message}`);
-  } finally {
-    client.release();
-  }
 }
 
 /**
