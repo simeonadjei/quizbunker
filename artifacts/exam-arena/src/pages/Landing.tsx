@@ -32,13 +32,14 @@ export default function Landing() {
           MOBILE  : flex-1 spacer pushes everything down so the ticker lands
                     at the red-mark zone (~65-70% down the viewport, just above
                     the Q platform in the background image).
-          DESKTOP : fixed h-[14vh] spacer places the ticker at the "yellow bulb"
-                    area (~35-40% down), above the QUIZ BUNKER text.
+          DESKTOP : absolutely positioned dead-centre of the yellow bulb
+                    (~37% down the viewport). Taken out of flow so the flex
+                    spacers below still pin the footer.
         */}
-        <div className="flex-1 lg:flex-none lg:h-[14vh]" />
+        <div className="flex-1 lg:hidden" />
 
-        {/* Mandela ticker */}
-        <div className="w-full max-w-xl mx-auto mb-3">
+        {/* Mandela ticker — mobile: in flow; desktop: absolute in yellow bulb */}
+        <div className="w-full max-w-xl mx-auto mb-3 lg:absolute lg:top-[37%] lg:-translate-y-1/2 lg:left-0 lg:right-0 lg:max-w-none lg:px-8">
           <MandelaTicker />
         </div>
 
@@ -151,28 +152,28 @@ function MandelaTicker() {
         </p>
       </div>
 
-      {/* ── DESKTOP: single narrow horizontal strip ── */}
+      {/* ── DESKTOP: single horizontal strip — fonts 2× mobile ── */}
       <div
-        className="hidden lg:flex items-center gap-2 overflow-hidden rounded-full px-4 py-1.5"
+        className="hidden lg:flex items-center gap-3 overflow-hidden rounded-full px-6 py-3"
         style={{
           background: 'rgba(10,6,30,0.70)',
           border: '1px solid rgba(250,204,21,0.30)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           whiteSpace: 'nowrap',
-          maxWidth: '680px',
+          maxWidth: '900px',
           margin: '0 auto',
         }}
       >
         {/* Opening mark */}
-        <span style={{ fontSize: 20, lineHeight: 1, color: '#facc15', opacity: 0.85, fontFamily: 'Georgia, serif', flexShrink: 0 }}>"</span>
+        <span style={{ fontSize: 40, lineHeight: 1, color: '#facc15', opacity: 0.85, fontFamily: 'Georgia, serif', flexShrink: 0 }}>"</span>
         {/* Scrolling quote — takes remaining width */}
         <div className="overflow-hidden flex-1 min-w-0">
           <p
             className="marquee-track inline-block"
             style={{
               fontFamily: 'Georgia, serif',
-              fontSize: '15px',
+              fontSize: '30px',
               lineHeight: 1.4,
               color: 'rgba(255,255,255,0.95)',
               fontStyle: 'italic',
@@ -186,7 +187,7 @@ function MandelaTicker() {
         <span
           style={{
             fontFamily: "'Fredoka One', cursive",
-            fontSize: '13px',
+            fontSize: '26px',
             color: '#facc15',
             letterSpacing: '0.06em',
             textShadow: '0 0 10px rgba(250,204,21,0.5)',
