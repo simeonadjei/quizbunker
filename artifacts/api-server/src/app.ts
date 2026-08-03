@@ -130,6 +130,18 @@ export async function backfillTrials(): Promise<void> {
   }
 }
 
+// Public diagnostic route — registered BEFORE session middleware so a DB
+// outage (session store failure) can never block this endpoint.
+app.get("/api/admin/auth-status", (_req, res) => {
+  res.json({
+    hasAdminPassword: !!process.env.ADMIN_PASSWORD,
+    hasAdminSecretPath: !!process.env.ADMIN_SECRET_PATH,
+    hasAdminEmail: !!process.env.ADMIN_EMAIL,
+    adminEmail: process.env.ADMIN_EMAIL ?? null,
+    note: "Values are not shown. At least one of hasAdminPassword or hasAdminSecretPath must be true for login to work.",
+  });
+});
+
 app.use(
   session({
     store: sessionStore,
@@ -137,9 +149,6 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      // Replit always terminates TLS at its proxy, so cookies must be Secure
-      // even in NODE_ENV=development.  Fall back to false only when running
-      // on a plain-HTTP local machine (no REPL_ID in the environment).
       secure: process.env.NODE_ENV === "production" || !!process.env.REPL_ID,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -154,18 +163,6 @@ if (!fs.existsSync(songsDir)) {
   fs.mkdirSync(songsDir, { recursive: true });
 }
 app.use("/api/uploads/songs", express.static(songsDir));
-
-// Public diagnostic route — must be registered BEFORE the session middleware
-// so a DB outage (session store failure) never blocks this endpoint.
-app.get("/api/admin/auth-status", (_req, res) => {
-  res.json({
-    hasAdminPassword: !!process.env.ADMIN_PASSWORD,
-    hasAdminSecretPath: !!process.env.ADMIN_SECRET_PATH,
-    hasAdminEmail: !!process.env.ADMIN_EMAIL,
-    adminEmail: process.env.ADMIN_EMAIL ?? null,
-    note: "Values are not shown. At least one of hasAdminPassword or hasAdminSecretPath must be true for login to work.",
-  });
-});
 
 app.use("/api", router);
 

@@ -39,7 +39,7 @@ export default function Landing() {
         <div className="flex-1 lg:hidden" />
 
         {/* Mandela ticker — mobile: in flow; desktop: absolute in yellow bulb */}
-        <div className="w-full max-w-xl mx-auto mb-3 lg:absolute lg:top-[37%] lg:-translate-y-1/2 lg:left-0 lg:right-0 lg:max-w-none lg:px-8">
+        <div className="w-full max-w-xl mx-auto mb-3 lg:absolute lg:top-[18%] lg:-translate-y-1/2 lg:left-0 lg:right-0 lg:max-w-none lg:px-0">
           <MandelaTicker />
         </div>
 
@@ -118,45 +118,44 @@ function MandelaTicker() {
         </p>
       </div>
 
-      {/* ── DESKTOP: centered pill ── */}
+      {/* ── DESKTOP: full-width scrolling marquee pill ── */}
       <div
-        className="hidden lg:block overflow-hidden rounded-full px-8 py-1.5 text-center"
+        className="hidden lg:block overflow-hidden py-2"
         style={{
           background: 'rgba(10,6,30,0.70)',
           border: '1px solid rgba(250,204,21,0.30)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
-          maxWidth: '900px',
-          margin: '0 auto',
+          width: '100%',
         }}
       >
-        {/* Quote */}
-        <p
-          style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: '15px',
-            lineHeight: 1.4,
-            color: 'rgba(255,255,255,0.95)',
-            fontStyle: 'italic',
-            textShadow: '0 1px 6px rgba(0,0,0,0.8)',
-          }}
-        >
-          <span style={{ color: '#facc15', opacity: 0.85, marginRight: 6 }}>"</span>
-          Education is the most powerful weapon which you can use to change the world.
-        </p>
-        {/* Attribution */}
-        <p
-          style={{
-            fontFamily: "'Fredoka One', cursive",
-            fontSize: '26px',
-            color: '#facc15',
-            letterSpacing: '0.06em',
-            textShadow: '0 0 10px rgba(250,204,21,0.5)',
-            lineHeight: 1.2,
-          }}
-        >
-          — Nelson Mandela
-        </p>
+        <div className="marquee-track" style={{ display: 'inline-flex', alignItems: 'center', gap: 64 }}>
+          {/* Repeat twice so the loop is seamless */}
+          {[0, 1].map((i) => (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 16, whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#facc15', opacity: 0.85, fontFamily: 'Georgia, serif', fontSize: 18 }}>"</span>
+              <span style={{
+                fontFamily: 'Georgia, serif',
+                fontSize: '15px',
+                color: 'rgba(255,255,255,0.95)',
+                fontStyle: 'italic',
+                textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+              }}>
+                Education is the most powerful weapon which you can use to change the world.
+              </span>
+              <span style={{
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: '17px',
+                color: '#facc15',
+                letterSpacing: '0.06em',
+                textShadow: '0 0 10px rgba(250,204,21,0.5)',
+              }}>
+                — Nelson Mandela
+              </span>
+              <span style={{ color: 'rgba(250,204,21,0.35)', fontSize: 20 }}>✦</span>
+            </span>
+          ))}
+        </div>
       </div>
     </>
   );
