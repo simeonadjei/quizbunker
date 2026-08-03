@@ -155,6 +155,18 @@ if (!fs.existsSync(songsDir)) {
 }
 app.use("/api/uploads/songs", express.static(songsDir));
 
+// Public diagnostic route — must be registered BEFORE the session middleware
+// so a DB outage (session store failure) never blocks this endpoint.
+app.get("/api/admin/auth-status", (_req, res) => {
+  res.json({
+    hasAdminPassword: !!process.env.ADMIN_PASSWORD,
+    hasAdminSecretPath: !!process.env.ADMIN_SECRET_PATH,
+    hasAdminEmail: !!process.env.ADMIN_EMAIL,
+    adminEmail: process.env.ADMIN_EMAIL ?? null,
+    note: "Values are not shown. At least one of hasAdminPassword or hasAdminSecretPath must be true for login to work.",
+  });
+});
+
 app.use("/api", router);
 
 // ── Global JSON error handler ─────────────────────────────────────────────────
