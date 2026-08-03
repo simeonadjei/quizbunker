@@ -129,6 +129,19 @@ const PLAN_AMOUNTS: Record<string, number> = {
   lifetime: 0,
 };
 
+// GET /admin/auth-status — public, no credentials needed
+// Shows which auth env vars are configured (never reveals values).
+// Use this to verify Render has the right environment variables set.
+router.get("/admin/auth-status", (_req, res) => {
+  return res.json({
+    hasAdminPassword: !!process.env.ADMIN_PASSWORD,
+    hasAdminSecretPath: !!process.env.ADMIN_SECRET_PATH,
+    hasAdminEmail: !!process.env.ADMIN_EMAIL,
+    adminEmail: process.env.ADMIN_EMAIL ?? null,
+    note: "Values are not shown. At least one of hasAdminPassword or hasAdminSecretPath must be true for login to work.",
+  });
+});
+
 // POST /admin/auth
 router.post("/admin/auth", async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };

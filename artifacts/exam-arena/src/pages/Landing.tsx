@@ -86,14 +86,14 @@ function MandelaTicker() {
       >
         {/* Gold opening mark */}
         <div className="text-center mb-0.5">
-          <span style={{ fontSize: 32, lineHeight: 1, color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif' }}>"</span>
+          <span style={{ fontSize: 16, lineHeight: 1, color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif' }}>"</span>
         </div>
         {/* Centered static quote */}
         <div className="px-4 text-center">
           <p
             style={{
               fontFamily: 'Georgia, serif',
-              fontSize: 'clamp(14px, 1.9vw, 20px)',
+              fontSize: 'clamp(7px, 0.95vw, 10px)',
               lineHeight: 1.5,
               color: 'rgba(255,255,255,0.95)',
               fontStyle: 'italic',
@@ -108,7 +108,7 @@ function MandelaTicker() {
           className="text-center mt-1"
           style={{
             fontFamily: "'Fredoka One', cursive",
-            fontSize: 'clamp(22px, 2.2vw, 28px)',
+            fontSize: 'clamp(11px, 1.1vw, 14px)',
             color: '#facc15',
             letterSpacing: '0.08em',
             textShadow: '0 0 12px rgba(250,204,21,0.55)',
@@ -134,7 +134,7 @@ function MandelaTicker() {
         <p
           style={{
             fontFamily: 'Georgia, serif',
-            fontSize: '30px',
+            fontSize: '15px',
             lineHeight: 1.4,
             color: 'rgba(255,255,255,0.95)',
             fontStyle: 'italic',
@@ -148,7 +148,7 @@ function MandelaTicker() {
         <p
           style={{
             fontFamily: "'Fredoka One', cursive",
-            fontSize: '52px',
+            fontSize: '26px',
             color: '#facc15',
             letterSpacing: '0.06em',
             textShadow: '0 0 10px rgba(250,204,21,0.5)',
