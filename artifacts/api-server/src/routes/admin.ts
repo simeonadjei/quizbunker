@@ -5,6 +5,8 @@ import fs from "fs";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db, pool, questionsTable, songsTable, usersTable, quizSessionsTable, paymentsTable, activityLogsTable, referralEarningsTable } from "@workspace/db";
+// pool is also used directly for raw SQL in the song upload handler so Drizzle
+// never generates a SELECT that includes columns not yet present on the DB.
 import { eq, desc, count, gt, and } from "drizzle-orm";
 import { ensureSongsColumns } from "../lib/db-migrations";
 import { parseQuestionText } from "../lib/parser";
@@ -527,13 +529,20 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     // get the columns added right here, right now.
     await ensureSongsColumns();
 
-    const [last] = await db
-      .select({ sortOrder: songsTable.sortOrder })
-      .from(songsTable)
-      .orderBy(desc(songsTable.sortOrder))
-      .limit(1);
-
-    const nextSortOrder = last ? last.sortOrder + 1 : 0;
+    // Use raw SQL for the sort-order check so Drizzle never generates a
+    // SELECT that includes file_data / mime_type (which may not yet exist on
+    // older production DBs).  COALESCE(MAX(...), -1) + 1 returns 0 when the
+    // table is empty and avoids a separate "table is empty" branch.
+    const sortClient = await pool.connect();
+    let nextSortOrder = 0;
+    try {
+      const { rows } = await sortClient.query<{ next_sort: string }>(
+        `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_sort FROM songs`
+      );
+      nextSortOrder = parseInt(rows[0]?.next_sort ?? "0", 10);
+    } finally {
+      sortClient.release();
+    }
 
     const rawTitle = String(req.body.title ?? "").trim();
     const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
