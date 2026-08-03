@@ -5,22 +5,22 @@ import { eq } from "drizzle-orm";
 const router = Router();
 
 // GET /songs
+// Explicitly scoped — never touches file_data / mime_type so this route works
+// even on Render DBs that are missing those columns.
 router.get("/songs", async (_req, res) => {
   const songs = await db
-    .select()
+    .select({
+      id: songsTable.id,
+      title: songsTable.title,
+      url: songsTable.url,
+      sortOrder: songsTable.sortOrder,
+      isActive: songsTable.isActive,
+    })
     .from(songsTable)
     .where(eq(songsTable.isActive, true))
     .orderBy(songsTable.sortOrder);
 
-  return res.json(
-    songs.map((s) => ({
-      id: s.id,
-      title: s.title,
-      url: s.url,
-      sortOrder: s.sortOrder,
-      isActive: s.isActive,
-    })),
-  );
+  return res.json(songs);
 });
 
 // GET /songs/:id/audio — stream audio bytes stored in the database

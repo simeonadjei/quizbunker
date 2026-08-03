@@ -522,6 +522,11 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
   }
 
   try {
+    // Ensure file_data / mime_type columns exist FIRST — before any query touches
+    // the songs table — so Render deployments that missed the startup migration
+    // get the columns added right here, right now.
+    await ensureSongsColumns();
+
     const [last] = await db
       .select({ sortOrder: songsTable.sortOrder })
       .from(songsTable)
@@ -539,10 +544,6 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     const fileSizeMB = (file.buffer.length / 1024 / 1024).toFixed(1);
 
     logger.info({ title, fileSizeMB, mimeType }, "Inserting song into DB");
-
-    // Ensure file_data / mime_type columns exist before every insert — guards
-    // against Render environments where the startup migration ran but failed silently.
-    await ensureSongsColumns();
 
     const [song] = await db
       .insert(songsTable)
@@ -602,7 +603,11 @@ router.put("/admin/songs/:id", requireAdmin, async (req, res) => {
 router.delete("/admin/songs/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
 
-  const [song] = await db.select().from(songsTable).where(eq(songsTable.id, id)).limit(1);
+  const [song] = await db
+    .select({ filename: songsTable.filename })
+    .from(songsTable)
+    .where(eq(songsTable.id, id))
+    .limit(1);
   if (song) {
     const filePath = path.join(songsDir, song.filename);
     if (fs.existsSync(filePath)) fs.unlink(filePath, () => {});
