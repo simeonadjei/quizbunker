@@ -88,10 +88,24 @@ export function Navbar() {
               <Link href="/register" className="btn-game px-3 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-sm whitespace-nowrap shrink-0">
                 PLAY NOW
               </Link>
-              {/* Subtitle — desktop only, right of PLAY NOW */}
+              {/* Create Account — desktop only, right of PLAY NOW */}
+              <Link
+                href="/register"
+                className="hidden lg:flex items-center gap-2 rounded-xl font-display uppercase tracking-wide transition-transform hover:scale-105 active:scale-95 whitespace-nowrap shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg,#facc15,#f97316)',
+                  color: '#1c1917',
+                  boxShadow: '0 4px 0 #92400e, 0 6px 18px rgba(249,115,22,0.45)',
+                  fontSize: '14px',
+                  padding: '10px 20px',
+                }}
+              >
+                🚀 CREATE ACCOUNT
+              </Link>
+              {/* Subtitle — desktop only, right of CREATE ACCOUNT */}
               <div className="hidden lg:flex flex-col justify-center ml-3 pl-3 border-l border-white/20">
-                <span className="font-bold text-sm text-white/90 leading-tight whitespace-nowrap">Ghana's top exam practice platform.</span>
-                <span className="font-bold text-xs leading-tight whitespace-nowrap" style={{ color: '#fde68a' }}>Crush likely examinable questions.</span>
+                <span className="font-bold text-lg text-white/95 leading-tight whitespace-nowrap">Ghana's top exam practice platform.</span>
+                <span className="font-bold text-base leading-tight whitespace-nowrap" style={{ color: '#fde68a' }}>Crush likely examinable questions.</span>
               </div>
             </>
           )}

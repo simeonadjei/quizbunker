@@ -142,22 +142,20 @@ export default function Landing() {
       <div className="relative z-10 flex-1 flex flex-col pt-16 lg:pt-24 pb-4 px-3 sm:px-4">
         <div className="w-full max-w-5xl mx-auto flex flex-col gap-4 flex-1">
 
-          {/* ══ DESKTOP: 3-column spread around bg QUIZ BUNKER ════ */}
+          {/* ══ DESKTOP: 3-column — QUIZ BUNKER bg text shows through center ══ */}
           <div
             className="hidden lg:grid gap-4 flex-1"
             style={{ gridTemplateColumns: '240px 1fr 240px' }}
           >
-            {/* Left column — immediate left of QUIZ text */}
+            {/* Left column */}
             <div className="flex flex-col justify-center gap-4">
               {LEFT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} />)}
             </div>
 
-            {/* Centre — Create Account below BUNKER text */}
-            <div className="flex flex-col items-center justify-end pb-16">
-              <CtaButton user={user} isLoading={isLoading} />
-            </div>
+            {/* Centre — intentionally empty so background QUIZ BUNKER text shows */}
+            <div />
 
-            {/* Right column — immediate right of BUNKER text */}
+            {/* Right column */}
             <div className="flex flex-col justify-center gap-4">
               {RIGHT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} />)}
             </div>
@@ -248,31 +246,31 @@ function Footer() {
         <a
           href={`https://wa.me/?text=${encodeURIComponent(`🎓 Check out Quiz Bunker — Ghana's top exam practice platform! 🚀\n\n${typeof window !== 'undefined' ? window.location.origin : 'https://quizbunker.com'}`)}`}
           target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-4 rounded-2xl font-bold transition-transform hover:scale-105 active:scale-95"
+          className="inline-flex items-center gap-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
           style={{
             background: 'linear-gradient(135deg,#25D366,#128C7E)',
             color: '#fff',
             fontSize: 'clamp(20px,2.5vw,28px)',
-            padding: '22px 36px',
-            boxShadow: '0 7px 0 #075E54, 0 12px 28px rgba(18,140,126,0.5)',
+            padding: '10px 22px',
+            boxShadow: '0 4px 0 #075E54, 0 8px 18px rgba(18,140,126,0.45)',
           }}
         >
-          <MessageCircle style={{ width: 40, height: 40, flexShrink: 0 }} />
+          <MessageCircle style={{ width: 26, height: 26, flexShrink: 0 }} />
           Share on WhatsApp
         </a>
         <a
           href="https://wa.me/233540984944"
           target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-4 rounded-2xl font-bold transition-transform hover:scale-105 active:scale-95"
+          className="inline-flex items-center gap-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
           style={{
             background: 'linear-gradient(135deg,#25D366,#128C7E)',
             color: '#fff',
             fontSize: 'clamp(20px,2.5vw,28px)',
-            padding: '22px 36px',
-            boxShadow: '0 7px 0 #075E54, 0 12px 28px rgba(18,140,126,0.5)',
+            padding: '10px 22px',
+            boxShadow: '0 4px 0 #075E54, 0 8px 18px rgba(18,140,126,0.45)',
           }}
         >
-          <MessageCircle style={{ width: 40, height: 40, flexShrink: 0 }} />
+          <MessageCircle style={{ width: 26, height: 26, flexShrink: 0 }} />
           Contact Developer
         </a>
       </div>
