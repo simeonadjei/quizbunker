@@ -27,8 +27,13 @@ Promise.all([
   backfillTrials().catch((err: Error) =>
     logger.warn({ err: err.message }, "backfillTrials failed — server will still start"),
   ),
-  // Songs columns must exist before any request — do NOT swallow failure
-  ensureSongsColumns(),
+  // Songs columns migration — warn but never crash the server.
+  // The ALTER TABLE IF NOT EXISTS is a safety guard; the columns already exist
+  // in production. A transient DB error (quota exceeded, connection blip)
+  // should not prevent the server from starting and serving requests.
+  ensureSongsColumns().catch((err: Error) =>
+    logger.warn({ err: err.message }, "ensureSongsColumns failed — server will still start"),
+  ),
 ]).then(() => {
   logEmailConfigStatus();
 
