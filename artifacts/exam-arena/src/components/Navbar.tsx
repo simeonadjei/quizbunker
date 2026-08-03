@@ -42,7 +42,7 @@ export function Navbar() {
             <span className="font-display text-xs sm:text-sm lg:text-3xl leading-tight text-white tracking-wide whitespace-nowrap truncate">
               QUIZ <span className="text-game-title-orange" style={{ WebkitTextStroke: '1px rgba(0,0,0,0.5)' }}>BUNKER</span>
             </span>
-            <span className="font-display text-[7px] sm:text-[8px] lg:text-sm text-secondary tracking-widest leading-none whitespace-nowrap hidden sm:block">FOR GHANA SHS STUDENTS</span>
+            <span className="font-display text-[7px] sm:text-[8px] lg:text-sm text-secondary tracking-widest leading-none whitespace-nowrap hidden sm:block">Quiz for Ghana students</span>
           </div>
         </Link>
 
