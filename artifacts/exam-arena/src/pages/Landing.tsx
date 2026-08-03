@@ -67,7 +67,7 @@ const RIGHT_BTNS = [
 
 /* ─── Feature Button component ─────────────────────────────────────────── */
 function FeatureBtn({
-  icon, title, bg, border, glow, iconBg, href, align,
+  icon, title, bg, border, glow, iconBg, href,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -76,7 +76,6 @@ function FeatureBtn({
   glow: string;
   iconBg: string;
   href: string;
-  align: 'left' | 'right';
 }) {
   return (
     <Link
@@ -90,7 +89,6 @@ function FeatureBtn({
         WebkitBackdropFilter: 'blur(10px)',
         borderRadius: '16px',
         padding: '18px 20px',
-        flexDirection: 'row',
         textDecoration: 'none',
         cursor: 'pointer',
       }}
@@ -104,7 +102,7 @@ function FeatureBtn({
       <p
         style={{
           fontFamily: "'Fredoka One', cursive",
-          fontSize: 'clamp(16px,2vw,20px)',
+          fontSize: 'clamp(15px,1.8vw,19px)',
           lineHeight: 1.25,
           color: '#fff',
           textShadow: '0 2px 6px rgba(0,0,0,0.7)',
@@ -134,133 +132,91 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
         }}
       />
-      {/* Dark overlay */}
-      <div className="fixed inset-0 z-0" style={{ background: 'rgba(5,3,25,0.48)' }} />
+      {/* Dark overlay — light so bg text shows clearly */}
+      <div className="fixed inset-0 z-0" style={{ background: 'rgba(5,3,25,0.35)' }} />
 
       <Navbar />
       <MusicPlayer />
 
       {/* ── Page content ── */}
-      <div className="relative z-10 flex-1 flex flex-col pt-14 lg:pt-20 pb-6 px-3 sm:px-5">
-        <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 py-4 sm:py-6">
+      <div className="relative z-10 flex-1 flex flex-col pt-16 lg:pt-24 pb-4 px-3 sm:px-4">
+        <div className="w-full max-w-5xl mx-auto flex flex-col gap-4 flex-1">
 
-          {/* ══ DESKTOP: 3-column ══════════════════════════════ */}
-          <div className="hidden lg:grid lg:grid-cols-[260px_1fr_260px] xl:grid-cols-[280px_1fr_280px] gap-5 items-center mx-auto w-full max-w-4xl">
-            <div className="flex flex-col gap-5 w-full">
-              {LEFT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} align="left" />)}
+          {/* ══ DESKTOP: 3-column spread around bg QUIZ BUNKER ════ */}
+          <div
+            className="hidden lg:grid gap-4 flex-1"
+            style={{ gridTemplateColumns: '240px 1fr 240px' }}
+          >
+            {/* Left column — immediate left of QUIZ text */}
+            <div className="flex flex-col justify-center gap-4">
+              {LEFT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} />)}
             </div>
-            <CentreHero user={user} isLoading={isLoading} />
-            <div className="flex flex-col gap-5 w-full">
-              {RIGHT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} align="right" />)}
+
+            {/* Centre — Create Account below BUNKER text */}
+            <div className="flex flex-col items-center justify-end pb-16">
+              <CtaButton user={user} isLoading={isLoading} />
+            </div>
+
+            {/* Right column — immediate right of BUNKER text */}
+            <div className="flex flex-col justify-center gap-4">
+              {RIGHT_BTNS.map((b) => <FeatureBtn key={b.title} {...b} />)}
             </div>
           </div>
 
-          {/* ══ MOBILE / TABLET ════════════════════════════════ */}
-          <div className="lg:hidden flex flex-col gap-5">
-            <CentreHero user={user} isLoading={isLoading} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* ══ MOBILE / TABLET ════════════════════════════════════ */}
+          <div className="lg:hidden flex flex-col gap-4">
+            <div className="flex justify-center pt-4">
+              <CtaButton user={user} isLoading={isLoading} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
               {[...LEFT_BTNS, ...RIGHT_BTNS].map((b) => (
-                <FeatureBtn key={b.title} {...b} align="left" />
+                <FeatureBtn key={b.title} {...b} />
               ))}
             </div>
           </div>
 
+          {/* Footer — centered below THINK. PLAY. CONQUER! */}
           <Footer />
         </div>
       </div>
-
-      <style>{`
-        @keyframes heroPulse {
-          0%, 100% { opacity: 0.85; }
-          50%       { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
 
-/* ─── Centre hero ──────────────────────────────────────────────────────── */
-function CentreHero({ user, isLoading }: { user: unknown; isLoading: boolean }) {
-  return (
-    <div className="flex flex-col items-center text-center gap-4 sm:gap-5">
-
-      {/* Hexagon emblem */}
-      <div
-        className="relative flex items-center justify-center"
+/* ─── CTA button (Create Account / Continue Playing) ──────────────────── */
+function CtaButton({ user, isLoading }: { user: unknown; isLoading: boolean }) {
+  if (isLoading) return null;
+  if (user) {
+    return (
+      <Link
+        href="/dashboard"
+        className="flex items-center justify-center gap-2 rounded-2xl font-display uppercase tracking-wide transition-transform hover:scale-105 active:scale-95 w-full max-w-xs"
         style={{
-          width: 'clamp(68px,11vw,100px)',
-          height: 'clamp(68px,11vw,100px)',
-          background: 'linear-gradient(135deg,#1e1b4b,#312e81)',
-          clipPath: 'polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)',
-          boxShadow: '0 0 32px rgba(129,140,248,0.6), 0 0 64px rgba(129,140,248,0.25)',
-          animation: 'heroPulse 2.8s ease-in-out infinite',
+          background: 'linear-gradient(135deg,#facc15,#f97316)',
+          color: '#1c1917',
+          boxShadow: '0 6px 0 #92400e, 0 10px 28px rgba(249,115,22,0.5)',
+          fontSize: 'clamp(18px,2.2vw,22px)',
+          padding: '18px 28px',
         }}
       >
-        <div style={{
-          position: 'absolute', inset: '9%',
-          clipPath: 'polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)',
-          background: 'linear-gradient(135deg,rgba(250,204,21,0.2),rgba(168,85,247,0.15))',
-        }} />
-        <span style={{ fontSize: 'clamp(24px,5vw,36px)', filter: 'drop-shadow(0 0 12px #facc15)', position: 'relative', zIndex: 1 }}>💡</span>
-      </div>
-
-      {/* Subtitle */}
-      <p
-        className="font-bold text-base sm:text-lg lg:text-xl max-w-xs sm:max-w-sm leading-relaxed"
-        style={{ color: 'rgba(255,255,255,0.96)', textShadow: '0 1px 7px rgba(0,0,0,0.75)' }}
-      >
-        Ghana's top exam practice platform.{' '}
-        <span style={{ color: '#fde68a' }}>Crush likely examinable questions.</span>
-      </p>
-
-      {/* CTA buttons — big */}
-      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-sm">
-        {isLoading ? null : user ? (
-          <Link
-            href="/dashboard"
-            className="w-full flex items-center justify-center gap-2 rounded-2xl font-display uppercase tracking-wide transition-transform hover:scale-105 active:scale-95"
-            style={{
-              background: 'linear-gradient(135deg,#facc15,#f97316)',
-              color: '#1c1917',
-              boxShadow: '0 6px 0 #92400e, 0 10px 28px rgba(249,115,22,0.5)',
-              fontSize: 'clamp(18px,2.2vw,22px)',
-              padding: '16px 24px',
-            }}
-          >
-            ▶ Continue Playing
-          </Link>
-        ) : (
-          <>
-            <Link
-              href="/register"
-              className="flex-1 flex items-center justify-center gap-2 rounded-2xl font-display uppercase tracking-wide transition-transform hover:scale-105 active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg,#facc15,#f97316)',
-                color: '#1c1917',
-                boxShadow: '0 6px 0 #92400e, 0 10px 26px rgba(249,115,22,0.5)',
-                fontSize: 'clamp(17px,2vw,21px)',
-                padding: '16px 20px',
-              }}
-            >
-              🚀 Create Account
-            </Link>
-            <Link
-              href="/login"
-              className="flex-1 flex items-center justify-center gap-2 rounded-2xl font-display uppercase tracking-wide transition-transform hover:scale-105 active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg,#facc15,#f97316)',
-                color: '#1c1917',
-                boxShadow: '0 6px 0 #92400e, 0 10px 26px rgba(249,115,22,0.5)',
-                fontSize: 'clamp(17px,2vw,21px)',
-                padding: '16px 20px',
-              }}
-            >
-              🎮 Log In
-            </Link>
-          </>
-        )}
-      </div>
-    </div>
+        ▶ Continue Playing
+      </Link>
+    );
+  }
+  return (
+    <Link
+      href="/register"
+      className="flex items-center justify-center gap-2 rounded-2xl font-display uppercase tracking-wide transition-transform hover:scale-105 active:scale-95 w-full max-w-xs"
+      style={{
+        background: 'linear-gradient(135deg,#facc15,#f97316)',
+        color: '#1c1917',
+        boxShadow: '0 6px 0 #92400e, 0 10px 28px rgba(249,115,22,0.5)',
+        fontSize: 'clamp(18px,2.2vw,22px)',
+        padding: '18px 28px',
+      }}
+    >
+      🚀 Create Account
+    </Link>
   );
 }
 
@@ -268,39 +224,56 @@ function CentreHero({ user, isLoading }: { user: unknown; isLoading: boolean }) 
 function Footer() {
   return (
     <div
-      className="rounded-2xl px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      className="rounded-2xl px-6 py-6 flex flex-col items-center gap-5"
       style={{
-        background: 'rgba(10,6,30,0.75)',
+        background: 'rgba(10,6,30,0.78)',
         border: '1.5px solid rgba(129,140,248,0.4)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
       }}
     >
+      {/* Credits */}
       <p
-        className="text-xl sm:text-2xl lg:text-3xl font-bold text-center sm:text-left leading-snug"
+        className="text-xl sm:text-2xl lg:text-3xl font-bold text-center leading-snug"
         style={{ color: 'rgba(199,210,254,0.97)', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
       >
         © 2026 <span style={{ color: '#facc15' }}>Quiz Bunker</span>
-        <span style={{ color: 'rgba(165,180,252,0.55)', margin: '0 8px' }}>·</span>
+        <span style={{ color: 'rgba(165,180,252,0.55)', margin: '0 10px' }}>·</span>
         Developed by{' '}
         <span style={{ color: '#facc15', fontStyle: 'italic' }}>Simeon Adjei</span>
       </p>
-      <div className="flex items-center justify-center sm:justify-end gap-3 flex-wrap">
+
+      {/* WhatsApp buttons — 3× size, centered */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-5 flex-wrap">
         <a
           href={`https://wa.me/?text=${encodeURIComponent(`🎓 Check out Quiz Bunker — Ghana's top exam practice platform! 🚀\n\n${typeof window !== 'undefined' ? window.location.origin : 'https://quizbunker.com'}`)}`}
           target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
-          style={{ background: 'linear-gradient(135deg,#25D366,#128C7E)', color: '#fff', fontSize: '15px', boxShadow: '0 3px 0 #075E54' }}
+          className="inline-flex items-center gap-4 rounded-2xl font-bold transition-transform hover:scale-105 active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg,#25D366,#128C7E)',
+            color: '#fff',
+            fontSize: 'clamp(20px,2.5vw,28px)',
+            padding: '22px 36px',
+            boxShadow: '0 7px 0 #075E54, 0 12px 28px rgba(18,140,126,0.5)',
+          }}
         >
-          <MessageCircle className="w-5 h-5" /> Share
+          <MessageCircle style={{ width: 40, height: 40, flexShrink: 0 }} />
+          Share on WhatsApp
         </a>
         <a
           href="https://wa.me/233540984944"
           target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
-          style={{ background: 'linear-gradient(135deg,#25D366,#128C7E)', color: '#fff', fontSize: '15px', boxShadow: '0 3px 0 #075E54' }}
+          className="inline-flex items-center gap-4 rounded-2xl font-bold transition-transform hover:scale-105 active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg,#25D366,#128C7E)',
+            color: '#fff',
+            fontSize: 'clamp(20px,2.5vw,28px)',
+            padding: '22px 36px',
+            boxShadow: '0 7px 0 #075E54, 0 12px 28px rgba(18,140,126,0.5)',
+          }}
         >
-          <MessageCircle className="w-5 h-5" /> Contact Dev
+          <MessageCircle style={{ width: 40, height: 40, flexShrink: 0 }} />
+          Contact Developer
         </a>
       </div>
     </div>

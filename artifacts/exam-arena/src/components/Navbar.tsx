@@ -88,6 +88,11 @@ export function Navbar() {
               <Link href="/register" className="btn-game px-3 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-sm whitespace-nowrap shrink-0">
                 PLAY NOW
               </Link>
+              {/* Subtitle — desktop only, right of PLAY NOW */}
+              <div className="hidden lg:flex flex-col justify-center ml-3 pl-3 border-l border-white/20">
+                <span className="font-bold text-sm text-white/90 leading-tight whitespace-nowrap">Ghana's top exam practice platform.</span>
+                <span className="font-bold text-xs leading-tight whitespace-nowrap" style={{ color: '#fde68a' }}>Crush likely examinable questions.</span>
+              </div>
             </>
           )}
         </div>
