@@ -104,52 +104,99 @@ export default function Landing() {
 /* ─── Scrolling Mandela ticker ─────────────────────────────────────────── */
 function MandelaTicker() {
   return (
-    <div
-      className="w-full overflow-hidden py-3 rounded-2xl"
-      style={{
-        background: 'rgba(10,6,30,0.65)',
-        border: '1px solid rgba(250,204,21,0.25)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-      }}
-    >
-      {/* Gold opening mark */}
-      <div className="text-center mb-0.5">
-        <span style={{ fontSize: 32, lineHeight: 1, color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif' }}>"</span>
-      </div>
-
-      {/* Scrolling quote */}
-      <div className="relative overflow-hidden">
+    <>
+      {/* ── MOBILE: multi-line card ── */}
+      <div
+        className="lg:hidden w-full overflow-hidden py-3 rounded-2xl"
+        style={{
+          background: 'rgba(10,6,30,0.65)',
+          border: '1px solid rgba(250,204,21,0.25)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+        }}
+      >
+        {/* Gold opening mark */}
+        <div className="text-center mb-0.5">
+          <span style={{ fontSize: 32, lineHeight: 1, color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif' }}>"</span>
+        </div>
+        {/* Scrolling quote */}
+        <div className="relative overflow-hidden">
+          <p
+            className="marquee-track inline-block"
+            style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 'clamp(14px, 1.9vw, 20px)',
+              lineHeight: 1.5,
+              color: 'rgba(255,255,255,0.95)',
+              fontStyle: 'italic',
+              textShadow: '0 1px 8px rgba(0,0,0,0.85)',
+              paddingLeft: '2rem',
+            }}
+          >
+            Education is the most powerful weapon which you can use to change the world.
+          </p>
+        </div>
+        {/* Attribution */}
         <p
-          className="marquee-track inline-block"
+          className="text-center mt-1.5"
           style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: 'clamp(14px, 1.9vw, 20px)',
-            lineHeight: 1.5,
-            color: 'rgba(255,255,255,0.95)',
-            fontStyle: 'italic',
-            textShadow: '0 1px 8px rgba(0,0,0,0.85)',
-            paddingLeft: '2rem',
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: 'clamp(11px, 1.1vw, 14px)',
+            color: '#facc15',
+            letterSpacing: '0.08em',
+            textShadow: '0 0 12px rgba(250,204,21,0.55)',
           }}
         >
-          Education is the most powerful weapon which you can use to change the world.
+          — Nelson Mandela
         </p>
       </div>
 
-      {/* Attribution */}
-      <p
-        className="text-center mt-1.5"
+      {/* ── DESKTOP: single narrow horizontal strip ── */}
+      <div
+        className="hidden lg:flex items-center gap-2 overflow-hidden rounded-full px-4 py-1.5"
         style={{
-          fontFamily: "'Fredoka One', cursive",
-          fontSize: 'clamp(11px, 1.1vw, 14px)',
-          color: '#facc15',
-          letterSpacing: '0.08em',
-          textShadow: '0 0 12px rgba(250,204,21,0.55)',
+          background: 'rgba(10,6,30,0.70)',
+          border: '1px solid rgba(250,204,21,0.30)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          whiteSpace: 'nowrap',
+          maxWidth: '680px',
+          margin: '0 auto',
         }}
       >
-        — Nelson Mandela
-      </p>
-    </div>
+        {/* Opening mark */}
+        <span style={{ fontSize: 20, lineHeight: 1, color: '#facc15', opacity: 0.85, fontFamily: 'Georgia, serif', flexShrink: 0 }}>"</span>
+        {/* Scrolling quote — takes remaining width */}
+        <div className="overflow-hidden flex-1 min-w-0">
+          <p
+            className="marquee-track inline-block"
+            style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: '15px',
+              lineHeight: 1.4,
+              color: 'rgba(255,255,255,0.95)',
+              fontStyle: 'italic',
+              textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+            }}
+          >
+            Education is the most powerful weapon which you can use to change the world.
+          </p>
+        </div>
+        {/* Attribution — inline, right side */}
+        <span
+          style={{
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: '13px',
+            color: '#facc15',
+            letterSpacing: '0.06em',
+            textShadow: '0 0 10px rgba(250,204,21,0.5)',
+            flexShrink: 0,
+          }}
+        >
+          — Nelson Mandela
+        </span>
+      </div>
+    </>
   );
 }
 
