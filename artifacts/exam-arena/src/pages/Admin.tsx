@@ -733,7 +733,7 @@ function SongManager() {
       const mimeType = mimeMap[ext] ?? f.type ?? 'audio/mpeg';
 
       try {
-        // Step 1: ask server for a signed upload URL (tiny request, no file bytes)
+        // Step 1: ask server for a signed upload URL (tiny request — no file bytes go through Render)
         const urlRes = await fetch(`${API_BASE}/api/admin/songs/upload-url`, {
           method: 'POST',
           credentials: 'include',
@@ -742,29 +742,16 @@ function SongManager() {
         });
 
         if (!urlRes.ok) {
-          // Supabase not configured — fall back to the legacy server-side upload
-          const formData = new FormData();
-          formData.append('file', f);
-          const legacyRes = await fetch(`${API_BASE}/api/admin/songs`, {
-            method: 'POST',
-            body: formData,
-            credentials: 'include',
-            headers: authHeaders,
-          });
-          if (!legacyRes.ok) {
-            let msg = `HTTP ${legacyRes.status}`;
-            try { const d = await legacyRes.json(); msg = d.error || msg; } catch { /* ignore */ }
-            failed.push(`${f.name}: ${msg}`);
-          } else {
-            succeeded++;
-          }
+          let msg = `Could not get upload URL (HTTP ${urlRes.status})`;
+          try { const d = await urlRes.json(); msg = d.error || msg; } catch { /* ignore */ }
+          failed.push(`${f.name}: ${msg}`);
           setUploadProgress({ done: i + 1, total: files.length });
           continue;
         }
 
         const { uploadUrl, key } = await urlRes.json() as { uploadUrl: string; key: string };
 
-        // Step 2: PUT file bytes directly to Supabase — zero Render bandwidth
+        // Step 2: PUT file bytes directly to Supabase — zero Render bandwidth used
         const putRes = await fetch(uploadUrl, {
           method: 'PUT',
           headers: { 'Content-Type': mimeType },
@@ -776,7 +763,7 @@ function SongManager() {
           continue;
         }
 
-        // Step 3: tell server to save the DB record (tiny JSON, no bytes)
+        // Step 3: tell server to save the DB record (tiny JSON — no bytes)
         const confirmRes = await fetch(`${API_BASE}/api/admin/songs/confirm`, {
           method: 'POST',
           credentials: 'include',
