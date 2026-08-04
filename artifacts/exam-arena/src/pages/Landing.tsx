@@ -38,8 +38,8 @@ export default function Landing() {
         */}
         <div className="flex-1 lg:hidden" />
 
-        {/* Mandela ticker — mobile: in flow; desktop: absolute in yellow bulb */}
-        <div className="w-full max-w-xl mx-auto mb-3 lg:absolute lg:top-[13%] lg:-translate-y-1/2 lg:left-0 lg:right-0 lg:max-w-none lg:px-0">
+        {/* Mandela ticker — mobile: in flow; desktop: absolute below navbar, on the yellow bulb glow */}
+        <div className="w-full max-w-xl mx-auto mb-3 lg:absolute lg:top-[20%] lg:-translate-y-1/2 lg:left-0 lg:right-0 lg:max-w-none lg:px-0" style={{ zIndex: 50 }}>
           <MandelaTicker />
         </div>
 
