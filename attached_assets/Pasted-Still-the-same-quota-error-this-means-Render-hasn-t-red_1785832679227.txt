@@ -1,0 +1,44 @@
+Still the same quota error — this means Render hasn't redeployed yet, so it's still running the old code that sends the full file through Render. The new direct-upload code is only in GitHub.
+
+There's also a code problem I need to fix: my frontend falls back to the old large-file upload if the signed URL request fails, which defeats the purpose. Let me remove that fallback and harden the error handling:
+
+Pushed — commit 8cf9328.
+
+The fallback that was re-routing the file through Render is now removed. Songs will only upload via the direct browser→Supabase path.
+
+You need to do one thing to fix it:
+
+Render dashboard → your API service → Manual Deploy → Deploy latest commit
+
+That's it. Once the deploy finishes (~2 min), song uploads will bypass Render entirely and the quota error will be gone.
+
+New issue — a user can't log in. The DB query is failing on the login SELECT. This usually means a column exists in the schema but not in the production database. Let me check the auth route and users table schema:
+
+The production Neon database is missing columns added after the initial deploy (semester_start, referral_code, referred_by, momo_number, momo_name). The same ADD COLUMN IF NOT EXISTS pattern that fixes songs already exists — I just need to add the same for users. Let me check where startup migrations are called:
+
+Now I'll add ensureUsersColumns to the migrations file and wire it into startup — both at once:
+
+Pushed — commit f434f30.
+
+What was wrong: Your production Neon database was created before columns like semester_start, referral_code, momo_number were added to the schema. Every login query selected those columns, got an error, and returned 500.
+
+The fix: On every server startup, the server now runs ALTER TABLE users ADD COLUMN IF NOT EXISTS for each missing column — same pattern already used for songs. It's instant and safe to run repeatedly.
+
+Both fixes (songs + login) are now in GitHub. One redeploy fixes both:
+
+Render dashboard → your API service → Manual Deploy → Deploy latest commit
+
+After that deploy:
+
+✅ Login works again
+✅ Song uploads go directly to Supabase (no Render bandwidth used)
+Two issues. First let me check if login is now working (7:24 AM screenshot shows the admin panel is open, so it likely is). The two remaining problems are:
+
+Question file — "Bug: uncompressed data size mismatch" is a broken .docx file (bad ZIP compression inside it)
+Songs — need to confirm the direct upload is working after Render's redeploy
+Let me improve the docx error to give a clear fix message, and check the song upload status:
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+Website

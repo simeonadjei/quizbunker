@@ -539,8 +539,21 @@ router.post(
 
       try {
         if (ext === ".docx" || ext === ".doc") {
-          const result = await mammoth.extractRawText({ buffer: req.file.buffer });
-          rawText = result.value;
+          try {
+            const result = await mammoth.extractRawText({ buffer: req.file.buffer });
+            rawText = result.value;
+          } catch (mammothErr: unknown) {
+            const msg = (mammothErr as Error).message ?? "";
+            // JSZip throws this when the .docx ZIP is internally corrupted.
+            if (msg.includes("uncompressed data size mismatch") || msg.includes("Bad zip") || msg.includes("compressed")) {
+              return res.status(400).json({
+                error:
+                  "The .docx file appears to be corrupted (ZIP error inside the file). " +
+                  "Fix: open the file in Microsoft Word → File → Save As → Word Document (.docx) to create a clean copy, then upload that copy.",
+              });
+            }
+            throw mammothErr; // re-throw unexpected errors
+          }
         } else {
           rawText = req.file.buffer.toString("utf-8");
         }
