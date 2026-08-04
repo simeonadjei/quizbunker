@@ -1,4 +1,5 @@
 import app, { ensureSessionTable, backfillTrials, ensureSongsColumns } from "./app";
+import { ensureUsersColumns } from "./lib/db-migrations";
 import { logEmailConfigStatus } from "./lib/email";
 import { logger } from "./lib/logger";
 
@@ -28,11 +29,13 @@ Promise.all([
     logger.warn({ err: err.message }, "backfillTrials failed — server will still start"),
   ),
   // Songs columns migration — warn but never crash the server.
-  // The ALTER TABLE IF NOT EXISTS is a safety guard; the columns already exist
-  // in production. A transient DB error (quota exceeded, connection blip)
-  // should not prevent the server from starting and serving requests.
   ensureSongsColumns().catch((err: Error) =>
     logger.warn({ err: err.message }, "ensureSongsColumns failed — server will still start"),
+  ),
+  // Users columns migration — adds columns added after initial deploy.
+  // Fixes "column does not exist" errors on login/register in production.
+  ensureUsersColumns().catch((err: Error) =>
+    logger.warn({ err: err.message }, "ensureUsersColumns failed — server will still start"),
   ),
 ]).then(() => {
   logEmailConfigStatus();

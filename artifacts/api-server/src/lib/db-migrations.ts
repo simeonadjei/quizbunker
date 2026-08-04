@@ -34,3 +34,33 @@ export async function ensureSongsColumns(): Promise<void> {
     client.release();
   }
 }
+
+/**
+ * Ensure the users table has all columns added after the initial deploy.
+ * Safe to run on every startup — ADD COLUMN IF NOT EXISTS is idempotent.
+ */
+export async function ensureUsersColumns(): Promise<void> {
+  const client = await pool.connect();
+  const migrations = [
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS semester_start TIMESTAMP`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS momo_number TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS momo_name TEXT`,
+  ];
+  try {
+    for (const sql of migrations) {
+      try {
+        await client.query(sql);
+      } catch (e) {
+        const msg = (e as Error).message ?? "";
+        if (!msg.includes("already exists")) throw e;
+      }
+    }
+    logger.info("ensureUsersColumns: all user columns confirmed");
+  } catch (err) {
+    throw new Error(`ensureUsersColumns failed: ${(err as Error).message}`);
+  } finally {
+    client.release();
+  }
+}
