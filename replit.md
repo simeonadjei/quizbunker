@@ -34,7 +34,7 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-- Always include the commit ID (short hash) when reporting a push or the last commit.
+- Always push to GitHub after every change and report the short commit hash.
 
 ## Gotchas
 
