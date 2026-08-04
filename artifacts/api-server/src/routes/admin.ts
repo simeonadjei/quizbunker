@@ -14,6 +14,7 @@ import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
 import { sendEmail, isEmailConfigured } from "../lib/email";
 import { logger } from "../lib/logger";
+import { isR2Configured, uploadFileToR2, deleteFromR2 } from "../lib/r2Storage";
 
 const router = Router();
 
@@ -672,21 +673,34 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
     const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
 
-    // Serve the audio file directly from disk via express.static — no DB blob,
-    // no base64 encoding, no memory spike.
-    const audioUrl = `/api/uploads/songs/${file.filename}`;
+    let filenameForDb: string;
+    let audioUrl: string;
 
-    logger.info({ title, fileSizeMB, mimeType, diskFile: file.filename }, "Inserting song into DB (disk storage)");
+    if (isR2Configured()) {
+      // ── R2 path: stream from disk → R2, then remove temp file ────────────
+      const r2Key = `songs/${file.filename}`;
+      logger.info({ title, fileSizeMB, mimeType, r2Key }, "Uploading song to R2");
+      await uploadFileToR2(r2Key, file.path, mimeType);
+      fs.unlink(file.path, () => {}); // temp file no longer needed
+
+      filenameForDb = r2Key;           // stored so the serve route can fetch from R2
+      audioUrl      = "";              // placeholder; updated after insert gives us the ID
+    } else {
+      // ── Disk-only fallback (ephemeral on Render free tier) ────────────────
+      logger.info({ title, fileSizeMB, mimeType, diskFile: file.filename }, "Storing song on disk (R2 not configured)");
+      filenameForDb = file.filename;
+      audioUrl      = `/api/uploads/songs/${file.filename}`;
+    }
 
     const [song] = await db
       .insert(songsTable)
       .values({
         title,
-        filename: file.filename,   // the generated on-disk filename
-        url: audioUrl,             // served statically — no memory overhead
+        filename: filenameForDb,
+        url: audioUrl || "/api/songs/0/audio", // temp placeholder for R2 path
         sortOrder: nextSortOrder,
         isActive: true,
-        // fileData and mimeType intentionally omitted — file is on disk, not in DB
+        // fileData intentionally omitted — file is in R2 or on disk, never in DB
       })
       .returning({
         id: songsTable.id,
@@ -695,14 +709,20 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
         isActive: songsTable.isActive,
       });
 
+    // For R2-stored songs set the real /api/songs/:id/audio URL now that we have the ID
+    if (isR2Configured()) {
+      audioUrl = `/api/songs/${song.id}/audio`;
+      await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
+    }
+
     logger.info({ songId: song.id, title, audioUrl }, "Song uploaded successfully");
     return res.status(201).json({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
   } catch (err: unknown) {
-    // Clean up the disk file if the DB insert fails so we don't accumulate orphans.
+    // Clean up the disk temp file on any failure
     fs.unlink(file.path, () => {});
     const message = (err as Error).message ?? "Unknown error";
-    logger.error({ err: message }, "Song upload DB error");
-    return res.status(500).json({ error: `Database error: ${message}` });
+    logger.error({ err: message }, "Song upload error");
+    return res.status(500).json({ error: `Upload failed: ${message}` });
   }
 });
 
@@ -735,13 +755,22 @@ router.delete("/admin/songs/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
 
   const [song] = await db
-    .select({ filename: songsTable.filename })
+    .select({ filename: songsTable.filename, fileData: songsTable.fileData })
     .from(songsTable)
     .where(eq(songsTable.id, id))
     .limit(1);
+
   if (song) {
-    const filePath = path.join(songsDir, song.filename);
-    if (fs.existsSync(filePath)) fs.unlink(filePath, () => {});
+    if (!song.fileData) {
+      // R2-stored: filename is the R2 key (e.g. "songs/…")
+      if (isR2Configured() && song.filename.startsWith("songs/")) {
+        deleteFromR2(song.filename).catch(() => {});
+      }
+      // Disk-stored: filename is just the local filename
+      const diskPath = path.join(songsDir, path.basename(song.filename));
+      if (fs.existsSync(diskPath)) fs.unlink(diskPath, () => {});
+    }
+    // DB-blob songs: no files to clean up
   }
 
   await db.delete(songsTable).where(eq(songsTable.id, id));
