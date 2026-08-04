@@ -80,9 +80,20 @@ const questionUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// Multer for songs — memory storage so we never touch disk (faster, no ephemeral-disk issues)
+// Multer for songs — disk storage so large MP3s never live in Node.js memory.
+// Files land at uploads/songs/<timestamp>-<sanitised-name>.<ext> and are served
+// by the express.static middleware mounted at /api/uploads/songs in app.ts.
 const songUpload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, songsDir),
+    filename: (_req, file, cb) => {
+      const ext  = path.extname(file.originalname).toLowerCase();
+      const base = path.basename(file.originalname, ext)
+        .replace(/[^a-zA-Z0-9_\-]/g, "_")
+        .slice(0, 60);
+      cb(null, `${Date.now()}-${base}${ext}`);
+    },
+  }),
   fileFilter: (_req, file, cb) => {
     const allowed = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -635,20 +646,15 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     return res.status(400).json({ error: "No audio file uploaded. Send a single file in the 'file' field." });
   }
 
-  if (!file.buffer || file.buffer.length === 0) {
+  // file.size comes from multer diskStorage; file.filename is the generated name on disk.
+  if (!file.size || file.size === 0) {
+    // Clean up the empty file
+    fs.unlink(file.path, () => {});
     return res.status(400).json({ error: "Uploaded file is empty" });
   }
 
   try {
-    // Ensure file_data / mime_type columns exist FIRST — before any query touches
-    // the songs table — so Render deployments that missed the startup migration
-    // get the columns added right here, right now.
-    await ensureSongsColumns();
-
-    // Use raw SQL for the sort-order check so Drizzle never generates a
-    // SELECT that includes file_data / mime_type (which may not yet exist on
-    // older production DBs).  COALESCE(MAX(...), -1) + 1 returns 0 when the
-    // table is empty and avoids a separate "table is empty" branch.
+    // Use raw SQL for the sort-order check.
     const sortClient = await pool.connect();
     let nextSortOrder = 0;
     try {
@@ -664,22 +670,23 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
     const ext = path.extname(file.originalname).toLowerCase();
     const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
 
-    const fileData = file.buffer.toString("base64");
-    const fileSizeMB = (file.buffer.length / 1024 / 1024).toFixed(1);
+    // Serve the audio file directly from disk via express.static — no DB blob,
+    // no base64 encoding, no memory spike.
+    const audioUrl = `/api/uploads/songs/${file.filename}`;
 
-    logger.info({ title, fileSizeMB, mimeType }, "Inserting song into DB");
+    logger.info({ title, fileSizeMB, mimeType, diskFile: file.filename }, "Inserting song into DB (disk storage)");
 
     const [song] = await db
       .insert(songsTable)
       .values({
         title,
-        filename: file.originalname,
-        url: "/api/songs/0/audio",
+        filename: file.filename,   // the generated on-disk filename
+        url: audioUrl,             // served statically — no memory overhead
         sortOrder: nextSortOrder,
         isActive: true,
-        fileData,
-        mimeType,
+        // fileData and mimeType intentionally omitted — file is on disk, not in DB
       })
       .returning({
         id: songsTable.id,
@@ -688,12 +695,11 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
         isActive: songsTable.isActive,
       });
 
-    const audioUrl = `/api/songs/${song.id}/audio`;
-    await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
-
-    logger.info({ songId: song.id, title }, "Song uploaded successfully");
+    logger.info({ songId: song.id, title, audioUrl }, "Song uploaded successfully");
     return res.status(201).json({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
   } catch (err: unknown) {
+    // Clean up the disk file if the DB insert fails so we don't accumulate orphans.
+    fs.unlink(file.path, () => {});
     const message = (err as Error).message ?? "Unknown error";
     logger.error({ err: message }, "Song upload DB error");
     return res.status(500).json({ error: `Database error: ${message}` });
