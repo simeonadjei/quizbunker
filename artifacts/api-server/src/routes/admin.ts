@@ -14,7 +14,7 @@ import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
 import { sendEmail, isEmailConfigured } from "../lib/email";
 import { logger } from "../lib/logger";
-import { isR2Configured, uploadFileToR2, deleteFromR2 } from "../lib/r2Storage";
+import { isSupabaseConfigured, uploadFileToSupabase, deleteFromSupabase } from "../lib/supabaseStorage";
 
 const router = Router();
 
@@ -676,18 +676,18 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     let filenameForDb: string;
     let audioUrl: string;
 
-    if (isR2Configured()) {
-      // ── R2 path: stream from disk → R2, then remove temp file ────────────
-      const r2Key = `songs/${file.filename}`;
-      logger.info({ title, fileSizeMB, mimeType, r2Key }, "Uploading song to R2");
-      await uploadFileToR2(r2Key, file.path, mimeType);
+    if (isSupabaseConfigured()) {
+      // ── Supabase path: upload from disk, then remove temp file ───────────
+      const sbKey = `songs/${file.filename}`;
+      logger.info({ title, fileSizeMB, mimeType, sbKey }, "Uploading song to Supabase Storage");
+      await uploadFileToSupabase(sbKey, file.path, mimeType);
       fs.unlink(file.path, () => {}); // temp file no longer needed
 
-      filenameForDb = r2Key;           // stored so the serve route can fetch from R2
+      filenameForDb = sbKey;           // stored so the serve route can fetch from Supabase
       audioUrl      = "";              // placeholder; updated after insert gives us the ID
     } else {
       // ── Disk-only fallback (ephemeral on Render free tier) ────────────────
-      logger.info({ title, fileSizeMB, mimeType, diskFile: file.filename }, "Storing song on disk (R2 not configured)");
+      logger.info({ title, fileSizeMB, mimeType, diskFile: file.filename }, "Storing song on disk (Supabase not configured)");
       filenameForDb = file.filename;
       audioUrl      = `/api/uploads/songs/${file.filename}`;
     }
@@ -709,8 +709,8 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
         isActive: songsTable.isActive,
       });
 
-    // For R2-stored songs set the real /api/songs/:id/audio URL now that we have the ID
-    if (isR2Configured()) {
+    // For Supabase-stored songs set the real /api/songs/:id/audio URL now that we have the ID
+    if (isSupabaseConfigured()) {
       audioUrl = `/api/songs/${song.id}/audio`;
       await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
     }
@@ -762,9 +762,9 @@ router.delete("/admin/songs/:id", requireAdmin, async (req, res) => {
 
   if (song) {
     if (!song.fileData) {
-      // R2-stored: filename is the R2 key (e.g. "songs/…")
-      if (isR2Configured() && song.filename.startsWith("songs/")) {
-        deleteFromR2(song.filename).catch(() => {});
+      // Supabase-stored: filename is the storage key (e.g. "songs/…")
+      if (isSupabaseConfigured() && song.filename.startsWith("songs/")) {
+        deleteFromSupabase(song.filename).catch(() => {});
       }
       // Disk-stored: filename is just the local filename
       const diskPath = path.join(songsDir, path.basename(song.filename));

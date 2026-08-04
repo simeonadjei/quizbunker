@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, songsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { isR2Configured, streamFromR2 } from "../lib/r2Storage";
+import { isSupabaseConfigured, getSupabaseSignedUrl } from "../lib/supabaseStorage";
 
 const router = Router();
 
@@ -50,28 +50,17 @@ router.get("/songs/:id/audio", async (req, res) => {
 
   if (!song) return res.status(404).json({ error: "Song not found" });
 
-  // ── Path 1: R2 storage (fileData is null — file lives in R2) ─────────────
+  // ── Path 1: Supabase Storage (fileData is null — file lives in Supabase) ──
   if (!song.fileData) {
-    if (!isR2Configured()) {
+    if (!isSupabaseConfigured()) {
       return res.status(503).json({ error: "Storage not configured" });
     }
 
     try {
-      const rangeHeader = req.headers.range;
-      const r2 = await streamFromR2(song.filename, rangeHeader);
-
-      const headers: Record<string, string | number> = {
-        "Content-Type": r2.contentType,
-        "Accept-Ranges": r2.acceptRanges ?? "bytes",
-        "Cache-Control": "public, max-age=86400",
-      };
-      if (r2.contentLength !== undefined) headers["Content-Length"] = r2.contentLength;
-      if (r2.contentRange)                headers["Content-Range"]  = r2.contentRange;
-
-      res.writeHead(r2.statusCode, headers);
-      r2.body.pipe(res);
-      r2.body.on("error", () => res.end());
-      return;
+      // Redirect to a 1-hour signed URL — Supabase CDN handles Range requests
+      // natively so audio seeking works without any extra server-side code.
+      const signedUrl = await getSupabaseSignedUrl(song.filename);
+      return res.redirect(302, signedUrl);
     } catch (err: unknown) {
       const msg = (err as Error).message ?? String(err);
       return res.status(404).json({ error: `Audio not found in storage: ${msg}` });
