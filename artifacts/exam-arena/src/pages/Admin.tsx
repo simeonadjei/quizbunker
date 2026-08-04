@@ -605,7 +605,8 @@ function QuestionUploader() {
         const res = await fetch(`${API_BASE}/api/admin/questions/upload`, {
           method: 'POST',
           body: formData,
-          credentials: "include"
+          credentials: "include",
+          headers: _adminToken ? { Authorization: `Bearer ${_adminToken}` } : {},
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed');

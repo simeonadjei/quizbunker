@@ -494,7 +494,20 @@ router.post("/admin/subscribe", requireAdmin, async (req, res) => {
 router.post(
   "/admin/questions/upload",
   requireAdmin,
-  questionUpload.single("file"),
+  (req, res, next) => {
+    questionUpload.single("file")(req, res, (err) => {
+      if (err) {
+        const msg =
+          err instanceof multer.MulterError
+            ? err.code === "LIMIT_FILE_SIZE"
+              ? "File too large — maximum size is 10 MB"
+              : `Upload error: ${err.message}`
+            : (err as Error).message ?? "File upload failed";
+        return res.status(400).json({ error: msg });
+      }
+      return next();
+    });
+  },
   async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded. Send a .docx or .txt file in the 'file' field." });

@@ -1,0 +1,45 @@
+STREtch the background picture to the previous
+
+Done — background is back to cover (commit bbb82b5). Render will pick it up automatically.
+
+the mandela quote is too tiny, increase its size by 3 time and position it above the quiz, in the centre of the yellow bulb, admin page still gives access denied
+
+Two fixes in parallel — the quote size/position and the admin login root cause.
+
+The "access denied" toast fires for any error (401 or 500). Looking at the code, the session middleware failing on Render produces a 500 which shows the same "Access Denied" toast. I need to swallow session store errors so requests continue even when Neon is unavailable.
+
+Making both changes simultaneously:
+
+Now fix the quote sizes (3×) and position it higher in the yellow bulb:
+
+Now the desktop marquee font sizes (3×):
+
+Both servers are running clean. Pushed as commit 21dad84.
+
+Quote — text is now 3× larger (45px on desktop, scales on mobile) and moved up to sit in the centre of the yellow bulb at 13% from the top.
+
+Admin login — the root cause was the session middleware crashing on Render (Neon DB briefly unavailable) and returning a 500, which showed as "Access Denied" in the toast. The session middleware now swallows its own errors and lets the request through — so even if the DB hiccups, login will still work via the HMAC token fallback.
+
+Once Render deploys the latest commit, try logging in with just the password bg262 (email field can be left blank).
+
+Upload failed
+
+The question upload is crashing with an unhandled server error on Render — most likely because the temp file path multer writes to disk fails on Render's ephemeral filesystem. I'll switch question uploads to memory storage (same approach as songs) to eliminate the disk dependency.
+
+Switching question upload to memory storage — no disk writes, no path-related failures on Render:
+
+Now update the handler to use the buffer instead of disk path:
+
+Server is up clean. Pushed as commit 39ef1d3.
+
+What was wrong: Multer was writing the uploaded .docx to a temp folder on disk, then mammoth was reading it back from that path. On Render's ephemeral filesystem the write either fails or the path doesn't survive — causing the "Internal server error".
+
+Fix: Question uploads now use memory storage (the file is held in RAM as a buffer, never touching disk). Mammoth reads directly from the buffer. Once Render deploys this commit, question uploads will work.
+
+Still uploading questions fails, internal server error
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+QuizBunker
+Website
