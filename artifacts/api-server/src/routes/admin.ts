@@ -15,6 +15,7 @@ import type { Request, Response, NextFunction } from "express";
 import { sendEmail, isEmailConfigured } from "../lib/email";
 import { logger } from "../lib/logger";
 import { isSupabaseConfigured, uploadFileToSupabase, deleteFromSupabase } from "../lib/supabaseStorage";
+import { isR2Configured, uploadFileToR2, deleteFromR2 } from "../lib/r2Storage";
 
 const router = Router();
 
@@ -676,7 +677,16 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     let filenameForDb: string;
     let audioUrl: string;
 
-    if (isSupabaseConfigured()) {
+    if (isR2Configured()) {
+      // ── R2 path (preferred): upload from disk stream, then remove temp file ─
+      const r2Key = `songs/${file.filename}`;
+      logger.info({ title, fileSizeMB, mimeType, r2Key }, "Uploading song to Cloudflare R2");
+      await uploadFileToR2(r2Key, file.path, mimeType);
+      fs.unlink(file.path, () => {}); // temp file no longer needed
+
+      filenameForDb = r2Key;           // stored so the serve route can fetch from R2
+      audioUrl      = "";              // placeholder; updated after insert gives us the ID
+    } else if (isSupabaseConfigured()) {
       // ── Supabase path: upload from disk, then remove temp file ───────────
       const sbKey = `songs/${file.filename}`;
       logger.info({ title, fileSizeMB, mimeType, sbKey }, "Uploading song to Supabase Storage");
@@ -687,7 +697,7 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
       audioUrl      = "";              // placeholder; updated after insert gives us the ID
     } else {
       // ── Disk-only fallback (ephemeral on Render free tier) ────────────────
-      logger.info({ title, fileSizeMB, mimeType, diskFile: file.filename }, "Storing song on disk (Supabase not configured)");
+      logger.info({ title, fileSizeMB, mimeType, diskFile: file.filename }, "Storing song on disk (no cloud storage configured)");
       filenameForDb = file.filename;
       audioUrl      = `/api/uploads/songs/${file.filename}`;
     }
@@ -709,8 +719,8 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
         isActive: songsTable.isActive,
       });
 
-    // For Supabase-stored songs set the real /api/songs/:id/audio URL now that we have the ID
-    if (isSupabaseConfigured()) {
+    // For cloud-stored songs set the real /api/songs/:id/audio URL now that we have the ID
+    if (isR2Configured() || isSupabaseConfigured()) {
       audioUrl = `/api/songs/${song.id}/audio`;
       await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
     }
@@ -762,13 +772,18 @@ router.delete("/admin/songs/:id", requireAdmin, async (req, res) => {
 
   if (song) {
     if (!song.fileData) {
-      // Supabase-stored: filename is the storage key (e.g. "songs/…")
-      if (isSupabaseConfigured() && song.filename.startsWith("songs/")) {
-        deleteFromSupabase(song.filename).catch(() => {});
+      if (song.filename.startsWith("songs/")) {
+        // Cloud-stored: try R2 first, then Supabase
+        if (isR2Configured()) {
+          deleteFromR2(song.filename).catch(() => {});
+        } else if (isSupabaseConfigured()) {
+          deleteFromSupabase(song.filename).catch(() => {});
+        }
+      } else {
+        // Disk-stored: filename is just the local filename
+        const diskPath = path.join(songsDir, path.basename(song.filename));
+        if (fs.existsSync(diskPath)) fs.unlink(diskPath, () => {});
       }
-      // Disk-stored: filename is just the local filename
-      const diskPath = path.join(songsDir, path.basename(song.filename));
-      if (fs.existsSync(diskPath)) fs.unlink(diskPath, () => {});
     }
     // DB-blob songs: no files to clean up
   }

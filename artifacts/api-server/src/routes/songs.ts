@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, songsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { isSupabaseConfigured, getSupabaseSignedUrl } from "../lib/supabaseStorage";
+import { isR2Configured, streamFromR2 } from "../lib/r2Storage";
 
 const router = Router();
 
@@ -50,21 +51,41 @@ router.get("/songs/:id/audio", async (req, res) => {
 
   if (!song) return res.status(404).json({ error: "Song not found" });
 
-  // ── Path 1: Supabase Storage (fileData is null — file lives in Supabase) ──
+  // ── Path 1: Cloud Storage (fileData is null — file lives in R2 or Supabase) ──
   if (!song.fileData) {
-    if (!isSupabaseConfigured()) {
-      return res.status(503).json({ error: "Storage not configured" });
+    // R2 is preferred — stream directly so Range / seeking works natively
+    if (isR2Configured() && song.filename.startsWith("songs/")) {
+      try {
+        const rangeHeader = req.headers.range;
+        const result = await streamFromR2(song.filename, rangeHeader);
+
+        res.writeHead(result.statusCode, {
+          "Content-Type":   result.contentType,
+          "Accept-Ranges":  result.acceptRanges ?? "bytes",
+          "Cache-Control":  "public, max-age=86400",
+          ...(result.contentLength !== undefined && { "Content-Length": String(result.contentLength) }),
+          ...(result.contentRange   !== undefined && { "Content-Range":  result.contentRange }),
+        });
+        result.body.pipe(res);
+        return;
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? String(err);
+        return res.status(404).json({ error: `Audio not found in R2: ${msg}` });
+      }
     }
 
-    try {
-      // Redirect to a 1-hour signed URL — Supabase CDN handles Range requests
-      // natively so audio seeking works without any extra server-side code.
-      const signedUrl = await getSupabaseSignedUrl(song.filename);
-      return res.redirect(302, signedUrl);
-    } catch (err: unknown) {
-      const msg = (err as Error).message ?? String(err);
-      return res.status(404).json({ error: `Audio not found in storage: ${msg}` });
+    // Supabase fallback — redirect to 1-hour signed URL
+    if (isSupabaseConfigured()) {
+      try {
+        const signedUrl = await getSupabaseSignedUrl(song.filename);
+        return res.redirect(302, signedUrl);
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? String(err);
+        return res.status(404).json({ error: `Audio not found in storage: ${msg}` });
+      }
     }
+
+    return res.status(503).json({ error: "Storage not configured" });
   }
 
   // ── Path 2: Legacy DB blob (base64 stored in fileData column) ────────────
