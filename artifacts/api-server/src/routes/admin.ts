@@ -14,7 +14,7 @@ import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
 import { sendEmail, isEmailConfigured } from "../lib/email";
 import { logger } from "../lib/logger";
-import { isSupabaseConfigured, uploadFileToSupabase, deleteFromSupabase } from "../lib/supabaseStorage";
+import { isSupabaseConfigured, uploadFileToSupabase, deleteFromSupabase, createSupabaseUploadUrl } from "../lib/supabaseStorage";
 import { isR2Configured, uploadFileToR2, deleteFromR2 } from "../lib/r2Storage";
 
 const router = Router();
@@ -601,6 +601,63 @@ router.delete("/admin/questions/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   await db.delete(questionsTable).where(eq(questionsTable.id, id));
   return res.json({ message: "Question deleted" });
+});
+
+// POST /admin/songs/upload-url
+// Returns a signed URL so the browser can upload directly to Supabase,
+// bypassing Render's bandwidth entirely.
+router.post("/admin/songs/upload-url", requireAdmin, async (req, res) => {
+  if (!isSupabaseConfigured()) {
+    return res.status(503).json({ error: "Supabase not configured — direct upload unavailable" });
+  }
+  const { filename, mimeType } = req.body as { filename?: string; mimeType?: string };
+  if (!filename || !mimeType) {
+    return res.status(400).json({ error: "filename and mimeType are required" });
+  }
+  const safeName = path.basename(filename).replace(/[^a-zA-Z0-9_\-\.]/g, "_").slice(0, 80);
+  const key = `songs/${Date.now()}-${safeName}`;
+  try {
+    const { signedUrl } = await createSupabaseUploadUrl(key);
+    return res.json({ uploadUrl: signedUrl, key });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// POST /admin/songs/confirm
+// Called after the browser finishes uploading directly to Supabase.
+// Saves the DB record and returns the song row.
+router.post("/admin/songs/confirm", requireAdmin, async (req, res) => {
+  const { key, title: rawTitle, mimeType, originalName } = req.body as {
+    key?: string; title?: string; mimeType?: string; originalName?: string;
+  };
+  if (!key || !mimeType) {
+    return res.status(400).json({ error: "key and mimeType are required" });
+  }
+
+  const title = rawTitle?.trim() || (originalName ?? key).replace(/\.[^.]+$/, "").replace(/[_\-]/g, " ").trim();
+
+  const sortClient = await pool.connect();
+  let nextSortOrder = 0;
+  try {
+    const { rows } = await sortClient.query<{ next_sort: string }>(
+      `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_sort FROM songs`
+    );
+    nextSortOrder = parseInt(rows[0]?.next_sort ?? "0", 10);
+  } finally {
+    sortClient.release();
+  }
+
+  const [song] = await db
+    .insert(songsTable)
+    .values({ title, filename: key, url: "", sortOrder: nextSortOrder, isActive: true })
+    .returning({ id: songsTable.id, title: songsTable.title, sortOrder: songsTable.sortOrder, isActive: songsTable.isActive });
+
+  const audioUrl = `/api/songs/${song.id}/audio`;
+  await db.update(songsTable).set({ url: audioUrl }).where(eq(songsTable.id, song.id));
+
+  logger.info({ songId: song.id, title, key }, "Song confirmed (direct upload)");
+  return res.status(201).json({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
 });
 
 // PUT /admin/songs/reorder — must come BEFORE /admin/songs/:id

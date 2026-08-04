@@ -75,6 +75,22 @@ export async function getSupabaseSignedUrl(key: string): Promise<string> {
 }
 
 /**
+ * Create a signed URL that lets the browser upload directly to Supabase Storage.
+ * The returned `signedUrl` accepts a PUT request with the file bytes.
+ */
+export async function createSupabaseUploadUrl(key: string): Promise<{ signedUrl: string; token: string; path: string }> {
+  const client = getClient();
+  const { data, error } = await client.storage
+    .from(getBucket())
+    .createSignedUploadUrl(key);
+
+  if (error || !data) {
+    throw new Error(`Supabase signed upload URL failed: ${error?.message ?? "no data"}`);
+  }
+  return { signedUrl: data.signedUrl, token: data.token, path: data.path };
+}
+
+/**
  * Delete a stored object. Silently ignores "not found" errors.
  */
 export async function deleteFromSupabase(key: string): Promise<void> {

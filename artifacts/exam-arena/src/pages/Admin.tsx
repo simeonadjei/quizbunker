@@ -711,29 +711,81 @@ function SongManager() {
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
 
-  // Upload files one-by-one so each request finishes well within Render's timeout
+  // Upload files one-by-one using direct browser→Supabase uploads so the
+  // file bytes never pass through Render (avoids its free-tier quota error).
   const handleUpload = async () => {
     if (files.length === 0) return;
     setUploadProgress({ done: 0, total: files.length });
 
     let succeeded = 0;
     const failed: string[] = [];
+    const authHeaders: Record<string, string> = _adminToken
+      ? { Authorization: `Bearer ${_adminToken}` }
+      : {};
 
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      const formData = new FormData();
-      formData.append("file", f);
+      const ext = f.name.split('.').pop()?.toLowerCase() ?? 'mp3';
+      const mimeMap: Record<string, string> = {
+        mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
+        m4a: 'audio/mp4', aac: 'audio/aac', flac: 'audio/flac',
+      };
+      const mimeType = mimeMap[ext] ?? f.type ?? 'audio/mpeg';
 
       try {
-        const res = await fetch(`${API_BASE}/api/admin/songs`, {
+        // Step 1: ask server for a signed upload URL (tiny request, no file bytes)
+        const urlRes = await fetch(`${API_BASE}/api/admin/songs/upload-url`, {
           method: 'POST',
-          body: formData,
-          credentials: "include",
-          headers: _adminToken ? { Authorization: `Bearer ${_adminToken}` } : {},
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ filename: f.name, mimeType }),
         });
-        if (!res.ok) {
-          let msg = `HTTP ${res.status}`;
-          try { const d = await res.json(); msg = d.error || msg; } catch { /* ignore */ }
+
+        if (!urlRes.ok) {
+          // Supabase not configured — fall back to the legacy server-side upload
+          const formData = new FormData();
+          formData.append('file', f);
+          const legacyRes = await fetch(`${API_BASE}/api/admin/songs`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+            headers: authHeaders,
+          });
+          if (!legacyRes.ok) {
+            let msg = `HTTP ${legacyRes.status}`;
+            try { const d = await legacyRes.json(); msg = d.error || msg; } catch { /* ignore */ }
+            failed.push(`${f.name}: ${msg}`);
+          } else {
+            succeeded++;
+          }
+          setUploadProgress({ done: i + 1, total: files.length });
+          continue;
+        }
+
+        const { uploadUrl, key } = await urlRes.json() as { uploadUrl: string; key: string };
+
+        // Step 2: PUT file bytes directly to Supabase — zero Render bandwidth
+        const putRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': mimeType },
+          body: f,
+        });
+        if (!putRes.ok) {
+          failed.push(`${f.name}: Supabase upload failed (HTTP ${putRes.status})`);
+          setUploadProgress({ done: i + 1, total: files.length });
+          continue;
+        }
+
+        // Step 3: tell server to save the DB record (tiny JSON, no bytes)
+        const confirmRes = await fetch(`${API_BASE}/api/admin/songs/confirm`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ key, mimeType, originalName: f.name }),
+        });
+        if (!confirmRes.ok) {
+          let msg = `DB save failed (HTTP ${confirmRes.status})`;
+          try { const d = await confirmRes.json(); msg = d.error || msg; } catch { /* ignore */ }
           failed.push(`${f.name}: ${msg}`);
         } else {
           succeeded++;
