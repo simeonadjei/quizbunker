@@ -73,13 +73,15 @@ export default defineConfig({
         // CacheFirst for audio files (large, rarely change)
         runtimeCaching: [
           {
-            urlPattern: /\/api\/songs\/\d+\/audio/i,
+            // Matches both legacy DB-streamed audio  (/api/songs/:id/audio)
+            // and new disk-served audio              (/api/uploads/songs/<file>)
+            urlPattern: /\/api\/(songs\/\d+\/audio|uploads\/songs\/)/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'audio-cache',
               rangeRequests: true,
               expiration: {
-                maxEntries: 20,
+                maxEntries: 30,
                 maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
               },
               cacheableResponse: {
