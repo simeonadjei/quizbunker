@@ -95,7 +95,9 @@ const songUpload = multer({
 // Admin auth middleware — accepts session cookie OR a Bearer token issued at login
 function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   // Primary: session-backed auth (persists across page reloads)
-  if (req.session.isAdmin) {
+  // req.session may be undefined if the Neon session store errored and the
+  // session middleware exited early — use optional chaining to guard against this.
+  if (req.session?.isAdmin) {
     next();
     return;
   }
