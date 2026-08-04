@@ -518,60 +518,66 @@ router.post(
       subject?: string;
     };
 
-    let rawText = "";
-    const ext = path.extname(req.file.originalname).toLowerCase();
-
     try {
-      if (ext === ".docx" || ext === ".doc") {
-        const result = await mammoth.extractRawText({ buffer: req.file.buffer });
-        rawText = result.value;
-      } else {
-        rawText = req.file.buffer.toString("utf-8");
-      }
-    } catch (parseErr: unknown) {
-      return res.status(400).json({ error: `Failed to read file: ${(parseErr as Error).message}` });
-    }
+      let rawText = "";
+      const ext = path.extname(req.file.originalname).toLowerCase();
 
-    const { questions, errors } = parseQuestionText(rawText, overrideYear, overrideSubject);
-
-    if (questions.length === 0) {
-      return res.status(400).json({
-        error: "No valid questions found in file. Check the format matches: Year N Subject / WEEK N: TOPIC / 1. Question / A. Option / Answer: X",
-        errors,
-        inserted: 0,
-        skipped: 0,
-        preview: [],
-      });
-    }
-
-    let inserted = 0;
-    let skipped = 0;
-
-    // Batch insert in chunks of 100 — reduces N round-trips to ceil(N/100).
-    // ON CONFLICT DO NOTHING silently skips duplicates; we count skips by
-    // comparing attempted chunk size vs returned rows.
-    const CHUNK = 100;
-    for (let i = 0; i < questions.length; i += CHUNK) {
-      const chunk = questions.slice(i, i + CHUNK);
       try {
-        const rows = await db
-          .insert(questionsTable)
-          .values(chunk)
-          .onConflictDoNothing()
-          .returning({ id: questionsTable.id });
-        inserted += rows.length;
-        skipped += chunk.length - rows.length;
-      } catch (e: unknown) {
-        errors.push(
-          `Chunk ${Math.floor(i / CHUNK) + 1} (Q${chunk[0].questionNumber}–Q${chunk[chunk.length - 1].questionNumber}): ${(e as Error).message}`,
-        );
-        skipped += chunk.length;
+        if (ext === ".docx" || ext === ".doc") {
+          const result = await mammoth.extractRawText({ buffer: req.file.buffer });
+          rawText = result.value;
+        } else {
+          rawText = req.file.buffer.toString("utf-8");
+        }
+      } catch (parseErr: unknown) {
+        return res.status(400).json({ error: `Failed to read file: ${(parseErr as Error).message}` });
       }
+
+      const { questions, errors } = parseQuestionText(rawText, overrideYear, overrideSubject);
+
+      if (questions.length === 0) {
+        return res.status(400).json({
+          error: "No valid questions found in file. Check the format matches: Year N Subject / WEEK N: TOPIC / 1. Question / A. Option / Answer: X",
+          errors,
+          inserted: 0,
+          skipped: 0,
+          preview: [],
+        });
+      }
+
+      let inserted = 0;
+      let skipped = 0;
+
+      // Batch insert in chunks of 100 — reduces N round-trips to ceil(N/100).
+      // ON CONFLICT DO NOTHING silently skips duplicates; we count skips by
+      // comparing attempted chunk size vs returned rows.
+      const CHUNK = 100;
+      for (let i = 0; i < questions.length; i += CHUNK) {
+        const chunk = questions.slice(i, i + CHUNK);
+        try {
+          const rows = await db
+            .insert(questionsTable)
+            .values(chunk)
+            .onConflictDoNothing()
+            .returning({ id: questionsTable.id });
+          inserted += rows.length;
+          skipped += chunk.length - rows.length;
+        } catch (e: unknown) {
+          errors.push(
+            `Chunk ${Math.floor(i / CHUNK) + 1} (Q${chunk[0].questionNumber}–Q${chunk[chunk.length - 1].questionNumber}): ${(e as Error).message}`,
+          );
+          skipped += chunk.length;
+        }
+      }
+
+      const preview = questions.slice(0, 3).map((q, i) => ({ ...q, id: i + 1, dok: null, learningIndicator: null, feedback: null }));
+
+      return res.json({ inserted, skipped, errors, preview });
+    } catch (uploadErr: unknown) {
+      const msg = (uploadErr as Error).message ?? "Unknown error";
+      logger.error({ err: msg }, "Question upload unexpected error");
+      return res.status(500).json({ error: `Question upload failed: ${msg}` });
     }
-
-    const preview = questions.slice(0, 3).map((q, i) => ({ ...q, id: i + 1, dok: null, learningIndicator: null, feedback: null }));
-
-    return res.json({ inserted, skipped, errors, preview });
   },
 );
 

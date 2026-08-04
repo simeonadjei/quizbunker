@@ -729,6 +729,7 @@ function SongManager() {
           method: 'POST',
           body: formData,
           credentials: "include",
+          headers: _adminToken ? { Authorization: `Bearer ${_adminToken}` } : {},
         });
         if (!res.ok) {
           let msg = `HTTP ${res.status}`;
