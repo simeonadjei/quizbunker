@@ -505,6 +505,58 @@ router.post("/admin/subscribe", requireAdmin, async (req, res) => {
   });
 });
 
+// POST /admin/questions/upload-text
+// Accepts pre-extracted plain text so the browser can parse the .docx
+// locally (mammoth browser build) and only send small JSON — zero file
+// bytes travel through Render, avoiding the free-tier bandwidth quota.
+router.post("/admin/questions/upload-text", requireAdmin, async (req, res) => {
+  const { rawText, year: overrideYear, subject: overrideSubject } = req.body as {
+    rawText?: string;
+    year?: string;
+    subject?: string;
+  };
+
+  if (!rawText?.trim()) {
+    return res.status(400).json({ error: "rawText is required" });
+  }
+
+  const { questions, errors } = parseQuestionText(rawText, overrideYear, overrideSubject);
+
+  if (questions.length === 0) {
+    return res.status(400).json({
+      error: "No valid questions found in the extracted text. Check the format: Year N Subject / WEEK N: TOPIC / 1. Question / A. Option / Answer: X",
+      errors,
+      inserted: 0,
+      skipped: 0,
+      preview: [],
+    });
+  }
+
+  let inserted = 0;
+  let skipped = 0;
+  const CHUNK = 100;
+  for (let i = 0; i < questions.length; i += CHUNK) {
+    const chunk = questions.slice(i, i + CHUNK);
+    try {
+      const rows = await db
+        .insert(questionsTable)
+        .values(chunk)
+        .onConflictDoNothing()
+        .returning({ id: questionsTable.id });
+      inserted += rows.length;
+      skipped += chunk.length - rows.length;
+    } catch (e: unknown) {
+      errors.push(
+        `Chunk ${Math.floor(i / CHUNK) + 1} (Q${chunk[0].questionNumber}–Q${chunk[chunk.length - 1].questionNumber}): ${(e as Error).message}`,
+      );
+      skipped += chunk.length;
+    }
+  }
+
+  const preview = questions.slice(0, 3).map((q, i) => ({ ...q, id: i + 1, dok: null, learningIndicator: null, feedback: null }));
+  return res.json({ inserted, skipped, errors, preview });
+});
+
 // POST /admin/questions/upload
 router.post(
   "/admin/questions/upload",

@@ -1,4 +1,9 @@
 import { useState } from 'react';
+// mammoth browser build — parses .docx files client-side so zero file bytes
+// travel through Render (avoids free-tier bandwidth quota exhaustion).
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — mammoth/mammoth.browser has no bundled TS types
+import mammoth from 'mammoth/mammoth.browser';
 import {
   useAdminLogin,
   useGetAdminStats,
@@ -596,17 +601,35 @@ function QuestionUploader() {
       const f = files[i];
       setProgress({ done: i, total: files.length, current: f.name });
 
-      const formData = new FormData();
-      formData.append("file", f);
-      if (year) formData.append("year", year);
-      if (subject) formData.append("subject", subject);
-
       try {
-        const res = await fetch(`${API_BASE}/api/admin/questions/upload`, {
+        // ── Step 1: extract text in the browser (zero server bandwidth) ──
+        let rawText = '';
+        const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+
+        if (ext === 'docx' || ext === 'doc') {
+          // mammoth browser build: accepts an ArrayBuffer
+          const arrayBuffer = await f.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          if (!result.value?.trim()) {
+            failed.push(`${f.name}: Could not extract text — try saving as .docx in Word first`);
+            setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
+            continue;
+          }
+          rawText = result.value;
+        } else {
+          // .txt — read as UTF-8 text directly
+          rawText = await f.text();
+        }
+
+        // ── Step 2: POST only the small text payload to the server ──
+        const authHeaders: Record<string, string> = _adminToken
+          ? { Authorization: `Bearer ${_adminToken}` }
+          : {};
+        const res = await fetch(`${API_BASE}/api/admin/questions/upload-text`, {
           method: 'POST',
-          body: formData,
-          credentials: "include",
-          headers: _adminToken ? { Authorization: `Bearer ${_adminToken}` } : {},
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ rawText, year: year || undefined, subject: subject || undefined }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed');
@@ -615,6 +638,8 @@ function QuestionUploader() {
       } catch (e: unknown) {
         failed.push(`${f.name}: ${(e as Error).message}`);
       }
+
+      setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
     }
 
     setProgress(null);
