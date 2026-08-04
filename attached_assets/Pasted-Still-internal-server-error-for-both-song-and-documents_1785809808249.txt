@@ -1,0 +1,44 @@
+Still internal server error, for both song and documents upload
+
+Let me read the SongManager fetch call and also check what the actual server error is more carefully.
+
+Both fetches are missing the Bearer token, and there may be uncaught throws reaching the global 500 handler. Let me fix both thoroughly — add the auth header to song uploads, add a full try-catch to the question handler, and expose the real error message in the global handler so we can see what's actually failing on Render.
+
+Now fix the server side — wrap the entire question handler body in a try-catch and expose the real error in the global handler:
+
+Now update the global error handler to expose the real error message instead of hiding it:
+
+Pushed — commit a1d19a4.
+
+Three things changed:
+
+Song upload — added Authorization: Bearer <token> to the fetch call (same fix that was already on question uploads). On Render when Neon session store is flaky, songs were quietly getting 401s.
+
+Question upload — entire handler body is now wrapped in an outer try-catch that returns the real error message ("Question upload failed: <actual reason>") instead of letting anything slip through to the global 500 handler.
+
+Global error handler — now returns err.message instead of the hardcoded string "Internal server error". This means the next time any route errors on Render, you'll see the actual cause in the toast/failed list.
+
+Deploy on Render to pick up a1d19a4, then retry an upload — if anything still fails you'll now see the specific error message instead of the generic one.
+
+Uploading songs say can not read properties of undefined fields,
+
+The error is crystal clear: Cannot read properties of undefined (reading 'isAdmin'). When Neon's session store fails, our error-swallowing middleware calls next() but req.session was never set — it's undefined. Then requireAdmin crashes on req.session.isAdmin before it ever gets to check the Bearer token.
+
+One-line fix:
+
+Pushed — commit 4933665.
+
+Root cause found and fixed: When Neon's session store is unavailable, the session middleware exits early without setting req.session at all — leaving it undefined. Our error-swallowing wrapper then called next(), which passed control to requireAdmin, which immediately crashed on req.session.isAdmin with "Cannot read properties of undefined (reading 'isAdmin')" — before it ever got a chance to check the Bearer token fallback.
+
+The fix: req.session?.isAdmin — optional chaining means if session is undefined it simply falls through to the Bearer token check, which works fine.
+
+Deploy on Render to pick up 4933665 and both song and question uploads should work.
+
+Song --- failed to fetch
+
+"Failed to fetch" is a network-level connection failure — the server is likely crashing before it can respond. Storing multi-megabyte MP3s as base64 in the DB blows up memory on Render free tier. Let me look at the songs route and schema to confirm before rewriting storage.
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+Website
