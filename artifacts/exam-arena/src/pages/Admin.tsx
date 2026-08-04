@@ -585,8 +585,34 @@ function QuestionUploader() {
   const [subject, setSubject] = useState('');
   const [progress, setProgress] = useState<{ done: number; total: number; current: string } | null>(null);
   const [summary, setSummary] = useState<{ inserted: number; skipped: number; failed: string[] } | null>(null);
+  const [textPreview, setTextPreview] = useState<string | null>(null);
 
   const isUploading = progress !== null;
+
+  // Preview the extracted text from the first selected file so the user can
+  // verify the format before uploading.
+  const handleFilesChange = async (selected: File[]) => {
+    setFiles(selected);
+    setSummary(null);
+    setTextPreview(null);
+    if (selected.length === 0) return;
+    const f = selected[0];
+    const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+    try {
+      let raw = '';
+      if (ext === 'docx' || ext === 'doc') {
+        const ab = await f.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: ab });
+        raw = result.value ?? '';
+      } else {
+        raw = await f.text();
+      }
+      // Show first 400 chars so the user can verify the format
+      setTextPreview(raw.slice(0, 400).trim() || '(empty — file may be corrupted or image-based)');
+    } catch {
+      setTextPreview('(could not preview — file may need to be re-saved as .docx)');
+    }
+  };
 
   const handleUpload = async () => {
     if (files.length === 0) return;
@@ -625,16 +651,33 @@ function QuestionUploader() {
         const authHeaders: Record<string, string> = _adminToken
           ? { Authorization: `Bearer ${_adminToken}` }
           : {};
-        const res = await fetch(`${API_BASE}/api/admin/questions/upload-text`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json', ...authHeaders },
-          body: JSON.stringify({ rawText, year: year || undefined, subject: subject || undefined }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        let res: Response;
+        try {
+          res = await fetch(`${API_BASE}/api/admin/questions/upload-text`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
+            body: JSON.stringify({ rawText, year: year || undefined, subject: subject || undefined }),
+          });
+        } catch (networkErr: unknown) {
+          failed.push(`${f.name}: Network error — ${(networkErr as Error).message}`);
+          setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
+          continue;
+        }
+        let data: { inserted?: number; skipped?: number; error?: string; errors?: string[] } = {};
+        try { data = await res.json(); } catch { /* ignore parse error */ }
+        if (!res.ok) {
+          const detail = data.error || `HTTP ${res.status}`;
+          failed.push(`${f.name}: ${detail}`);
+          setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
+          continue;
+        }
         totalInserted += data.inserted ?? 0;
         totalSkipped += data.skipped ?? 0;
+        // Surface any per-question parse errors from the server
+        if (data.errors?.length) {
+          failed.push(`${f.name} (parse warnings): ${data.errors.slice(0, 5).join('; ')}`);
+        }
       } catch (e: unknown) {
         failed.push(`${f.name}: ${(e as Error).message}`);
       }
@@ -647,9 +690,13 @@ function QuestionUploader() {
     setFiles([]);
 
     if (failed.length === 0) {
-      toast({ title: `${files.length} file${files.length > 1 ? 's' : ''} ingested successfully` });
+      toast({ title: `${files.length} file${files.length > 1 ? 's' : ''} ingested successfully — ${totalInserted} questions added` });
     } else {
-      toast({ title: `${files.length - failed.length}/${files.length} succeeded`, variant: "destructive" });
+      toast({
+        title: `${files.length - failed.length}/${files.length} files succeeded`,
+        description: failed.slice(0, 3).join('\n'),
+        variant: "destructive",
+      });
     }
   };
 
@@ -664,7 +711,7 @@ function QuestionUploader() {
             type="file"
             accept=".docx,.txt"
             multiple
-            onChange={(e) => setFiles(Array.from(e.target.files || []))}
+            onChange={(e) => handleFilesChange(Array.from(e.target.files || []))}
             className="bg-black border-zinc-700 mt-1"
             disabled={isUploading}
           />
@@ -676,6 +723,13 @@ function QuestionUploader() {
                   <span className="text-zinc-600 shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
                 </div>
               ))}
+            </div>
+          )}
+          {textPreview && (
+            <div className="mt-2">
+              <div className="text-xs text-zinc-500 mb-1">EXTRACTED TEXT PREVIEW (first 400 chars):</div>
+              <pre className="text-xs text-zinc-400 bg-black border border-zinc-800 p-2 overflow-x-auto whitespace-pre-wrap break-words max-h-32">{textPreview}</pre>
+              <div className="text-xs text-zinc-600 mt-1">Expected format: <span className="text-zinc-400">Year 1 Science / WEEK 1: TOPIC / 1. Question / A. Option / Answer: A</span></div>
             </div>
           )}
         </div>
@@ -777,13 +831,22 @@ function SongManager() {
         const { uploadUrl, key } = await urlRes.json() as { uploadUrl: string; key: string };
 
         // Step 2: PUT file bytes directly to Supabase — zero Render bandwidth used
-        const putRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': mimeType },
-          body: f,
-        });
+        let putRes: Response;
+        try {
+          putRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': mimeType },
+            body: f,
+          });
+        } catch (putErr: unknown) {
+          failed.push(`${f.name}: Supabase PUT failed — ${(putErr as Error).message} (possible CORS issue)`);
+          setUploadProgress({ done: i + 1, total: files.length });
+          continue;
+        }
         if (!putRes.ok) {
-          failed.push(`${f.name}: Supabase upload failed (HTTP ${putRes.status})`);
+          let putErrBody = '';
+          try { putErrBody = await putRes.text(); } catch { /* ignore */ }
+          failed.push(`${f.name}: Supabase upload failed (HTTP ${putRes.status}) — ${putErrBody || 'no details'}`);
           setUploadProgress({ done: i + 1, total: files.length });
           continue;
         }
