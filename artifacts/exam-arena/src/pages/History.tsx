@@ -10,7 +10,7 @@ export default function History() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center px-4 pt-6 pb-6 w-full">
+      <div className="flex-1 flex items-start justify-center px-4 py-6">
       <div className="w-full max-w-sm">
 
         {/* Header */}

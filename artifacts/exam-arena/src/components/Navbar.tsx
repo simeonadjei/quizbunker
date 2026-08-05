@@ -12,16 +12,15 @@ export function Navbar() {
   const [, setLocation] = useLocation();
 
   const handleLogout = () => {
+    // Optimistically clear client state immediately — don't wait for server round-trip
     clearCachedUser();
+    queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
+    queryClient.removeQueries({ queryKey: getGetCurrentUserQueryKey() });
+    setLocation('/');
+    // Fire server-side session invalidation in the background
     logout.mutate(undefined, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        setLocation('/');
-      },
-      onError: () => {
-        // Even if network fails, we've cleared the local cache — send to home
-        queryClient.removeQueries({ queryKey: getGetCurrentUserQueryKey() });
-        setLocation('/');
       },
     });
   };
