@@ -48,21 +48,11 @@ Promise.all([
     }
     logger.info({ port }, "Server listening");
 
-    // ── Neon keep-alive ───────────────────────────────────────────────────
-    // Neon free tier suspends after 5 minutes of inactivity. A lightweight
-    // SELECT 1 every 60 seconds prevents that without measurable overhead.
-    // UptimeRobot (5-min pings to /api/healthz) acts as a secondary guard
-    // that also keeps Render's free tier from spinning down.
-    const KEEPALIVE_INTERVAL_MS = 60 * 1000; // 1 minute
-    setInterval(async () => {
-      try {
-        const client = await pool.connect();
-        await client.query("SELECT 1");
-        client.release();
-      } catch (err) {
-        // Non-fatal — log and wait for the next tick
-        logger.warn({ err: (err as Error).message }, "Neon keep-alive ping failed");
-      }
-    }, KEEPALIVE_INTERVAL_MS).unref(); // unref() so the interval never blocks graceful shutdown
+    // NOTE: The internal Neon keep-alive cronjob has been intentionally removed.
+    // Running SELECT 1 every 60 seconds consumed Neon's 5 GB/month network
+    // transfer quota in under 5 days (1,440 queries/day × proxy overhead).
+    // Neon's cold-start wake-up takes ~1–2 seconds on first real request, which
+    // is acceptable. UptimeRobot pings /api/healthz every 5 minutes to keep
+    // Render's free tier from spinning down — that is sufficient.
   });
 });

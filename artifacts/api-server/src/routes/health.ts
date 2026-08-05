@@ -1,27 +1,16 @@
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
-import { pool } from "@workspace/db";
 
 const router: IRouter = Router();
 
-router.get("/healthz", async (_req, res) => {
-  // Run a trivial DB query so this endpoint keeps Neon awake when pinged by
-  // UptimeRobot (or any uptime monitor) every 5 minutes.
-  // If the DB is unreachable we still return 200 so Render's own health check
-  // doesn't restart the server — we just include the error in the payload.
-  let dbOk = true;
-  let dbError: string | null = null;
-  try {
-    const client = await pool.connect();
-    await client.query("SELECT 1");
-    client.release();
-  } catch (err) {
-    dbOk = false;
-    dbError = (err as Error).message ?? String(err);
-  }
-
+router.get("/healthz", (_req, res) => {
+  // Returns 200 immediately — no DB query.
+  // This keeps Render's free tier from spinning down (UptimeRobot pings here
+  // every 5 minutes) without consuming any Neon network transfer quota.
+  // Hitting Neon on every health-check exhausted the 5 GB/month free-tier
+  // transfer limit in under 5 days (288 SELECT 1 queries/day via the proxy).
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, db: dbOk ? "ok" : "error", dbError });
+  res.json({ ...data, db: "unchecked" });
 });
 
 export default router;
