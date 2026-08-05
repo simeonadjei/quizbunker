@@ -1,0 +1,49 @@
+Cronjob can wake it 1 minutes uptime needs payment for below 5 minutes, let use both uptime robot as backup
+
+Good plan — an internal server cronjob pings Neon every minute, UptimeRobot keeps Render itself from spinning down every 5 minutes as backup.
+
+I'll add a setInterval keep-alive directly in the server so it runs automatically with no external service needed for the DB part.
+
+Pushed — commit 69a93e0. Here's the full strategy now in place:
+
+Layer 1 — Internal cronjob (every 60 seconds) The server itself runs SELECT 1 against Neon every minute. Neon never gets the 5 minutes of silence it needs to suspend. This is the primary guard and costs nothing.
+
+Layer 2 — UptimeRobot (every 5 minutes, free) Pings https://<your-render-url>/api/healthz, which now also does a SELECT 1. This keeps Render's free tier from spinning down AND is a second line of defence for Neon if the server ever restarts mid-interval.
+
+Redeploy 69a93e0 on Render, then set up UptimeRobot on your API's /api/healthz URL with a 5-minute interval. After that, cold-start failures are gone permanently.
+
+How do I neon url for uptime and cronjob
+
+You don't use the Neon URL for either — both ping your Render API server, not Neon directly. Neon is a database; you can't HTTP-ping it.
+
+Here's how it works:
+
+UptimeRobot  ──→  https://your-render-api.onrender.com/api/healthz
+                        │
+                        └──→  Neon DB (SELECT 1)  ← kept awake
+Internal cron  ──→  pool.connect() + SELECT 1  ──→  Neon DB  ← kept awake
+For UptimeRobot, the URL you need is your Render API service's public URL — something like:
+
+https://quizbunker-api.onrender.com/api/healthz
+You can find it in Render dashboard → your API service → the URL shown at the top.
+
+The internal cronjob (the setInterval we just added) needs nothing from you — it runs automatically inside the server the moment it starts. No URL, no config.
+
+https://quizbunker-api.onrender.com/api/healthz, this is already on uptime robot and cronjob
+
+You're all set then. Redeploy commit 69a93e0 on Render and the full stack is covered:
+
+Every 60 seconds — server pings Neon internally
+Every 5 minutes — UptimeRobot hits /api/healthz → pings Neon + confirms Render is up
+Neon will never sleep again, and you have the UptimeRobot dashboard as a real-time health monitor for the API too.
+
+Why the same issue we going and coming back to SAME TIME issues fix it
+
+The login fix didn't take effect — your Render server was still running the old build when users tried to log in, so the columns are STILL missing. Also my inline guard used the wrong error check (Drizzle wraps the PG error, so "column does not exist" isn't in the top-level .message).
+
+I'll fix both right now: run the migration directly against production Neon, then fix the guard to be format-agnostic.
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+Website

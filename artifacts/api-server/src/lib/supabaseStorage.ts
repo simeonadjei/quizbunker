@@ -35,6 +35,24 @@ function getBucket(): string {
 }
 
 /**
+ * Upload a Buffer directly to Supabase Storage (preferred — no disk I/O needed).
+ * @param key         Storage path, e.g. "songs/1720000000000-track.mp3"
+ * @param buffer      File contents as a Node.js Buffer
+ * @param contentType MIME type, e.g. "audio/mpeg"
+ */
+export async function uploadBufferToSupabase(
+  key: string,
+  buffer: Buffer,
+  contentType: string,
+): Promise<void> {
+  const client = getClient();
+  const { error } = await client.storage
+    .from(getBucket())
+    .upload(key, buffer, { contentType, upsert: false });
+  if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+}
+
+/**
  * Upload a file from disk to Supabase Storage.
  * @param key         Storage path, e.g. "songs/1720000000000-track.mp3"
  * @param filePath    Absolute local path

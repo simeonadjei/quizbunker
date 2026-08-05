@@ -78,16 +78,17 @@ const corsOptions: cors.CorsOptions = {
 // uploads from cross-origin Render deployments.
 app.use(cors(corsOptions));
 
-// Capture raw body for Paystack webhook signature verification
+// Capture raw body for Paystack webhook signature verification.
+// 50 MB limit handles large question-text JSON payloads (extracted from .docx).
 app.use(
   express.json({
-    limit: "10mb",
+    limit: "50mb",
     verify: (req, _res, buf) => {
       (req as express.Request & { rawBody?: Buffer }).rawBody = buf;
     },
   }),
 );
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 const PgStore = pgSession(session);
 

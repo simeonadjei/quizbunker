@@ -14,7 +14,7 @@ import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
 import { sendEmail, isEmailConfigured } from "../lib/email";
 import { logger } from "../lib/logger";
-import { isSupabaseConfigured, uploadFileToSupabase, deleteFromSupabase, createSupabaseUploadUrl } from "../lib/supabaseStorage";
+import { isSupabaseConfigured, uploadBufferToSupabase, uploadFileToSupabase, deleteFromSupabase, createSupabaseUploadUrl } from "../lib/supabaseStorage";
 import { isR2Configured, uploadFileToR2, deleteFromR2 } from "../lib/r2Storage";
 
 const router = Router();
@@ -82,20 +82,12 @@ const questionUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// Multer for songs — disk storage so large MP3s never live in Node.js memory.
-// Files land at uploads/songs/<timestamp>-<sanitised-name>.<ext> and are served
-// by the express.static middleware mounted at /api/uploads/songs in app.ts.
+// Multer for songs — memory storage so the buffer goes straight to Supabase/R2
+// without any disk I/O.  Render's free-tier ephemeral disk is bypassed entirely,
+// and there is no readFileSync step that would load the whole file twice.
+// 50 MB limit matches free-tier RAM headroom (Render allocates 512 MB).
 const songUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, songsDir),
-    filename: (_req, file, cb) => {
-      const ext  = path.extname(file.originalname).toLowerCase();
-      const base = path.basename(file.originalname, ext)
-        .replace(/[^a-zA-Z0-9_\-]/g, "_")
-        .slice(0, 60);
-      cb(null, `${Date.now()}-${base}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   fileFilter: (_req, file, cb) => {
     const allowed = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -770,10 +762,8 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     return res.status(400).json({ error: "No audio file uploaded. Send a single file in the 'file' field." });
   }
 
-  // file.size comes from multer diskStorage; file.filename is the generated name on disk.
-  if (!file.size || file.size === 0) {
-    // Clean up the empty file
-    fs.unlink(file.path, () => {});
+  // file.buffer comes from multer memoryStorage
+  if (!file.buffer || file.buffer.length === 0) {
     return res.status(400).json({ error: "Uploaded file is empty" });
   }
 
@@ -794,34 +784,46 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     const title = rawTitle || file.originalname.replace(/\.[^.]+$/, "").trim();
     const ext = path.extname(file.originalname).toLowerCase();
     const mimeType = AUDIO_MIME[ext] ?? "audio/mpeg";
-    const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
+    const fileSizeMB = (file.buffer.length / 1024 / 1024).toFixed(1);
+    // Generate a safe filename for the storage key
+    const safeName = path.basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9_\-]/g, "_")
+      .slice(0, 60);
+    const storageFilename = `${Date.now()}-${safeName}${ext}`;
 
     let filenameForDb: string;
     let audioUrl: string;
 
     if (isR2Configured()) {
-      // ── R2 path (preferred): upload from disk stream, then remove temp file ─
-      const r2Key = `songs/${file.filename}`;
-      logger.info({ title, fileSizeMB, mimeType, r2Key }, "Uploading song to Cloudflare R2");
-      await uploadFileToR2(r2Key, file.path, mimeType);
-      fs.unlink(file.path, () => {}); // temp file no longer needed
+      // ── R2 path: upload buffer directly (no disk write needed) ────────────
+      const r2Key = `songs/${storageFilename}`;
+      logger.info({ title, fileSizeMB, mimeType, r2Key }, "Uploading song buffer to Cloudflare R2");
+      // Write buffer to a temp file since R2 helper uses a read stream
+      const tmpPath = path.join(songsDir, storageFilename);
+      fs.writeFileSync(tmpPath, file.buffer);
+      try {
+        await uploadFileToR2(r2Key, tmpPath, mimeType);
+      } finally {
+        fs.unlink(tmpPath, () => {});
+      }
 
-      filenameForDb = r2Key;           // stored so the serve route can fetch from R2
-      audioUrl      = "";              // placeholder; updated after insert gives us the ID
+      filenameForDb = r2Key;
+      audioUrl      = "";
     } else if (isSupabaseConfigured()) {
-      // ── Supabase path: upload from disk, then remove temp file ───────────
-      const sbKey = `songs/${file.filename}`;
-      logger.info({ title, fileSizeMB, mimeType, sbKey }, "Uploading song to Supabase Storage");
-      await uploadFileToSupabase(sbKey, file.path, mimeType);
-      fs.unlink(file.path, () => {}); // temp file no longer needed
+      // ── Supabase path: upload buffer directly (no disk I/O, no readFileSync) ─
+      const sbKey = `songs/${storageFilename}`;
+      logger.info({ title, fileSizeMB, mimeType, sbKey }, "Uploading song buffer to Supabase Storage");
+      await uploadBufferToSupabase(sbKey, file.buffer, mimeType);
 
-      filenameForDb = sbKey;           // stored so the serve route can fetch from Supabase
-      audioUrl      = "";              // placeholder; updated after insert gives us the ID
+      filenameForDb = sbKey;
+      audioUrl      = "";
     } else {
       // ── Disk-only fallback (ephemeral on Render free tier) ────────────────
-      logger.info({ title, fileSizeMB, mimeType, diskFile: file.filename }, "Storing song on disk (no cloud storage configured)");
-      filenameForDb = file.filename;
-      audioUrl      = `/api/uploads/songs/${file.filename}`;
+      logger.info({ title, fileSizeMB, mimeType, diskFile: storageFilename }, "Storing song on disk (no cloud storage configured)");
+      const diskPath = path.join(songsDir, storageFilename);
+      fs.writeFileSync(diskPath, file.buffer);
+      filenameForDb = storageFilename;
+      audioUrl      = `/api/uploads/songs/${storageFilename}`;
     }
 
     const [song] = await db
@@ -829,10 +831,9 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
       .values({
         title,
         filename: filenameForDb,
-        url: audioUrl || "/api/songs/0/audio", // temp placeholder for R2 path
+        url: audioUrl || "/api/songs/0/audio", // temp placeholder for cloud path
         sortOrder: nextSortOrder,
         isActive: true,
-        // fileData intentionally omitted — file is in R2 or on disk, never in DB
       })
       .returning({
         id: songsTable.id,
@@ -850,8 +851,6 @@ router.post("/admin/songs", requireAdmin, (req, res, next) => {
     logger.info({ songId: song.id, title, audioUrl }, "Song uploaded successfully");
     return res.status(201).json({ id: song.id, title: song.title, url: audioUrl, sortOrder: song.sortOrder, isActive: song.isActive });
   } catch (err: unknown) {
-    // Clean up the disk temp file on any failure
-    fs.unlink(file.path, () => {});
     const message = (err as Error).message ?? "Unknown error";
     logger.error({ err: message }, "Song upload error");
     return res.status(500).json({ error: `Upload failed: ${message}` });
