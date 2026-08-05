@@ -1707,6 +1707,76 @@ export const useUploadQuestions = <TError = ErrorType<unknown>,
       return useMutation(getUploadQuestionsMutationOptions(options));
     }
 
+export const getDeleteAllQuestionsUrl = () => {
+
+
+
+
+  return `/api/admin/questions`
+}
+
+/**
+ * @summary Delete all questions
+ */
+export const deleteAllQuestions = async ( options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getDeleteAllQuestionsUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAllQuestionsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAllQuestions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAllQuestions>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteAllQuestions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAllQuestions>>, void> = () => {
+
+
+          return  deleteAllQuestions(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAllQuestionsMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAllQuestions>>>
+
+    export type DeleteAllQuestionsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete all questions
+ */
+export const useDeleteAllQuestions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAllQuestions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAllQuestions>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteAllQuestionsMutationOptions(options));
+    }
+
 export const getDeleteQuestionUrl = (id: number,) => {
 
 

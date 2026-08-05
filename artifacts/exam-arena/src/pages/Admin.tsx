@@ -17,12 +17,16 @@ import {
   useAdminSubscribeUser,
   useListAdminReferrals,
   useNotifyReferralPaid,
+  useListQuestions,
+  useDeleteQuestion,
+  useDeleteAllQuestions,
   getGetAdminStatsQueryKey,
   getListSongsQueryKey,
   getListAdminUsersQueryKey,
   getListAdminActivityQueryKey,
   getListAdminPaymentsQueryKey,
   getListAdminReferralsQueryKey,
+  getListQuestionsQueryKey,
   setAuthTokenGetter,
   type AdminSubscribeInputPlan,
 } from '@workspace/api-client-react';
@@ -580,14 +584,48 @@ function StatsPanel() {
 
 function QuestionUploader() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [files, setFiles] = useState<File[]>([]);
   const [year, setYear] = useState('');
   const [subject, setSubject] = useState('');
   const [progress, setProgress] = useState<{ done: number; total: number; current: string } | null>(null);
   const [summary, setSummary] = useState<{ inserted: number; skipped: number; failed: string[] } | null>(null);
   const [textPreview, setTextPreview] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+
+  const { data: questions = [], refetch: refetchQuestions } = useListQuestions(undefined, {
+    query: { enabled: true, queryKey: getListQuestionsQueryKey() },
+  });
+  const deleteQuestion = useDeleteQuestion();
+  const deleteAllQuestions = useDeleteAllQuestions();
 
   const isUploading = progress !== null;
+
+  const handleDeleteQuestion = (id: number) => {
+    deleteQuestion.mutate({ id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListQuestionsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+        refetchQuestions();
+      },
+      onError: () => toast({ title: 'Delete failed', variant: 'destructive' }),
+    });
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm(`Delete all ${questions.length} questions? This cannot be undone.`)) return;
+    setIsDeletingAll(true);
+    deleteAllQuestions.mutate(undefined, {
+      onSuccess: () => {
+        toast({ title: `All ${questions.length} questions deleted` });
+        queryClient.invalidateQueries({ queryKey: getListQuestionsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+        refetchQuestions();
+      },
+      onError: () => toast({ title: 'Delete all failed', variant: 'destructive' }),
+      onSettled: () => setIsDeletingAll(false),
+    });
+  };
 
   // Preview the extracted text from the first selected file so the user can
   // verify the format before uploading.
@@ -701,8 +739,20 @@ function QuestionUploader() {
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 p-6">
-      <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Upload className="w-5 h-5" /> BULK INGEST QUESTIONS</h3>
+    <div className="bg-zinc-900 border border-zinc-800 p-6 flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold flex items-center gap-2"><Upload className="w-5 h-5" /> BULK INGEST QUESTIONS</h3>
+        {questions.length > 0 && (
+          <button
+            onClick={handleDeleteAll}
+            disabled={isDeletingAll}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-red-400 hover:text-red-300 border border-red-800 hover:border-red-600 bg-red-950/40 hover:bg-red-950/70 rounded transition-colors disabled:opacity-50"
+          >
+            {isDeletingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+            DELETE ALL ({questions.length})
+          </button>
+        )}
+      </div>
 
       <div className="space-y-4">
         <div>
@@ -776,6 +826,31 @@ function QuestionUploader() {
           </div>
         )}
       </div>
+
+      {/* Question list with individual delete buttons */}
+      {questions.length > 0 && (
+        <div className="mt-6">
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">LOADED QUESTIONS ({questions.length})</div>
+          <div className="bg-black border border-zinc-800 overflow-auto max-h-64">
+            {questions.map(q => (
+              <div key={q.id} className="flex items-start justify-between gap-2 px-3 py-2 border-b border-zinc-900 hover:bg-zinc-900/50">
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs text-zinc-600 mr-2 shrink-0">[{q.year} • {q.subject} • W{q.week} • Q{q.questionNumber}]</span>
+                  <span className="text-xs text-zinc-400 truncate">{q.questionText.slice(0, 80)}{q.questionText.length > 80 ? '…' : ''}</span>
+                </div>
+                <button
+                  onClick={() => handleDeleteQuestion(q.id)}
+                  disabled={deleteQuestion.isPending}
+                  className="shrink-0 text-red-700 hover:text-red-400 transition-colors disabled:opacity-40 mt-0.5"
+                  title="Delete this question"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

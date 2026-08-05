@@ -653,6 +653,12 @@ router.post(
   },
 );
 
+// DELETE /admin/questions — wipe all questions
+router.delete("/admin/questions", requireAdmin, async (_req, res) => {
+  await db.delete(questionsTable);
+  return res.json({ message: "All questions deleted" });
+});
+
 // DELETE /admin/questions/:id
 router.delete("/admin/questions/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);

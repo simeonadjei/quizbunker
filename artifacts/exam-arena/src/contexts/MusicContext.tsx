@@ -27,7 +27,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
-  const [volume, setVolumeState] = useState(0.5);
+  const [volume, setVolumeState] = useState(0.25);
 
   const audioRef     = useRef<HTMLAudioElement | null>(null);
   const startedRef   = useRef(false);

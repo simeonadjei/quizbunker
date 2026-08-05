@@ -479,6 +479,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/UploadResult"
 
+  /admin/questions:
+    delete:
+      operationId: deleteAllQuestions
+      tags: [admin]
+      summary: Delete all questions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
   /admin/questions/{id}:
     delete:
       operationId: deleteQuestion

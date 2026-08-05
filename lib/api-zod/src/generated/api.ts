@@ -438,6 +438,14 @@ export const UploadQuestionsResponse = zod.object({
 
 
 /**
+ * @summary Delete all questions
+ */
+export const DeleteAllQuestionsResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
  * @summary Delete a question
  */
 export const DeleteQuestionParams = zod.object({
