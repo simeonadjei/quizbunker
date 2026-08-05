@@ -812,58 +812,78 @@ function SongManager() {
       const mimeType = mimeMap[ext] ?? f.type ?? 'audio/mpeg';
 
       try {
-        // Step 1: ask server for a signed upload URL (tiny request — no file bytes go through Render)
+        // ── Strategy A: direct browser→Supabase upload (preferred — zero Render bandwidth) ──
+        let directOk = false;
+
         const urlRes = await fetch(`${API_BASE}/api/admin/songs/upload-url`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({ filename: f.name, mimeType }),
-        });
+        }).catch(() => null);
 
-        if (!urlRes.ok) {
-          let msg = `Could not get upload URL (HTTP ${urlRes.status})`;
-          try { const d = await urlRes.json(); msg = d.error || msg; } catch { /* ignore */ }
-          failed.push(`${f.name}: ${msg}`);
-          setUploadProgress({ done: i + 1, total: files.length });
-          continue;
-        }
+        if (urlRes && urlRes.ok) {
+          const { uploadUrl, key } = await urlRes.json() as { uploadUrl: string; key: string };
 
-        const { uploadUrl, key } = await urlRes.json() as { uploadUrl: string; key: string };
-
-        // Step 2: PUT file bytes directly to Supabase — zero Render bandwidth used
-        let putRes: Response;
-        try {
-          putRes = await fetch(uploadUrl, {
+          // PUT file bytes directly to Supabase
+          const putRes = await fetch(uploadUrl, {
             method: 'PUT',
             headers: { 'Content-Type': mimeType },
             body: f,
-          });
-        } catch (putErr: unknown) {
-          failed.push(`${f.name}: Supabase PUT failed — ${(putErr as Error).message} (possible CORS issue)`);
-          setUploadProgress({ done: i + 1, total: files.length });
-          continue;
+          }).catch(() => null);
+
+          if (putRes && putRes.ok) {
+            // Confirm with DB record
+            const confirmRes = await fetch(`${API_BASE}/api/admin/songs/confirm`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json', ...authHeaders },
+              body: JSON.stringify({ key, mimeType, originalName: f.name }),
+            });
+            if (confirmRes.ok) {
+              directOk = true;
+              succeeded++;
+            } else {
+              let msg = `DB save failed (HTTP ${confirmRes.status})`;
+              try { const d = await confirmRes.json(); msg = d.error || msg; } catch { /* ignore */ }
+              failed.push(`${f.name}: ${msg}`);
+              setUploadProgress({ done: i + 1, total: files.length });
+              continue;
+            }
+          } else {
+            // Log what went wrong with the Supabase PUT for diagnostics
+            const putStatus = putRes?.status ?? 'network error';
+            let putBody = '';
+            try { if (putRes) putBody = await putRes.text(); } catch { /* ignore */ }
+            console.warn(`[songs] Direct Supabase PUT failed (${putStatus}) — ${putBody || ''}. Falling back to server-side upload.`);
+          }
+        } else {
+          const status = urlRes?.status ?? 'network error';
+          console.warn(`[songs] upload-url failed (${status}) — falling back to server-side upload.`);
         }
-        if (!putRes.ok) {
-          let putErrBody = '';
-          try { putErrBody = await putRes.text(); } catch { /* ignore */ }
-          failed.push(`${f.name}: Supabase upload failed (HTTP ${putRes.status}) — ${putErrBody || 'no details'}`);
+
+        if (directOk) {
           setUploadProgress({ done: i + 1, total: files.length });
           continue;
         }
 
-        // Step 3: tell server to save the DB record (tiny JSON — no bytes)
-        const confirmRes = await fetch(`${API_BASE}/api/admin/songs/confirm`, {
+        // ── Strategy B: server-side upload (fallback — file goes through Render) ──
+        // Used when Supabase direct upload isn't available or fails (CORS, bucket
+        // not configured, etc.). Slower but always works.
+        const formData = new FormData();
+        formData.append('file', f);
+        const serverRes = await fetch(`${API_BASE}/api/admin/songs`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json', ...authHeaders },
-          body: JSON.stringify({ key, mimeType, originalName: f.name }),
+          headers: { ...authHeaders },
+          body: formData,
         });
-        if (!confirmRes.ok) {
-          let msg = `DB save failed (HTTP ${confirmRes.status})`;
-          try { const d = await confirmRes.json(); msg = d.error || msg; } catch { /* ignore */ }
-          failed.push(`${f.name}: ${msg}`);
-        } else {
+        if (serverRes.ok) {
           succeeded++;
+        } else {
+          let msg = `Upload failed (HTTP ${serverRes.status})`;
+          try { const d = await serverRes.json(); msg = d.error || msg; } catch { /* ignore */ }
+          failed.push(`${f.name}: ${msg}`);
         }
       } catch (e: unknown) {
         failed.push(`${f.name}: ${(e as Error).message}`);

@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm";
 import { RegisterUserBody, LoginUserBody, ForgotPasswordBody, ResetPasswordBody } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity";
 import { sendEmail } from "../lib/email";
+import { ensureUsersColumns } from "../lib/db-migrations";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -159,11 +161,33 @@ router.post("/auth/register", registerLimiter, async (req, res) => {
   const { email, password, name } = parsed.data;
   const referralCodeInput = (req.body as { referralCode?: string }).referralCode?.trim().toUpperCase() || null;
 
-  const existing = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.email, email.toLowerCase()))
-    .limit(1);
+  // Inline migration guard — same as in the login route.
+  let existing: { id: number }[];
+  try {
+    existing = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.email, email.toLowerCase()))
+      .limit(1);
+  } catch (queryErr) {
+    const msg = (queryErr as Error).message ?? "";
+    if (msg.includes("column") && msg.includes("does not exist")) {
+      logger.warn({ err: msg }, "auth/register: missing column detected — running inline migration");
+      try {
+        await ensureUsersColumns();
+        existing = await db
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.email, email.toLowerCase()))
+          .limit(1);
+      } catch (migErr) {
+        logger.error({ err: (migErr as Error).message }, "auth/register: inline migration failed");
+        return res.status(503).json({ error: "Database is initialising. Please try again in a few seconds." });
+      }
+    } else {
+      throw queryErr;
+    }
+  }
 
   if (existing.length > 0) {
     return res.status(409).json({ error: "Email already registered" });
@@ -320,11 +344,36 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
 
   const { email, password, rememberMe } = parsed.data;
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.email, email.toLowerCase()))
-    .limit(1);
+  // Inline migration guard: if the users table is missing columns that were
+  // added after the initial deploy (e.g. semester_start, referral_code),
+  // Drizzle's SELECT will throw "column does not exist". Auto-migrate and retry
+  // once rather than returning a confusing 500 to the user.
+  let user: (typeof usersTable.$inferSelect) | undefined;
+  try {
+    [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, email.toLowerCase()))
+      .limit(1);
+  } catch (queryErr) {
+    const msg = (queryErr as Error).message ?? "";
+    if (msg.includes("column") && msg.includes("does not exist")) {
+      logger.warn({ err: msg }, "auth/login: missing column detected — running inline migration");
+      try {
+        await ensureUsersColumns();
+        [user] = await db
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.email, email.toLowerCase()))
+          .limit(1);
+      } catch (migErr) {
+        logger.error({ err: (migErr as Error).message }, "auth/login: inline migration failed");
+        return res.status(503).json({ error: "Database is initialising. Please try again in a few seconds." });
+      }
+    } else {
+      throw queryErr;
+    }
+  }
 
   if (!user) {
     return res.status(401).json({ error: "Invalid email or password" });

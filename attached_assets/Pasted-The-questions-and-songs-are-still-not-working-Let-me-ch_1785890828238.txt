@@ -1,0 +1,83 @@
+The questions and songs are still not working
+
+Let me check the logs and current code to diagnose both issues at once.
+
+Let me look at the actual upload code and the server endpoint to find the bug.
+
+Let me check the server-side endpoints exist and are correct.
+
+There's a potential mismatch — the server gets signedUrl but the client expects uploadUrl. Let me check what the server actually returns.
+
+The code looks correct on both sides. The most likely reason both are still broken is Render hasn't been redeployed yet — the live server is still running old code that doesn't have the new endpoints (/api/admin/songs/upload-url, /api/admin/songs/confirm, /api/admin/questions/upload-text).
+
+Have you redeployed on Render since the last fixes?
+Yes, I redeployed and it's still broken
+SI
+simeonadjei4
+simeonadjei4
+Let me check the upload-text endpoint and the Supabase signed URL flow for potential bugs.
+
+Let me check if the mammoth build actually works and look at whether there's an admin auth issue that could be blocking both uploads.
+
+Let me try to build the frontend and check for errors, and also verify the Supabase signed URL approach is correct.
+
+Build succeeds, so mammoth is fine. Let me look at the admin login flow and check if the token is being stored correctly, and also look at what error message the user actually sees.
+
+Let me check the questions schema (needed for onConflictDoNothing) and the parser to understand what format it expects.
+
+Found the key issues. Let me check if the summary errors are displayed in the UI and what happens with the songs upload when Supabase fails.
+
+Let me read the full parser and check how it handles the text format, plus check if there's a Supabase CORS or method issue.
+
+I can see two clear bugs:
+
+Questions toast never shows the actual error — it just says "0/1 succeeded" with no description, so failures are invisible unless you notice the in-page summary
+Songs Supabase PUT swallows the error body, so when the PUT fails we don't know why (CORS? 403? wrong method?)
+Let me fix both and improve error visibility so we can see exactly what's going wrong.
+
+Now I'll fix both issues — better error messages so failures are visible, and capture the Supabase PUT error body so we know exactly why songs fail.
+
+Now fix the songs PUT to capture the actual Supabase error body:
+
+Let me also check the old server-side upload handler to confirm mammoth is used the same way:
+
+The old server-side handler uses { buffer } while the new browser code uses { arrayBuffer } — both produce the same mammoth output, so that's not the issue.
+
+Let me also add a "preview extracted text" feature so we can see what mammoth actually pulls from the file, helping diagnose format issues:
+
+Let me add a text preview diagnostic and push everything to GitHub.
+
+Now I need to wire up handleFilesChange to the file input and show the preview in the UI:
+
+Let me build to verify no errors, then push to GitHub.
+
+Build clean. Pushing to GitHub now.
+
+Pushed — commit 449ccdf.
+
+Here's what changed and why it will help diagnose the failures:
+
+Questions upload — 3 fixes:
+
+Toast now shows the actual error (e.g. "No valid questions found", "HTTP 401", "Network error") instead of just "0/1 succeeded" with no details
+Text preview — when you select a .docx file, the admin page instantly shows the first 400 characters that mammoth extracted, alongside the expected format. This tells us immediately if the file format doesn't match the parser
+Network errors are now caught and shown separately from server errors
+Songs upload — 1 fix:
+
+The Supabase PUT error now captures and shows the response body (e.g. "403 Forbidden", CORS error, etc.) instead of just "HTTP 4xx"
+Next steps:
+
+Redeploy on Render (Dashboard → API service → Manual Deploy → 449ccdf)
+Try uploading a question file — the text preview will appear immediately when you select the file. If the format looks wrong, share a screenshot
+Try uploading a song — if the Supabase PUT fails, the toast will now show exactly why (e.g. CORS, 403, etc.)
+Tell me what errors you see after the redeploy and I can fix the root cause directly.
+
+That's the root cause of everything — login is failing with a 500 because the production Neon database is missing columns (semester_start, referral_code, etc.). ensureUsersColumns() should be fixing this at startup, but it's clearly not running or failing silently. Let me check.
+
+The ensureUsersColumns() is running locally (I can see it in the dev logs) but the Render production database still doesn't have the columns. The safest fix is to add them directly to the production Neon database right now, bypassing the startup migration entirely.
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+QuizBunker
+Website
