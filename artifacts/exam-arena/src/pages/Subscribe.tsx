@@ -110,7 +110,8 @@ export default function Subscribe() {
 
   return (
     <Layout>
-      <div className="px-4 py-5 max-w-lg mx-auto w-full">
+      <div className="flex-1 flex items-start justify-center px-4 py-6">
+      <div className="w-full max-w-sm">
 
         {/* Header */}
         <div className="text-center mb-6">
@@ -194,7 +195,7 @@ export default function Subscribe() {
               );
             })}
 
-            <p className="text-center text-white/40 text-xs font-bold">
+            <p className="text-center text-white font-bold text-base">
               Manual MoMo payment. Verified by admin within minutes.
             </p>
           </>
@@ -280,6 +281,7 @@ export default function Subscribe() {
           </div>
         )}
 
+      </div>
       </div>
     </Layout>
   );

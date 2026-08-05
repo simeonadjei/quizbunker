@@ -383,7 +383,8 @@ export default function Dashboard() {
       {/* Subscribe gate modal */}
       {showSubscribeGate && <SubscribeGate onClose={() => setShowSubscribeGate(false)} />}
 
-      <div className="px-3 pt-6 pb-4 max-w-lg mx-auto w-full space-y-3">
+      <div className="px-4 pt-6 pb-4 w-full mx-auto space-y-3 flex flex-col items-center">
+      <div className="w-full max-w-sm space-y-3">
 
         {/* Offline banner */}
         {!isOnline && (
@@ -605,6 +606,7 @@ export default function Dashboard() {
           </div>
         )}
 
+      </div>
       </div>
     </Layout>
   );

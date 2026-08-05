@@ -1,0 +1,145 @@
+Skip to content
+
+
+
+
+
+
+
+
+
+
+
+
+
+/
+
+
+
+
+explain the individual question, i meant a whole year question upload, i upload them based on year and subject, i want to be able to delete that year subject all 24 weeks questions, is that what is done?
+
+BR
+branham15
+branham15
+4 hours ago
+Refining scope for bulk deletion
+
+Refining scope for bulk deletion
+No, what was implemented was per-row deletion (one question at a time). That's not what you want. You want to delete all questions for a specific year + subject (e.g., wipe "Year 1 Science" with all its weeks in one click). Let me rebuild that properly.
+
+I'll add a grouped delete by year+subject:
+
+
+2 actions
+Now let me add the backend route and run codegen in parallel:
+
+
+6 actions
+Good. Now let me check the generated hook signature and update the Admin UI:
+
+
+2 actions
+Now I'll rewrite the QuestionUploader to show groups (year + subject) with a delete-group button, and remove the per-row delete:
+
+
+2 actions
+Now let me replace the QuestionUploader function body and JSX with the grouped approach:
+
+
+2 actions
+Now I need to update the JSX return to show the grouped view instead of the per-row list:
+
+
+9 actions
+Done — pushed as fb516fd. Here's what changed:
+
+The Questions section now shows your uploaded sets grouped by Year + Subject, like this:
+
+Year 1 — Science        240 questions · 24 weeks    [DELETE]
+Year 2 — Math           180 questions · 18 weeks    [DELETE]
+
+Clicking DELETE on a row wipes all questions for that year+subject combination (all 24 weeks at once) after a confirmation prompt. The DELETE ALL button at the top still wipes everything across every group if you need a full reset.
+
+
+Worked for 2 minutes
+push to github and show the id
+
+BR
+branham15
+branham15
+4 hours ago
+
+3 actions
+Nothing new to push — the working tree is clean. Latest commit is fb516fd.
+
+
+Worked for 9 seconds
+Button to Delete for grouped by Year + Subject, like this:
+
+Year 1 — Science 240 questions · 24 weeks [DELETE] Year 2 — Math 180 questions · 18 weeks [DELETE] not seen
+
+BR
+branham15
+branham15
+3 hours ago
+
+3 actions
+Let me check the useListQuestions call and the API route to see why groups aren't showing:
+
+
+17 actions
+The /questions route isn't resolving — there's likely a base-path prefix. Let me check:
+
+
+3 actions
+The questions route is at /api/questions. The generated client must be calling /questions without the /api prefix. Let me check the client base URL config and the route mounting:
+
+
+29 actions
+The URL already has /api — so the client is correct. Let me test the actual endpoint:
+
+
+5 actions
+The dev database is empty — 0 questions. The grouped section only renders when groupList.length > 0, so it's completely hidden. I'll make it always visible (showing a placeholder when empty), so the section is there regardless:
+
+
+5 actions
+Pushed as 22e9f47. The "UPLOADED SETS" section now always shows below the upload form — even when the database is empty it displays "No questions uploaded yet". Once questions are uploaded, each year+subject group appears with its DELETE button immediately.
+
+The reason it was invisible before: the dev database here has 0 questions, so the old groupList.length > 0 guard hid the entire section. On your production/deployed app where questions exist, the grouped DELETE buttons will appear as expected.
+
+
+Worked for 5 minutes
+
+Attached Image
+bring the whole area to the middle and increase the font size to twice
+
+BR
+branham15
+branham15
+50 minutes ago
+
+11 actions
+Done — pushed as bdf5317. The "Select a subject above to see available weeks" prompt is now vertically centered in the space with a minimum height, the icon is larger, and the text is doubled to text-4xl.
+
+
+Worked for 49 seconds
+
+Attached Image
+Manual MoMo payment. Verified by admin within minutes.-----these are not legible make the large and legible, look year and subject buttons, they have been pushed up, that they are not seen, center them like the login buttons, let all such be centered including the momo payment PAGE
+
+BR
+branham15
+branham15
+11 minutes ago
+
+6 actions
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+
+Worked for 18 seconds
+Manual MoMo payment. Verified by admin within minutes.-----these are not legible make the large and legible, look year and subject buttons, they have been pushed up, that they are not seen, center them like the login buttons, let all such be centered including the momo payment PAGE Agent activity Agent activity Agent activity
+
+Scroll to latest
+Guests can't use Agent in Starter Plan user's repls
