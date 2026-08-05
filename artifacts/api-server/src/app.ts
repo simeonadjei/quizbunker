@@ -93,19 +93,21 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 const PgStore = pgSession(session);
 
 // Sessions are stored in PostgreSQL so they survive server restarts and
-// redeployments.  connect-pg-simple creates the `session` table automatically
-// the first time the store is used (createTableIfMissing: true).
+// redeployments.  The express_sessions table is created by ensureAllTables()
+// on startup, so createTableIfMissing must be FALSE — connect-pg-simple reads
+// a table.sql file from its package directory to create the table, which is
+// not bundled by esbuild and causes ENOENT crashes on Render.
 const sessionStore = new PgStore({
   pool,
   tableName: "express_sessions",
-  createTableIfMissing: true,
+  createTableIfMissing: false,
   // Prune expired sessions every hour
   pruneSessionInterval: 60 * 60,
 });
 
 // ensureSessionTable is kept as a no-op so index.ts can still call it safely.
 export async function ensureSessionTable(): Promise<void> {
-  // no-op: connect-pg-simple creates the sessions table automatically
+  // no-op: express_sessions is created by ensureAllTables() in db-migrations.ts
 }
 
 /**

@@ -124,6 +124,18 @@ export async function ensureAllTables(): Promise<void> {
           status      TEXT NOT NULL DEFAULT 'pending',
           created_at  TIMESTAMP NOT NULL DEFAULT NOW()
         )`,
+
+        // 9. express_sessions — connect-pg-simple reads table.sql from its
+        //    package directory at runtime, which breaks when esbuild bundles
+        //    the server (the .sql asset is not included in dist/).
+        //    Create the table ourselves and set createTableIfMissing: false.
+        `CREATE TABLE IF NOT EXISTS express_sessions (
+          sid    VARCHAR NOT NULL COLLATE "default",
+          sess   JSON    NOT NULL,
+          expire TIMESTAMP(6) NOT NULL,
+          CONSTRAINT express_sessions_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE
+        )`,
+        `CREATE INDEX IF NOT EXISTS IDX_express_sessions_expire ON express_sessions (expire)`,
       ]),
     "ensureAllTables",
   );
