@@ -590,9 +590,9 @@ export default function Dashboard() {
 
         {/* Prompt to pick subject */}
         {!loadingFilters && !selectedSubject && filters && (
-          <div className="card-game p-6 text-center">
-            <BookOpen className="w-9 h-9 text-primary mx-auto mb-3" />
-            <p className="text-white/70 font-bold text-base">Select a subject above to see available weeks</p>
+          <div className="card-game p-12 flex flex-col items-center justify-center min-h-[40vh] text-center">
+            <BookOpen className="w-16 h-16 text-primary mx-auto mb-6" />
+            <p className="text-white/70 font-bold text-4xl">Select a subject above to see available weeks</p>
           </div>
         )}
 
