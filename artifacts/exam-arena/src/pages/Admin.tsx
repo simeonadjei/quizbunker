@@ -851,40 +851,40 @@ function QuestionUploader() {
         )}
       </div>
 
-      {/* Grouped by Year + Subject with per-group delete */}
-      {groupList.length > 0 && (
-        <div className="mt-6">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
-            UPLOADED SETS ({groupList.length} group{groupList.length !== 1 ? 's' : ''}, {questions.length} total questions)
-          </div>
-          <div className="bg-black border border-zinc-800 divide-y divide-zinc-900">
-            {groupList.map(g => {
-              const key = `${g.year}|${g.subject}`;
-              const isDeleting = deletingGroup === key;
-              return (
-                <div key={key} className="flex items-center justify-between px-3 py-2.5 hover:bg-zinc-900/50">
-                  <div>
-                    <span className="text-sm font-bold text-zinc-200">{g.year}</span>
-                    <span className="text-zinc-500 mx-1.5">—</span>
-                    <span className="text-sm text-zinc-300">{g.subject}</span>
-                    <span className="ml-3 text-xs text-zinc-600">
-                      {g.count} questions · {g.weeks.size} week{g.weeks.size !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteGroup(g.year, g.subject, g.count)}
-                    disabled={isDeleting || isDeletingAll}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-red-500 hover:text-red-300 border border-red-900 hover:border-red-600 bg-red-950/30 hover:bg-red-950/60 rounded transition-colors disabled:opacity-40 shrink-0 ml-4"
-                  >
-                    {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                    DELETE
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+      {/* Grouped by Year + Subject with per-group delete — always visible */}
+      <div className="mt-6">
+        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
+          UPLOADED SETS ({groupList.length} group{groupList.length !== 1 ? 's' : ''}{questions.length > 0 ? `, ${questions.length} total questions` : ''})
         </div>
-      )}
+        <div className="bg-black border border-zinc-800 divide-y divide-zinc-900">
+          {groupList.length === 0 ? (
+            <div className="px-3 py-4 text-xs text-zinc-600 text-center">No questions uploaded yet</div>
+          ) : groupList.map(g => {
+            const key = `${g.year}|${g.subject}`;
+            const isDeleting = deletingGroup === key;
+            return (
+              <div key={key} className="flex items-center justify-between px-3 py-2.5 hover:bg-zinc-900/50">
+                <div>
+                  <span className="text-sm font-bold text-zinc-200">{g.year}</span>
+                  <span className="text-zinc-500 mx-1.5">—</span>
+                  <span className="text-sm text-zinc-300">{g.subject}</span>
+                  <span className="ml-3 text-xs text-zinc-600">
+                    {g.count} questions · {g.weeks.size} week{g.weeks.size !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleDeleteGroup(g.year, g.subject, g.count)}
+                  disabled={isDeleting || isDeletingAll}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-red-500 hover:text-red-300 border border-red-900 hover:border-red-600 bg-red-950/30 hover:bg-red-950/60 rounded transition-colors disabled:opacity-40 shrink-0 ml-4"
+                >
+                  {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                  DELETE
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
