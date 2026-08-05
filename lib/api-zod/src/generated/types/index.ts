@@ -17,6 +17,7 @@ export * from './adminSubscribeResponse';
 export * from './adminTestEmailInput';
 export * from './answerInput';
 export * from './authResponse';
+export * from './deleteQuestionsByFilterParams';
 export * from './errorResponse';
 export * from './forgotPasswordInput';
 export * from './healthStatus';

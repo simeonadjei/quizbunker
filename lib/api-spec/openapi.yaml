@@ -492,6 +492,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /admin/questions/by-filter:
+    delete:
+      operationId: deleteQuestionsByFilter
+      tags: [admin]
+      summary: Delete all questions for a given year and subject
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: subject
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
   /admin/questions/{id}:
     delete:
       operationId: deleteQuestion

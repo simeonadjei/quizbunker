@@ -386,6 +386,11 @@ subject?: string;
 week?: number;
 };
 
+export type DeleteQuestionsByFilterParams = {
+year: string;
+subject: string;
+};
+
 export type ListAdminActivityParams = {
 limit?: number;
 type?: string;

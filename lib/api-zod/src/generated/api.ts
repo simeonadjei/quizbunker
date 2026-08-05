@@ -446,6 +446,19 @@ export const DeleteAllQuestionsResponse = zod.object({
 
 
 /**
+ * @summary Delete all questions for a given year and subject
+ */
+export const DeleteQuestionsByFilterQueryParams = zod.object({
+  "year": zod.coerce.string(),
+  "subject": zod.coerce.string()
+})
+
+export const DeleteQuestionsByFilterResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
  * @summary Delete a question
  */
 export const DeleteQuestionParams = zod.object({

@@ -18,8 +18,8 @@ import {
   useListAdminReferrals,
   useNotifyReferralPaid,
   useListQuestions,
-  useDeleteQuestion,
   useDeleteAllQuestions,
+  useDeleteQuestionsByFilter,
   getGetAdminStatsQueryKey,
   getListSongsQueryKey,
   getListAdminUsersQueryKey,
@@ -592,28 +592,52 @@ function QuestionUploader() {
   const [summary, setSummary] = useState<{ inserted: number; skipped: number; failed: string[] } | null>(null);
   const [textPreview, setTextPreview] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [deletingGroup, setDeletingGroup] = useState<string | null>(null);
 
   const { data: questions = [], refetch: refetchQuestions } = useListQuestions(undefined, {
     query: { enabled: true, queryKey: getListQuestionsQueryKey() },
   });
-  const deleteQuestion = useDeleteQuestion();
   const deleteAllQuestions = useDeleteAllQuestions();
+  const deleteByFilter = useDeleteQuestionsByFilter();
 
   const isUploading = progress !== null;
 
-  const handleDeleteQuestion = (id: number) => {
-    deleteQuestion.mutate({ id }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListQuestionsQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
-        refetchQuestions();
-      },
-      onError: () => toast({ title: 'Delete failed', variant: 'destructive' }),
-    });
+  // Build groups: { "Year 1|Science": { year, subject, count, weeks } }
+  const groups = questions.reduce<Record<string, { year: string; subject: string; count: number; weeks: Set<number> }>>(
+    (acc, q) => {
+      const key = `${q.year}|${q.subject}`;
+      if (!acc[key]) acc[key] = { year: q.year, subject: q.subject, count: 0, weeks: new Set() };
+      acc[key].count++;
+      acc[key].weeks.add(q.week);
+      return acc;
+    },
+    {}
+  );
+  const groupList = Object.values(groups).sort((a, b) =>
+    a.year.localeCompare(b.year) || a.subject.localeCompare(b.subject)
+  );
+
+  const handleDeleteGroup = (groupYear: string, groupSubject: string, count: number) => {
+    if (!window.confirm(`Delete all ${count} questions for "${groupYear} – ${groupSubject}"? This cannot be undone.`)) return;
+    const key = `${groupYear}|${groupSubject}`;
+    setDeletingGroup(key);
+    deleteByFilter.mutate(
+      { params: { year: groupYear, subject: groupSubject } },
+      {
+        onSuccess: (res) => {
+          toast({ title: res.message });
+          queryClient.invalidateQueries({ queryKey: getListQuestionsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+          refetchQuestions();
+        },
+        onError: () => toast({ title: 'Delete failed', variant: 'destructive' }),
+        onSettled: () => setDeletingGroup(null),
+      }
+    );
   };
 
-  const handleDeleteAll = async () => {
-    if (!window.confirm(`Delete all ${questions.length} questions? This cannot be undone.`)) return;
+  const handleDeleteAll = () => {
+    if (!window.confirm(`Delete ALL ${questions.length} questions from every year and subject? This cannot be undone.`)) return;
     setIsDeletingAll(true);
     deleteAllQuestions.mutate(undefined, {
       onSuccess: () => {
@@ -827,27 +851,37 @@ function QuestionUploader() {
         )}
       </div>
 
-      {/* Question list with individual delete buttons */}
-      {questions.length > 0 && (
+      {/* Grouped by Year + Subject with per-group delete */}
+      {groupList.length > 0 && (
         <div className="mt-6">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">LOADED QUESTIONS ({questions.length})</div>
-          <div className="bg-black border border-zinc-800 overflow-auto max-h-64">
-            {questions.map(q => (
-              <div key={q.id} className="flex items-start justify-between gap-2 px-3 py-2 border-b border-zinc-900 hover:bg-zinc-900/50">
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs text-zinc-600 mr-2 shrink-0">[{q.year} • {q.subject} • W{q.week} • Q{q.questionNumber}]</span>
-                  <span className="text-xs text-zinc-400 truncate">{q.questionText.slice(0, 80)}{q.questionText.length > 80 ? '…' : ''}</span>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
+            UPLOADED SETS ({groupList.length} group{groupList.length !== 1 ? 's' : ''}, {questions.length} total questions)
+          </div>
+          <div className="bg-black border border-zinc-800 divide-y divide-zinc-900">
+            {groupList.map(g => {
+              const key = `${g.year}|${g.subject}`;
+              const isDeleting = deletingGroup === key;
+              return (
+                <div key={key} className="flex items-center justify-between px-3 py-2.5 hover:bg-zinc-900/50">
+                  <div>
+                    <span className="text-sm font-bold text-zinc-200">{g.year}</span>
+                    <span className="text-zinc-500 mx-1.5">—</span>
+                    <span className="text-sm text-zinc-300">{g.subject}</span>
+                    <span className="ml-3 text-xs text-zinc-600">
+                      {g.count} questions · {g.weeks.size} week{g.weeks.size !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteGroup(g.year, g.subject, g.count)}
+                    disabled={isDeleting || isDeletingAll}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-red-500 hover:text-red-300 border border-red-900 hover:border-red-600 bg-red-950/30 hover:bg-red-950/60 rounded transition-colors disabled:opacity-40 shrink-0 ml-4"
+                  >
+                    {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    DELETE
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleDeleteQuestion(q.id)}
-                  disabled={deleteQuestion.isPending}
-                  className="shrink-0 text-red-700 hover:text-red-400 transition-colors disabled:opacity-40 mt-0.5"
-                  title="Delete this question"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

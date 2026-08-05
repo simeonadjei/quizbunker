@@ -29,6 +29,7 @@ import type {
   AdminSubscribeResponse,
   AdminTestEmailInput,
   AuthResponse,
+  DeleteQuestionsByFilterParams,
   ErrorResponse,
   ForgotPasswordInput,
   HealthStatus,
@@ -1775,6 +1776,83 @@ export const useDeleteAllQuestions = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteAllQuestionsMutationOptions(options));
+    }
+
+export const getDeleteQuestionsByFilterUrl = (params: DeleteQuestionsByFilterParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/questions/by-filter?${stringifiedParams}` : `/api/admin/questions/by-filter`
+}
+
+/**
+ * @summary Delete all questions for a given year and subject
+ */
+export const deleteQuestionsByFilter = async (params: DeleteQuestionsByFilterParams, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getDeleteQuestionsByFilterUrl(params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteQuestionsByFilterMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteQuestionsByFilter>>, TError,{params: DeleteQuestionsByFilterParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteQuestionsByFilter>>, TError,{params: DeleteQuestionsByFilterParams}, TContext> => {
+
+const mutationKey = ['deleteQuestionsByFilter'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteQuestionsByFilter>>, {params: DeleteQuestionsByFilterParams}> = (props) => {
+          const {params} = props ?? {};
+
+          return  deleteQuestionsByFilter(params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteQuestionsByFilterMutationResult = NonNullable<Awaited<ReturnType<typeof deleteQuestionsByFilter>>>
+
+    export type DeleteQuestionsByFilterMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete all questions for a given year and subject
+ */
+export const useDeleteQuestionsByFilter = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteQuestionsByFilter>>, TError,{params: DeleteQuestionsByFilterParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteQuestionsByFilter>>,
+        TError,
+        {params: DeleteQuestionsByFilterParams},
+        TContext
+      > => {
+      return useMutation(getDeleteQuestionsByFilterMutationOptions(options));
     }
 
 export const getDeleteQuestionUrl = (id: number,) => {

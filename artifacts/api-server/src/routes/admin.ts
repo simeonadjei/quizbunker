@@ -659,6 +659,19 @@ router.delete("/admin/questions", requireAdmin, async (_req, res) => {
   return res.json({ message: "All questions deleted" });
 });
 
+// DELETE /admin/questions/by-filter?year=X&subject=Y — wipe all questions for a year+subject
+router.delete("/admin/questions/by-filter", requireAdmin, async (req, res) => {
+  const { year, subject } = req.query as { year?: string; subject?: string };
+  if (!year?.trim() || !subject?.trim()) {
+    return res.status(400).json({ error: "year and subject query params are required" });
+  }
+  const result = await db
+    .delete(questionsTable)
+    .where(and(eq(questionsTable.year, year.trim()), eq(questionsTable.subject, subject.trim())))
+    .returning({ id: questionsTable.id });
+  return res.json({ message: `Deleted ${result.length} questions for ${year} – ${subject}` });
+});
+
 // DELETE /admin/questions/:id
 router.delete("/admin/questions/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
