@@ -2,6 +2,7 @@ import app, { ensureSessionTable, backfillTrials, ensureSongsColumns } from "./a
 import { ensureUsersColumns } from "./lib/db-migrations";
 import { logEmailConfigStatus } from "./lib/email";
 import { logger } from "./lib/logger";
+import { pool } from "@workspace/db";
 
 const rawPort = process.env["PORT"];
 
@@ -46,5 +47,22 @@ Promise.all([
       process.exit(1);
     }
     logger.info({ port }, "Server listening");
+
+    // ── Neon keep-alive ───────────────────────────────────────────────────
+    // Neon free tier suspends after 5 minutes of inactivity. A lightweight
+    // SELECT 1 every 60 seconds prevents that without measurable overhead.
+    // UptimeRobot (5-min pings to /api/healthz) acts as a secondary guard
+    // that also keeps Render's free tier from spinning down.
+    const KEEPALIVE_INTERVAL_MS = 60 * 1000; // 1 minute
+    setInterval(async () => {
+      try {
+        const client = await pool.connect();
+        await client.query("SELECT 1");
+        client.release();
+      } catch (err) {
+        // Non-fatal — log and wait for the next tick
+        logger.warn({ err: (err as Error).message }, "Neon keep-alive ping failed");
+      }
+    }, KEEPALIVE_INTERVAL_MS).unref(); // unref() so the interval never blocks graceful shutdown
   });
 });
