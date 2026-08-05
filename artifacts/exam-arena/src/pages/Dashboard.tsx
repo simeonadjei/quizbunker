@@ -299,7 +299,6 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const isOnline = useOnlineStatus();
   const { toast } = useToast();
-  const { data: filters, isLoading: loadingFilters } = useGetQuestionFilters({ query: { enabled: true, queryKey: getGetQuestionFiltersQueryKey() } });
   const { data: subStatus, isLoading: loadingSub } = useGetPaymentStatus({ query: { enabled: true, queryKey: getGetPaymentStatusQueryKey() } });
   const createSession = useCreateQuizSession();
 
@@ -309,9 +308,37 @@ export default function Dashboard() {
   const [subBannerExpanded, setSubBannerExpanded] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
 
+  // --- Filtered question filters ---
+  // 1. All available years (no filter)
+  const { data: yearData, isLoading: loadingYears } = useGetQuestionFilters(
+    undefined,
+    { query: { enabled: true, queryKey: getGetQuestionFiltersQueryKey(undefined) } },
+  );
+  // 2. Subjects for the selected year
+  const { data: subjectData, isLoading: loadingSubjects } = useGetQuestionFilters(
+    selectedYear ? { year: selectedYear } : undefined,
+    { query: { enabled: !!selectedYear, queryKey: getGetQuestionFiltersQueryKey(selectedYear ? { year: selectedYear } : undefined) } },
+  );
+  // 3. Weeks for the selected year + subject
+  const { data: weekData, isLoading: loadingWeeks } = useGetQuestionFilters(
+    selectedYear && selectedSubject ? { year: selectedYear, subject: selectedSubject } : undefined,
+    { query: { enabled: !!selectedYear && !!selectedSubject, queryKey: getGetQuestionFiltersQueryKey(selectedYear && selectedSubject ? { year: selectedYear, subject: selectedSubject } : undefined) } },
+  );
+
+  const years = yearData?.years ?? [];
+  const subjects = subjectData?.subjects ?? [];
+  const weeks = weekData?.weeks ?? [];
+  const loadingFilters = loadingYears || (!!selectedYear && loadingSubjects) || (!!selectedYear && !!selectedSubject && loadingWeeks);
+
+  // Auto-select first year on load
   useEffect(() => {
-    if (filters && !selectedYear && filters.years.length > 0) setSelectedYear(filters.years[0]);
-  }, [filters, selectedYear]);
+    if (years.length > 0 && !selectedYear) setSelectedYear(years[0]);
+  }, [years, selectedYear]);
+
+  // Reset subject when year changes
+  useEffect(() => {
+    setSelectedSubject('');
+  }, [selectedYear]);
 
   const isSubscribed = subStatus?.isActive;
 
@@ -383,7 +410,7 @@ export default function Dashboard() {
       {/* Subscribe gate modal */}
       {showSubscribeGate && <SubscribeGate onClose={() => setShowSubscribeGate(false)} />}
 
-      <div className="px-4 pt-6 pb-4 w-full mx-auto space-y-3 flex flex-col items-center">
+      <div className="flex-1 flex flex-col items-center px-4 pt-6 pb-6 w-full">
       <div className="w-full max-w-sm space-y-3">
 
         {/* Offline banner */}
@@ -441,12 +468,12 @@ export default function Dashboard() {
                 id="select-year"
                 value={selectedYear}
                 onChange={e => setSelectedYear(e.target.value)}
-                disabled={loadingFilters || !filters?.years.length}
+                disabled={loadingYears || !years.length}
                 className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-8 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ colorScheme: 'dark', height: '2.75rem' }}
               >
                 <option value="" disabled>Year</option>
-                {filters?.years.map(y => (
+                {years.map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
@@ -462,12 +489,12 @@ export default function Dashboard() {
                 id="select-subject"
                 value={selectedSubject}
                 onChange={e => setSelectedSubject(e.target.value)}
-                disabled={loadingFilters || !filters?.subjects.length}
+                disabled={loadingSubjects || !subjects.length}
                 className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-8 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ colorScheme: 'dark', height: '2.75rem' }}
               >
                 <option value="" disabled>Subject</option>
-                {filters?.subjects.map(s => (
+                {subjects.map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
@@ -541,14 +568,14 @@ export default function Dashboard() {
         )}
 
         {/* Week grid */}
-        {!loadingFilters && selectedSubject && filters && (
+        {!loadingWeeks && selectedSubject && weeks.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2.5">
               <span className="font-display text-white text-base">{selectedSubject}</span>
-              <span className="hud-badge text-xs px-2.5 py-0.5">{filters.weeks.length} weeks</span>
+              <span className="hud-badge text-xs px-2.5 py-0.5">{weeks.length} weeks</span>
             </div>
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
-              {filters.weeks.map(w => {
+              {weeks.map(w => {
                 const unlocked = !!isSubscribed;
                 const isCachedOffline = cachedWeeks.has(w);
                 return (
@@ -590,15 +617,22 @@ export default function Dashboard() {
         )}
 
         {/* Prompt to pick subject */}
-        {!loadingFilters && !selectedSubject && filters && (
+        {!loadingFilters && !selectedSubject && years.length > 0 && (
           <div className="card-game p-12 flex flex-col items-center justify-center min-h-[40vh] text-center">
             <BookOpen className="w-16 h-16 text-primary mx-auto mb-6" />
             <p className="text-white/70 font-bold text-4xl">Select a subject above to see available weeks</p>
           </div>
         )}
 
+        {/* Loading weeks after subject selected */}
+        {loadingWeeks && selectedSubject && (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        )}
+
         {/* Empty state — no questions uploaded yet */}
-        {!loadingFilters && filters && filters.years.length === 0 && (
+        {!loadingYears && years.length === 0 && (
           <div className="card-game p-8 text-center border-l-4 border-white/10">
             <BookOpen className="w-9 h-9 text-white/20 mx-auto mb-3" />
             <p className="text-white/40 font-bold text-base">No questions available yet.</p>

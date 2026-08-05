@@ -32,6 +32,7 @@ import type {
   DeleteQuestionsByFilterParams,
   ErrorResponse,
   ForgotPasswordInput,
+  GetQuestionFiltersParams,
   HealthStatus,
   ListAdminActivityParams,
   ListQuestionsParams,
@@ -748,20 +749,27 @@ export function useListQuestions<TData = Awaited<ReturnType<typeof listQuestions
 
 
 
-export const getGetQuestionFiltersUrl = () => {
+export const getGetQuestionFiltersUrl = (params?: GetQuestionFiltersParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/questions/filters`
+  return stringifiedParams.length > 0 ? `/api/questions/filters?${stringifiedParams}` : `/api/questions/filters`
 }
 
 /**
  * @summary Get available years, subjects and weeks
  */
-export const getQuestionFilters = async ( options?: RequestInit): Promise<QuestionFilters> => {
+export const getQuestionFilters = async (params?: GetQuestionFiltersParams, options?: RequestInit): Promise<QuestionFilters> => {
 
-  return customFetch<QuestionFilters>(getGetQuestionFiltersUrl(),
+  return customFetch<QuestionFilters>(getGetQuestionFiltersUrl(params),
   {
     ...options,
     method: 'GET'
@@ -774,23 +782,23 @@ export const getQuestionFilters = async ( options?: RequestInit): Promise<Questi
 
 
 
-export const getGetQuestionFiltersQueryKey = () => {
+export const getGetQuestionFiltersQueryKey = (params?: GetQuestionFiltersParams,) => {
     return [
-    `/api/questions/filters`
+    `/api/questions/filters`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetQuestionFiltersQueryOptions = <TData = Awaited<ReturnType<typeof getQuestionFilters>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuestionFilters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetQuestionFiltersQueryOptions = <TData = Awaited<ReturnType<typeof getQuestionFilters>>, TError = ErrorType<unknown>>(params?: GetQuestionFiltersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuestionFilters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetQuestionFiltersQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetQuestionFiltersQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQuestionFilters>>> = ({ signal }) => getQuestionFilters({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQuestionFilters>>> = ({ signal }) => getQuestionFilters(params, { signal, ...requestOptions });
 
 
 
@@ -808,11 +816,11 @@ export type GetQuestionFiltersQueryError = ErrorType<unknown>
  */
 
 export function useGetQuestionFilters<TData = Awaited<ReturnType<typeof getQuestionFilters>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuestionFilters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetQuestionFiltersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuestionFilters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetQuestionFiltersQueryOptions(options)
+  const queryOptions = getGetQuestionFiltersQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

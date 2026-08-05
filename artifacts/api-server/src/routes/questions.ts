@@ -55,21 +55,45 @@ router.get("/questions", async (req, res) => {
 });
 
 // GET /questions/filters
+// Optional params: ?year=X  → filters subjects to those that exist for that year
+//                  ?year=X&subject=Y → also filters weeks to those that exist for year+subject
 router.get("/questions/filters", async (req, res) => {
+  const { year, subject } = req.query as { year?: string; subject?: string };
+
   const yearRows = await db
     .selectDistinct({ year: questionsTable.year })
     .from(questionsTable)
     .orderBy(questionsTable.year);
 
-  const subjectRows = await db
+  // Subjects: filter by year if provided
+  const subjectQuery = db
     .selectDistinct({ subject: questionsTable.subject })
     .from(questionsTable)
     .orderBy(questionsTable.subject);
+  const subjectRows = year
+    ? await subjectQuery.where(eq(questionsTable.year, year))
+    : await subjectQuery;
 
-  const weekRows = await db
-    .selectDistinct({ week: questionsTable.week })
-    .from(questionsTable)
-    .orderBy(questionsTable.week);
+  // Weeks: filter by year+subject if both provided, by year alone if only year
+  let weekRows;
+  if (year && subject) {
+    weekRows = await db
+      .selectDistinct({ week: questionsTable.week })
+      .from(questionsTable)
+      .where(and(eq(questionsTable.year, year), eq(questionsTable.subject, subject)))
+      .orderBy(questionsTable.week);
+  } else if (year) {
+    weekRows = await db
+      .selectDistinct({ week: questionsTable.week })
+      .from(questionsTable)
+      .where(eq(questionsTable.year, year))
+      .orderBy(questionsTable.week);
+  } else {
+    weekRows = await db
+      .selectDistinct({ week: questionsTable.week })
+      .from(questionsTable)
+      .orderBy(questionsTable.week);
+  }
 
   return res.json({
     years: yearRows.map((r) => r.year),

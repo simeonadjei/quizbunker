@@ -167,6 +167,11 @@ export const ListQuestionsResponse = zod.array(ListQuestionsResponseItem)
 /**
  * @summary Get available years, subjects and weeks
  */
+export const GetQuestionFiltersQueryParams = zod.object({
+  "year": zod.coerce.string().optional(),
+  "subject": zod.coerce.string().optional()
+})
+
 export const GetQuestionFiltersResponse = zod.object({
   "years": zod.array(zod.string()),
   "subjects": zod.array(zod.string()),

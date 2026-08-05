@@ -223,6 +223,15 @@ paths:
       operationId: getQuestionFilters
       tags: [questions]
       summary: Get available years, subjects and weeks
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: string
+        - name: subject
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: OK

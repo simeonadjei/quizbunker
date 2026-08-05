@@ -20,6 +20,7 @@ export * from './authResponse';
 export * from './deleteQuestionsByFilterParams';
 export * from './errorResponse';
 export * from './forgotPasswordInput';
+export * from './getQuestionFiltersParams';
 export * from './healthStatus';
 export * from './listAdminActivityParams';
 export * from './listQuestionsParams';

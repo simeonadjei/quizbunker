@@ -110,7 +110,7 @@ export default function Subscribe() {
 
   return (
     <Layout>
-      <div className="flex-1 flex items-start justify-center px-4 py-6">
+      <div className="flex-1 flex items-center justify-center px-4 py-6">
       <div className="w-full max-w-sm">
 
         {/* Header */}
