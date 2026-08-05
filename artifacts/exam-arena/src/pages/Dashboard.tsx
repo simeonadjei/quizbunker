@@ -410,7 +410,7 @@ export default function Dashboard() {
       {/* Subscribe gate modal */}
       {showSubscribeGate && <SubscribeGate onClose={() => setShowSubscribeGate(false)} />}
 
-      <div className="flex-1 flex flex-col items-center px-4 pt-6 pb-6 w-full">
+      <div className="flex-1 flex items-center justify-center px-4 py-6">
       <div className="w-full max-w-sm space-y-3">
 
         {/* Offline banner */}
