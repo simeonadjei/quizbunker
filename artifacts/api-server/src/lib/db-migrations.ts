@@ -2,6 +2,135 @@ import { pool } from "@workspace/db";
 import { logger } from "./logger";
 
 /**
+ * Create all application tables if they don't exist.
+ * Safe to run on every startup — every statement uses IF NOT EXISTS.
+ * Must be called BEFORE any other migration helpers so they can safely
+ * do ALTER TABLE without hitting "relation does not exist".
+ */
+export async function ensureAllTables(): Promise<void> {
+  await withRetry(
+    () =>
+      runDDLBatch([
+        // 1. users — no foreign key deps
+        `CREATE TABLE IF NOT EXISTS users (
+          id                   SERIAL PRIMARY KEY,
+          email                TEXT NOT NULL UNIQUE,
+          name                 TEXT NOT NULL,
+          password_hash        TEXT NOT NULL,
+          email_verified       BOOLEAN NOT NULL DEFAULT false,
+          verification_token   TEXT,
+          reset_token          TEXT,
+          reset_token_expires  TIMESTAMP,
+          subscription_plan    TEXT NOT NULL DEFAULT 'none',
+          subscription_end     TIMESTAMP,
+          semester_start       TIMESTAMP,
+          referral_code        TEXT UNIQUE,
+          referred_by          INTEGER,
+          momo_number          TEXT,
+          momo_name            TEXT,
+          created_at           TIMESTAMP NOT NULL DEFAULT NOW()
+        )`,
+
+        // 2. questions — no foreign key deps
+        `CREATE TABLE IF NOT EXISTS questions (
+          id                 SERIAL PRIMARY KEY,
+          year               TEXT NOT NULL,
+          subject            TEXT NOT NULL,
+          week               INTEGER NOT NULL,
+          week_topic         TEXT NOT NULL,
+          question_number    INTEGER NOT NULL,
+          question_text      TEXT NOT NULL,
+          option_a           TEXT NOT NULL,
+          option_b           TEXT NOT NULL,
+          option_c           TEXT NOT NULL,
+          option_d           TEXT NOT NULL,
+          correct_answer     TEXT NOT NULL,
+          dok                TEXT,
+          learning_indicator TEXT,
+          feedback           TEXT,
+          uploaded_at        TIMESTAMP NOT NULL DEFAULT NOW()
+        )`,
+
+        // 3. songs — no foreign key deps
+        `CREATE TABLE IF NOT EXISTS songs (
+          id          SERIAL PRIMARY KEY,
+          title       TEXT NOT NULL,
+          filename    TEXT NOT NULL,
+          url         TEXT NOT NULL,
+          sort_order  INTEGER NOT NULL DEFAULT 0,
+          is_active   BOOLEAN NOT NULL DEFAULT true,
+          uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          file_data   TEXT,
+          mime_type   TEXT
+        )`,
+
+        // 4. quiz_sessions — depends on users
+        `CREATE TABLE IF NOT EXISTS quiz_sessions (
+          id              SERIAL PRIMARY KEY,
+          user_id         INTEGER NOT NULL REFERENCES users(id),
+          year            TEXT NOT NULL,
+          subject         TEXT NOT NULL,
+          week            INTEGER NOT NULL,
+          week_topic      TEXT,
+          score           INTEGER,
+          total_questions INTEGER NOT NULL,
+          completed_at    TIMESTAMP,
+          created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+        )`,
+
+        // 5. quiz_answers — depends on quiz_sessions, questions
+        `CREATE TABLE IF NOT EXISTS quiz_answers (
+          id              SERIAL PRIMARY KEY,
+          session_id      INTEGER NOT NULL REFERENCES quiz_sessions(id),
+          question_id     INTEGER NOT NULL REFERENCES questions(id),
+          selected_answer TEXT,
+          is_correct      BOOLEAN NOT NULL DEFAULT false
+        )`,
+
+        // 6. payments — depends on users
+        `CREATE TABLE IF NOT EXISTS payments (
+          id             SERIAL PRIMARY KEY,
+          user_id        INTEGER NOT NULL REFERENCES users(id),
+          plan           TEXT NOT NULL,
+          amount         INTEGER NOT NULL,
+          reference      TEXT NOT NULL UNIQUE,
+          status         TEXT NOT NULL DEFAULT 'pending',
+          user_tx_id     TEXT,
+          start_date     TIMESTAMP,
+          end_date       TIMESTAMP,
+          semester_start TIMESTAMP,
+          created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+        )`,
+
+        // 7. activity_logs — user_id nullable (SET NULL on delete)
+        `CREATE TABLE IF NOT EXISTS activity_logs (
+          id         SERIAL PRIMARY KEY,
+          type       TEXT NOT NULL,
+          user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          user_email TEXT,
+          user_name  TEXT,
+          metadata   TEXT,
+          ip         TEXT,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )`,
+
+        // 8. referral_earnings — depends on users, payments
+        `CREATE TABLE IF NOT EXISTS referral_earnings (
+          id          SERIAL PRIMARY KEY,
+          referrer_id INTEGER NOT NULL REFERENCES users(id),
+          referee_id  INTEGER NOT NULL REFERENCES users(id),
+          payment_id  INTEGER NOT NULL REFERENCES payments(id),
+          amount      INTEGER NOT NULL,
+          status      TEXT NOT NULL DEFAULT 'pending',
+          created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+        )`,
+      ]),
+    "ensureAllTables",
+  );
+  logger.info("ensureAllTables: all application tables confirmed");
+}
+
+/**
  * Run a function with retry logic and exponential back-off.
  * Designed to handle Neon free-tier "cold start" delays where the first
  * connection attempt at server startup often times out.

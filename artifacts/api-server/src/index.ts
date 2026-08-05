@@ -1,5 +1,5 @@
 import app, { ensureSessionTable, backfillTrials, ensureSongsColumns } from "./app";
-import { ensureUsersColumns } from "./lib/db-migrations";
+import { ensureUsersColumns, ensureAllTables } from "./lib/db-migrations";
 import { logEmailConfigStatus } from "./lib/email";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
@@ -22,23 +22,30 @@ if (Number.isNaN(port) || port <= 0) {
 // The sessions table almost always already exists; if the DB is temporarily
 // unavailable (e.g. quota exceeded on the free tier) we still want the
 // server to accept requests — most endpoints will degrade gracefully.
-Promise.all([
-  ensureSessionTable().catch((err: Error) =>
-    logger.warn({ err: err.message }, "ensureSessionTable failed — server will still start"),
-  ),
-  backfillTrials().catch((err: Error) =>
-    logger.warn({ err: err.message }, "backfillTrials failed — server will still start"),
-  ),
-  // Songs columns migration — warn but never crash the server.
-  ensureSongsColumns().catch((err: Error) =>
-    logger.warn({ err: err.message }, "ensureSongsColumns failed — server will still start"),
-  ),
-  // Users columns migration — adds columns added after initial deploy.
-  // Fixes "column does not exist" errors on login/register in production.
-  ensureUsersColumns().catch((err: Error) =>
-    logger.warn({ err: err.message }, "ensureUsersColumns failed — server will still start"),
-  ),
-]).then(() => {
+//
+// ensureAllTables MUST run first — it creates base tables so that the
+// subsequent ALTER TABLE helpers don't fail with "relation does not exist".
+ensureAllTables()
+  .catch((err: Error) =>
+    logger.warn({ err: err.message }, "ensureAllTables failed — server will still start"),
+  )
+  .then(() =>
+    Promise.all([
+      ensureSessionTable().catch((err: Error) =>
+        logger.warn({ err: err.message }, "ensureSessionTable failed — server will still start"),
+      ),
+      backfillTrials().catch((err: Error) =>
+        logger.warn({ err: err.message }, "backfillTrials failed — server will still start"),
+      ),
+      ensureSongsColumns().catch((err: Error) =>
+        logger.warn({ err: err.message }, "ensureSongsColumns failed — server will still start"),
+      ),
+      ensureUsersColumns().catch((err: Error) =>
+        logger.warn({ err: err.message }, "ensureUsersColumns failed — server will still start"),
+      ),
+    ]),
+  )
+  .then(() => {
   logEmailConfigStatus();
 
   app.listen(port, (err) => {
