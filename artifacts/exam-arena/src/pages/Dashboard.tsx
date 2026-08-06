@@ -83,8 +83,8 @@ function SubscribeGate({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Referral & MoMo Panel ──────────────────────────────────────────────────────
-function ReferralPanel() {
+// ── Referral & MoMo Modal ──────────────────────────────────────────────────────
+function ReferralModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: referral, isLoading } = useGetReferralInfo({ query: { queryKey: getGetReferralInfoQueryKey() } });
@@ -147,149 +147,197 @@ function ReferralPanel() {
     );
   };
 
-  if (isLoading) return null;
-
   const hasMomo = !!(referral?.momoNumber && referral?.momoName);
   const pendingGhs = ((referral?.pendingEarningsPesewas ?? 0) / 100).toFixed(2);
   const totalGhs = ((referral?.totalEarningsPesewas ?? 0) / 100).toFixed(2);
   const hasEarnings = (referral?.totalEarningsPesewas ?? 0) > 0;
 
   return (
-    <div className="card-game p-4 space-y-4" style={{ border: '1.5px solid hsl(38 90% 30%)' }}>
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <Gift className="w-5 h-5 text-accent" />
-        <h2 className="font-display text-accent text-base uppercase tracking-wide">Referral Cashback</h2>
-      </div>
-      <p className="text-white/60 text-xs font-bold leading-relaxed -mt-2">
-        Share your link. When a friend subscribes using it, you earn <span className="text-accent">20%</span> of their payment — sent to your MoMo every 15th–20th.
-      </p>
-
-      {/* Referral code + copy */}
-      {referral?.referralCode && (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <div className="flex-1 rounded-xl bg-black/40 border border-white/15 px-3 py-2 font-mono text-sm text-white/70 truncate">
-              {referralLink}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="relative w-full max-w-sm rounded-2xl flex flex-col animate-in slide-in-from-bottom-6"
+        style={{
+          background: 'linear-gradient(160deg, hsl(240 25% 12%), hsl(240 30% 8%))',
+          border: '2px solid hsl(38 90% 35%)',
+          maxHeight: 'calc(100dvh - 2rem)',
+        }}
+      >
+        {/* Fixed header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'hsl(38 90% 15%)', border: '1.5px solid hsl(38 90% 35%)' }}>
+              <Gift className="w-5 h-5 text-accent" />
             </div>
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0"
-              style={{ background: copiedLink ? 'hsl(145 60% 20%)' : 'hsl(240 30% 18%)', color: copiedLink ? '#25D366' : '#ccc', border: '1px solid hsl(240 25% 28%)' }}
-            >
-              {copiedLink ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              {copiedLink ? 'Copied' : 'Copy'}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-white/40 text-xs font-bold">Code:</span>
-            <span className="font-mono font-bold text-white text-sm tracking-widest">{referral.referralCode}</span>
-            <button
-              onClick={handleCopyCode}
-              className="text-white/30 hover:text-white/70 transition-colors ml-auto"
-            >
-              {copiedCode ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Earnings summary */}
-      {hasEarnings && (
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl p-3 text-center" style={{ background: 'hsl(38 90% 8%)', border: '1px solid hsl(38 90% 20%)' }}>
-            <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">Total Earned</p>
-            <p className="font-display text-accent text-xl">GHS {totalGhs}</p>
-          </div>
-          <div className="rounded-xl p-3 text-center" style={{ background: 'hsl(145 60% 7%)', border: '1px solid hsl(145 60% 18%)' }}>
-            <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">Pending</p>
-            <p className="font-display text-lg" style={{ color: '#25D366' }}>GHS {pendingGhs}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Earnings list */}
-      {(referral?.earnings ?? []).length > 0 && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid hsl(240 25% 20%)' }}>
-          {referral!.earnings.map(e => (
-            <div key={e.id} className="flex items-center justify-between px-3 py-2 border-b border-white/5 last:border-b-0">
-              <div>
-                <p className="text-white/80 text-xs font-bold">{e.refereeName}</p>
-                <p className="text-white/40 text-xs uppercase">{e.plan}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-mono font-bold text-sm" style={{ color: e.status === 'paid' ? '#25D366' : 'hsl(45 100% 65%)' }}>
-                  GHS {(e.amount / 100).toFixed(2)}
-                </p>
-                <p className="text-xs" style={{ color: e.status === 'paid' ? '#25D366' : 'hsl(45 100% 55%)' }}>
-                  {e.status === 'paid' ? '✓ Sent' : '⏳ Pending'}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* MoMo details section */}
-      <div>
-        {hasMomo && !showMomoForm ? (
-          <div className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: 'hsl(145 60% 7%)', border: '1px solid hsl(145 50% 18%)' }}>
             <div>
-              <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-0.5">MoMo for cashback</p>
-              <p className="text-white font-bold text-sm">{referral?.momoName}</p>
-              <p className="font-mono text-xs" style={{ color: '#25D366' }}>{referral?.momoNumber}</p>
+              <h2 className="font-display text-accent text-xl uppercase tracking-wide leading-none">Refer & Earn</h2>
+              <p className="text-white/50 text-xs font-bold mt-0.5">Earn 20% cashback per referral</p>
             </div>
-            <button
-              onClick={() => setShowMomoForm(true)}
-              className="text-white/40 hover:text-white/70 text-xs font-bold transition-colors"
-            >
-              Edit
-            </button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {!hasMomo && (
-              <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: 'hsl(45 100% 7%)', border: '1px solid hsl(45 90% 22%)' }}>
-                <AlertTriangle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                <p className="text-xs font-bold" style={{ color: 'hsl(45 100% 70%)' }}>
-                  Add your MoMo details to receive cashback. Earnings cannot be sent without a valid MoMo number and name.
-                </p>
-              </div>
-            )}
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={momoName}
-                onChange={e => setMomoName(e.target.value)}
-                placeholder="MoMo registered name (e.g. Kofi Mensah)"
-                className="w-full h-11 rounded-xl border-2 border-white/15 bg-black/40 px-3 text-white font-bold text-sm placeholder:text-white/30 focus:outline-none focus:border-accent"
-              />
-              <div className="flex items-start gap-1 px-1">
-                <AlertTriangle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
-                <p className="text-red-400 text-xs font-bold">Name must match your MoMo exactly — if wrong, payment cannot be sent.</p>
-              </div>
-              <input
-                type="tel"
-                value={momoNumber}
-                onChange={e => setMomoNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="MoMo number (e.g. 0241234567)"
-                className="w-full h-11 rounded-xl border-2 border-white/15 bg-black/40 px-3 text-white font-mono font-bold text-sm placeholder:text-white/30 focus:outline-none focus:border-accent"
-              />
+          <button
+            onClick={onClose}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-5 pb-5 space-y-4 flex-1" style={{ overscrollBehavior: 'contain' }}>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-8 h-8 animate-spin text-accent" />
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveMomo}
-                disabled={saveMomo.isPending}
-                className="btn-game flex-1 py-2.5 text-sm justify-center flex items-center gap-2"
-              >
-                {saveMomo.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save MoMo Details'}
-              </button>
-              {showMomoForm && (
-                <button onClick={() => setShowMomoForm(false)} className="btn-game-ghost px-4 py-2.5 text-sm">Cancel</button>
+          ) : (
+            <>
+              <p className="text-white/70 text-sm font-bold leading-relaxed">
+                Share your link. When a friend subscribes, you earn{' '}
+                <span className="text-accent text-base">20%</span> of their payment —
+                sent to your MoMo every 15th–20th.
+              </p>
+
+              {/* Referral link + copy */}
+              {referral?.referralCode && (
+                <div className="space-y-3">
+                  <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid hsl(240 25% 28%)', background: 'hsl(240 25% 10%)' }}>
+                    <div className="px-3 pt-3 pb-1">
+                      <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1.5">Your Referral Link</p>
+                      <p className="font-mono text-xs text-white/60 break-all leading-relaxed">{referralLink}</p>
+                    </div>
+                    <button
+                      onClick={handleCopyLink}
+                      className="w-full flex items-center justify-center gap-2 py-3 font-bold text-sm transition-all border-t"
+                      style={{
+                        borderColor: 'hsl(240 25% 22%)',
+                        background: copiedLink ? 'hsl(145 60% 12%)' : 'hsl(240 30% 14%)',
+                        color: copiedLink ? '#25D366' : '#e2e8f0',
+                      }}
+                    >
+                      {copiedLink ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {copiedLink ? 'Link Copied!' : 'Copy Link'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: 'hsl(240 25% 10%)', border: '1.5px solid hsl(240 25% 22%)' }}>
+                    <div>
+                      <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">Referral Code</p>
+                      <p className="font-mono font-bold text-white text-lg tracking-widest">{referral.referralCode}</p>
+                    </div>
+                    <button
+                      onClick={handleCopyCode}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs transition-colors"
+                      style={{ background: copiedCode ? 'hsl(145 60% 12%)' : 'hsl(240 30% 18%)', color: copiedCode ? '#25D366' : '#ccc', border: '1px solid hsl(240 25% 28%)' }}
+                    >
+                      {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedCode ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
               )}
-            </div>
-          </div>
-        )}
+
+              {/* Earnings summary */}
+              {hasEarnings && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl p-4 text-center" style={{ background: 'hsl(38 90% 8%)', border: '1.5px solid hsl(38 90% 25%)' }}>
+                    <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1.5">Total Earned</p>
+                    <p className="font-display text-accent text-2xl">GHS {totalGhs}</p>
+                  </div>
+                  <div className="rounded-xl p-4 text-center" style={{ background: 'hsl(145 60% 7%)', border: '1.5px solid hsl(145 60% 18%)' }}>
+                    <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1.5">Pending</p>
+                    <p className="font-display text-2xl" style={{ color: '#25D366' }}>GHS {pendingGhs}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Earnings list */}
+              {(referral?.earnings ?? []).length > 0 && (
+                <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid hsl(240 25% 20%)' }}>
+                  <p className="text-white/40 text-xs font-bold uppercase tracking-wider px-4 py-2.5 border-b" style={{ borderColor: 'hsl(240 25% 18%)' }}>Referral History</p>
+                  {referral!.earnings.map(e => (
+                    <div key={e.id} className="flex items-center justify-between px-4 py-3 border-b border-white/5 last:border-b-0">
+                      <div>
+                        <p className="text-white/90 text-sm font-bold">{e.refereeName}</p>
+                        <p className="text-white/40 text-xs uppercase mt-0.5">{e.plan}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono font-bold text-base" style={{ color: e.status === 'paid' ? '#25D366' : 'hsl(45 100% 65%)' }}>
+                          GHS {(e.amount / 100).toFixed(2)}
+                        </p>
+                        <p className="text-xs font-bold mt-0.5" style={{ color: e.status === 'paid' ? '#25D366' : 'hsl(45 100% 55%)' }}>
+                          {e.status === 'paid' ? '✓ Sent' : '⏳ Pending'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* MoMo details section */}
+              <div>
+                <p className="text-white/50 text-xs font-bold uppercase tracking-wider mb-2">MoMo for Cashback</p>
+                {hasMomo && !showMomoForm ? (
+                  <div className="flex items-center justify-between rounded-xl px-4 py-3.5" style={{ background: 'hsl(145 60% 7%)', border: '1.5px solid hsl(145 50% 22%)' }}>
+                    <div>
+                      <p className="text-white font-bold text-base">{referral?.momoName}</p>
+                      <p className="font-mono text-sm mt-0.5" style={{ color: '#25D366' }}>{referral?.momoNumber}</p>
+                    </div>
+                    <button
+                      onClick={() => setShowMomoForm(true)}
+                      className="text-accent hover:text-accent/80 text-sm font-bold transition-colors px-3 py-1.5 rounded-lg"
+                      style={{ background: 'hsl(38 90% 10%)', border: '1px solid hsl(38 90% 25%)' }}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {!hasMomo && (
+                      <div className="flex items-start gap-3 rounded-xl p-3.5" style={{ background: 'hsl(45 100% 7%)', border: '1.5px solid hsl(45 90% 25%)' }}>
+                        <AlertTriangle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                        <p className="text-sm font-bold leading-snug" style={{ color: 'hsl(45 100% 72%)' }}>
+                          Add your MoMo details to receive cashback. Earnings cannot be sent without a valid MoMo number and name.
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      value={momoName}
+                      onChange={e => setMomoName(e.target.value)}
+                      placeholder="MoMo registered name (e.g. Kofi Mensah)"
+                      className="w-full h-12 rounded-xl border-2 border-white/15 bg-black/40 px-4 text-white font-bold text-base placeholder:text-white/30 focus:outline-none focus:border-accent"
+                    />
+                    <div className="flex items-start gap-2 px-1">
+                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <p className="text-red-400 text-sm font-bold">Name must match your MoMo exactly — wrong name means payment cannot be sent.</p>
+                    </div>
+                    <input
+                      type="tel"
+                      value={momoNumber}
+                      onChange={e => setMomoNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="MoMo number (e.g. 0241234567)"
+                      className="w-full h-12 rounded-xl border-2 border-white/15 bg-black/40 px-4 text-white font-mono font-bold text-base placeholder:text-white/30 focus:outline-none focus:border-accent"
+                    />
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={handleSaveMomo}
+                        disabled={saveMomo.isPending}
+                        className="btn-game flex-1 py-3 text-base justify-center flex items-center gap-2"
+                      >
+                        {saveMomo.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save MoMo Details'}
+                      </button>
+                      {showMomoForm && (
+                        <button onClick={() => setShowMomoForm(false)} className="btn-game-ghost px-4 py-3 text-base">Cancel</button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -409,17 +457,30 @@ export default function Dashboard() {
       ? getCachedWeeksForSubject(selectedYear, selectedSubject)
       : new Set<number>();
 
+  // Neon color palette cycling for week buttons
+  const WEEK_COLORS = [
+    { bg: 'hsl(195 100% 10%)', border: 'hsl(195 100% 45%)', text: 'hsl(195 100% 72%)', shadow: 'hsl(195 100% 40%)' },
+    { bg: 'hsl(270 80% 12%)', border: 'hsl(270 80% 55%)', text: 'hsl(270 80% 78%)', shadow: 'hsl(270 80% 45%)' },
+    { bg: 'hsl(145 70% 8%)',  border: 'hsl(145 70% 45%)', text: 'hsl(145 70% 65%)', shadow: 'hsl(145 70% 35%)' },
+    { bg: 'hsl(38 95% 10%)',  border: 'hsl(38 95% 50%)',  text: 'hsl(38 95% 70%)',  shadow: 'hsl(38 95% 40%)'  },
+    { bg: 'hsl(330 80% 10%)', border: 'hsl(330 80% 55%)', text: 'hsl(330 80% 75%)', shadow: 'hsl(330 80% 45%)' },
+    { bg: 'hsl(220 90% 10%)', border: 'hsl(220 90% 55%)', text: 'hsl(220 90% 75%)', shadow: 'hsl(220 90% 45%)' },
+  ];
+
   return (
     <Layout>
       {/* Subscribe gate modal */}
       {showSubscribeGate && <SubscribeGate onClose={() => setShowSubscribeGate(false)} />}
 
+      {/* Referral modal */}
+      {showReferral && <ReferralModal onClose={() => setShowReferral(false)} />}
+
       <div className="flex-1 w-full flex flex-col items-center justify-center px-4 py-6">
-      <div className="w-full max-w-sm space-y-3">
+      <div className="w-full max-w-sm space-y-4">
 
         {/* Offline banner */}
         {!isOnline && (
-          <div className="card-game border-l-4 border-yellow-500 px-3 py-2 flex items-center gap-2">
+          <div className="card-game border-l-4 border-yellow-500 px-3 py-2.5 flex items-center gap-2">
             <WifiOff className="w-4 h-4 text-yellow-400 shrink-0" />
             <p className="text-yellow-300 font-bold text-sm">Offline — payments need internet.</p>
           </div>
@@ -427,10 +488,10 @@ export default function Dashboard() {
 
         {/* Offline pre-cache progress bar */}
         {preCache.status === 'running' && (
-          <div className="card-game border-l-4 border-cyan-500 px-3 py-2 space-y-1.5">
+          <div className="card-game border-l-4 border-cyan-500 px-3 py-2.5 space-y-1.5">
             <div className="flex items-center gap-2">
               <Download className="w-4 h-4 text-cyan-400 shrink-0 animate-pulse" />
-              <p className="text-cyan-300 font-bold text-xs truncate">{preCache.label || 'Saving for offline…'}</p>
+              <p className="text-cyan-300 font-bold text-sm truncate">{preCache.label || 'Saving for offline…'}</p>
             </div>
             <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
               <div
@@ -441,32 +502,30 @@ export default function Dashboard() {
           </div>
         )}
         {preCache.status === 'done' && (
-          <div className="card-game border-l-4 border-green-500 px-3 py-2 flex items-center gap-2">
+          <div className="card-game border-l-4 border-green-500 px-3 py-2.5 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-            <p className="text-green-300 font-bold text-xs">All content saved for offline use ✓</p>
+            <p className="text-green-300 font-bold text-sm">All content saved for offline use ✓</p>
           </div>
         )}
 
-        {/* Page title — compact */}
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-game-title text-2xl leading-tight">LEVEL SELECT</h1>
+        {/* Page title */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-game-title text-3xl leading-tight tracking-wide">LEVEL SELECT</h1>
           <button
-            onClick={() => setShowReferral(v => !v)}
-            className="flex items-center gap-1.5 text-accent/80 hover:text-accent text-xs font-bold transition-colors"
+            onClick={() => setShowReferral(true)}
+            className="flex items-center gap-1.5 font-bold text-sm transition-all px-3 py-1.5 rounded-xl"
+            style={{ background: 'hsl(38 90% 10%)', border: '1.5px solid hsl(38 90% 35%)', color: 'hsl(38 95% 65%)' }}
           >
-            <Gift className="w-3.5 h-3.5" />
-            Refer & Earn
+            <Gift className="w-4 h-4" />
+            Refer &amp; Earn
           </button>
         </div>
 
-        {/* Referral panel — toggleable */}
-        {showReferral && <ReferralPanel />}
-
-        {/* Filters row — compact */}
-        <div className="flex gap-2.5">
+        {/* Filters row */}
+        <div className="flex gap-3">
           {/* Year */}
           <div className="flex-1">
-            <label htmlFor="select-year" className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Year</label>
+            <label htmlFor="select-year" className="text-white/70 text-sm font-bold uppercase tracking-wider block mb-1.5">Year</label>
             <div className="relative">
               <select
                 id="select-year"
@@ -474,20 +533,20 @@ export default function Dashboard() {
                 onChange={e => setSelectedYear(e.target.value)}
                 disabled={loadingYears || !years.length}
                 className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-8 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ colorScheme: 'dark', height: '2.75rem' }}
+                style={{ colorScheme: 'dark', height: '3rem' }}
               >
                 <option value="" disabled>Year</option>
                 {years.map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
             </div>
           </div>
 
           {/* Subject */}
           <div className="flex-[2]">
-            <label htmlFor="select-subject" className="text-white/60 text-xs font-bold uppercase tracking-wider block mb-1">Subject</label>
+            <label htmlFor="select-subject" className="text-white/70 text-sm font-bold uppercase tracking-wider block mb-1.5">Subject</label>
             <div className="relative">
               <select
                 id="select-subject"
@@ -495,64 +554,44 @@ export default function Dashboard() {
                 onChange={e => setSelectedSubject(e.target.value)}
                 disabled={loadingSubjects || !subjects.length}
                 className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-8 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ colorScheme: 'dark', height: '2.75rem' }}
+                style={{ colorScheme: 'dark', height: '3rem' }}
               >
                 <option value="" disabled>Subject</option>
                 {subjects.map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
             </div>
           </div>
         </div>
 
-        {/* Subscription banner — collapsed strip by default, expandable */}
+        {/* Subscription banner */}
         {!isSubscribed && !loadingSub && (
           <div className="rounded-xl border-2 border-accent/40 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(255,170,0,0.08), rgba(255,80,0,0.05))' }}>
-            {/* Always-visible strip */}
             <button
               onClick={() => setSubBannerExpanded(v => !v)}
-              className="w-full flex items-center justify-between px-3 py-2.5 gap-2"
+              className="w-full flex items-center justify-between px-4 py-3 gap-2"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Zap className="w-4 h-4 text-accent shrink-0" fill="currentColor" strokeWidth={0} />
                 <span className="font-display text-sm text-accent uppercase tracking-wide truncate">Unlock Full Access</span>
-                <div className="flex gap-1.5 shrink-0">
-                  {['All Subjects', 'All Weeks', 'Certificates', 'History'].map(tag => (
-                    <span key={tag} className="hidden sm:inline text-xs font-bold px-2 py-0.5 rounded-full border border-accent/40 text-accent/80 bg-accent/10">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <Link href="/subscribe" onClick={e => e.stopPropagation()}>
                   <span className="btn-game py-1 px-3 text-xs inline-flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     Subscribe
                   </span>
                 </Link>
-                {subBannerExpanded
-                  ? <ChevronUp className="w-4 h-4 text-white/40" />
-                  : <ChevronDown className="w-4 h-4 text-white/40" />
-                }
+                {subBannerExpanded ? <ChevronUp className="w-4 h-4 text-white/40" /> : <ChevronDown className="w-4 h-4 text-white/40" />}
               </div>
             </button>
-
-            {/* Expanded detail */}
             {subBannerExpanded && (
               <div className="px-4 pb-4 border-t border-accent/20">
                 <p className="text-white/70 text-sm font-bold leading-relaxed mt-3 mb-3">
                   Subscribe to play any level. Access 1,500+ exam questions across all subjects, weeks, and Dok levels.
                 </p>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {['All Subjects', 'All Weeks', 'Certificates', 'History'].map(tag => (
-                    <span key={tag} className="text-sm font-bold px-3 py-1 rounded-full border-2 border-accent/40 text-accent bg-accent/10">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
                 <Link href="/subscribe">
                   <button className="btn-game py-2.5 px-5 text-sm inline-flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
@@ -574,43 +613,49 @@ export default function Dashboard() {
         {/* Week grid */}
         {!loadingWeeks && selectedSubject && weeks.length > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="font-display text-white text-base">{selectedSubject}</span>
-              <span className="hud-badge text-xs px-2.5 py-0.5">{weeks.length} weeks</span>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-display text-white text-lg leading-tight truncate mr-2">{selectedSubject}</span>
+              <span
+                className="hud-badge text-sm px-3 py-1 shrink-0 font-bold"
+                style={{ background: 'hsl(195 100% 10%)', border: '1.5px solid hsl(195 100% 35%)', color: 'hsl(195 100% 72%)' }}
+              >
+                {weeks.length} weeks
+              </span>
             </div>
-            <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
-              {weeks.map(w => {
+            <div className="grid grid-cols-5 gap-2.5 sm:grid-cols-6">
+              {weeks.map((w, idx) => {
                 const unlocked = !!isSubscribed;
                 const isCachedOffline = cachedWeeks.has(w);
+                const col = WEEK_COLORS[idx % WEEK_COLORS.length];
                 return (
                   <button
                     key={w}
                     onClick={() => handleStartLevel(w)}
                     disabled={createSession.isPending}
-                    className={cn(
-                      'relative aspect-square rounded-xl flex flex-col items-center justify-center font-display text-lg transition-all duration-150 border-2 select-none',
-                      unlocked && !isCachedOffline
-                        ? 'bg-black/30 border-white/20 text-white active:scale-90 active:translate-y-0.5 hover:border-primary hover:bg-primary/20'
-                        : unlocked && isCachedOffline
-                          ? 'bg-secondary/15 border-secondary/60 text-white active:scale-90 active:translate-y-0.5'
-                          : 'bg-black/20 border-white/10 text-white/30 hover:border-accent/30 hover:bg-accent/5'
-                    )}
-                    style={unlocked ? { boxShadow: '0 3px 0 rgba(0,0,0,0.35)' } : undefined}
-                    title={isCachedOffline ? `Week ${w} — available offline` : undefined}
+                    className="relative aspect-square rounded-2xl flex flex-col items-center justify-center select-none transition-all duration-150 active:scale-90 active:translate-y-0.5"
+                    style={unlocked ? {
+                      background: col.bg,
+                      border: `2px solid ${col.border}`,
+                      boxShadow: `0 4px 0 ${col.shadow}66, 0 0 12px ${col.border}33`,
+                    } : {
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '2px solid rgba(255,255,255,0.1)',
+                      boxShadow: 'none',
+                    }}
                   >
                     {createSession.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: col.text }} />
                     ) : unlocked ? (
                       <>
                         {isCachedOffline
-                          ? <WifiOff className="w-3 h-3 mb-0.5 text-secondary opacity-80" strokeWidth={2} />
-                          : <Play className="w-3 h-3 mb-0.5 opacity-50" fill="currentColor" strokeWidth={0} />}
-                        <span>{w}</span>
+                          ? <WifiOff className="w-3 h-3 mb-0.5 opacity-70" style={{ color: col.text }} strokeWidth={2} />
+                          : <Play className="w-3 h-3 mb-0.5 opacity-60" style={{ color: col.text }} fill="currentColor" strokeWidth={0} />}
+                        <span className="font-display text-xl leading-none font-black" style={{ color: col.text }}>{w}</span>
                       </>
                     ) : (
                       <>
-                        <Lock className="w-3 h-3 mb-0.5 opacity-40" strokeWidth={2} />
-                        <span className="text-sm">{w}</span>
+                        <Lock className="w-3.5 h-3.5 mb-0.5 opacity-30 text-white" strokeWidth={2} />
+                        <span className="font-display text-xl leading-none text-white/25 font-black">{w}</span>
                       </>
                     )}
                   </button>
@@ -635,7 +680,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Empty state — no questions uploaded yet */}
+        {/* Empty state */}
         {!loadingYears && years.length === 0 && (
           <div className="card-game p-8 text-center border-l-4 border-white/10">
             <BookOpen className="w-9 h-9 text-white/20 mx-auto mb-3" />
