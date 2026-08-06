@@ -62,7 +62,7 @@ export default function AdminPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-gray-200 p-8 font-mono">
+    <div className="min-h-screen bg-white text-gray-900 p-8 font-mono">
       <div className="max-w-6xl mx-auto space-y-12">
         <header className="border-b border-red-500/30 pb-4 mb-8 flex items-start justify-between gap-4">
           <div>
