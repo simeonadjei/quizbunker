@@ -14,7 +14,7 @@ import {
   useListAdminActivity,
   useListAdminPayments,
   useVerifyMomoPayment,
-  useAdminSubscribeUser,
+
   useListAdminReferrals,
   useNotifyReferralPaid,
   useListQuestions,
@@ -210,45 +210,56 @@ function PendingPaymentsPanel() {
 // ── Manual Subscribe ───────────────────────────────────────────────────────────
 
 function ManualSubscribePanel() {
-  const subscribeUser = useAdminSubscribeUser();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [plan, setPlan] = useState<AdminSubscribeInputPlan>('monthly');
   const [months, setMonths] = useState('');
   const [genPassword, setGenPassword] = useState(false);
+  const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{ message: string; generatedPassword?: string | null } | null>(null);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!email.trim()) {
       toast({ title: 'Email required', variant: 'destructive' });
       return;
     }
-    subscribeUser.mutate(
-      {
-        data: {
+    setPending(true);
+    try {
+      // Use the same direct-fetch pattern as other admin operations so
+      // auth headers are always explicit — avoids issues with the hook's
+      // global token getter not being set in some environments.
+      const authHeaders: Record<string, string> = _adminToken
+        ? { Authorization: `Bearer ${_adminToken}` }
+        : {};
+      const res = await fetch(`${API_BASE}/api/admin/subscribe`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
           email: email.trim().toLowerCase(),
           plan,
           months: months ? parseInt(months, 10) : undefined,
           generatePassword: genPassword,
-        },
-      },
-      {
-        onSuccess: (res) => {
-          setResult(res);
-          setEmail('');
-          setMonths('');
-          setGenPassword(false);
-          toast({ title: '✅ Subscribed', description: res.message });
-        },
-        onError: (err: unknown) => {
-          const msg =
-            (err as { data?: { error?: string } })?.data?.error ||
-            (err as Error)?.message ||
-            'Could not subscribe user.';
-          toast({ title: 'Subscribe failed', description: msg, variant: 'destructive' });
-        },
-      },
-    );
+        }),
+      });
+      let data: { message?: string; generatedPassword?: string | null; error?: string } = {};
+      try { data = await res.json(); } catch { /* ignore parse error */ }
+      if (!res.ok) {
+        const msg = data.error || `Server error (HTTP ${res.status})`;
+        toast({ title: 'Subscribe failed', description: msg, variant: 'destructive' });
+        return;
+      }
+      setResult({ message: data.message ?? 'Subscribed.', generatedPassword: data.generatedPassword ?? null });
+      setEmail('');
+      setMonths('');
+      setGenPassword(false);
+      toast({ title: '✅ Subscribed', description: data.message });
+    } catch (err: unknown) {
+      const msg = (err instanceof Error ? err.message : null) || 'Network error — could not reach the server.';
+      toast({ title: 'Subscribe failed', description: msg, variant: 'destructive' });
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -267,6 +278,7 @@ function ManualSubscribePanel() {
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             placeholder="user@example.com"
             className="w-full bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-green-500"
           />
@@ -305,10 +317,10 @@ function ManualSubscribePanel() {
 
       <button
         onClick={handleSubmit}
-        disabled={subscribeUser.isPending}
+        disabled={pending}
         className="px-5 py-2 bg-green-800 hover:bg-green-700 text-white text-sm font-bold rounded flex items-center gap-2 disabled:opacity-50"
       >
-        {subscribeUser.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+        {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
         Subscribe User
       </button>
 
