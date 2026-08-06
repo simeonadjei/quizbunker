@@ -3,6 +3,101 @@ import { db, questionsTable, quizSessionsTable, quizAnswersTable, usersTable } f
 import { eq, and } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
 
+// ── Session shuffle helpers ───────────────────────────────────────────────────
+
+/** Mulberry32 seeded PRNG — deterministic per session so GET and POST agree */
+function mkRng(seed: number) {
+  let s = (seed ^ 0xDEADBEEF) >>> 0;
+  return (): number => {
+    s += 0x6D2B79F5;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) >>> 0;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Fisher-Yates shuffle using provided rng, returns new array */
+function seededShuffle<T>(arr: T[], rng: () => number): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+type DbQuestion = typeof questionsTable.$inferSelect;
+
+/**
+ * Interleave questions so no DOK level repeats more than twice in a row.
+ * Within each DOK group, order is already shuffled.
+ */
+function interleaveByDok(questions: DbQuestion[], rng: () => number): DbQuestion[] {
+  const grouped = new Map<string, DbQuestion[]>();
+  for (const q of questions) {
+    const key = q.dok ?? "?";
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(q);
+  }
+  // Shuffle within each DOK group
+  const pools = [...grouped.entries()].map(([dok, list]) => ({
+    dok,
+    list: seededShuffle(list, rng),
+  }));
+
+  const result: DbQuestion[] = [];
+  let lastDok = "";
+  let run = 0;
+
+  while (result.length < questions.length) {
+    const eligible = pools.filter(
+      (p) => p.list.length > 0 && (run < 2 || p.dok !== lastDok),
+    );
+    // Fallback: if only one DOK remains, allow it even if it exceeds run of 2
+    const pool =
+      eligible.length > 0
+        ? eligible[Math.floor(rng() * eligible.length)]
+        : pools.find((p) => p.list.length > 0)!;
+    const q = pool.list.shift()!;
+    result.push(q);
+    if (pool.dok === lastDok) run++;
+    else { lastDok = pool.dok; run = 1; }
+  }
+  return result;
+}
+
+const OPT_KEYS = ["A", "B", "C", "D"] as const;
+
+/**
+ * Apply a deterministic, session-scoped shuffle:
+ *  1. Reorder questions so DOK levels are interleaved (max 2 in a row).
+ *  2. Randomly permute the four answer options for each question and
+ *     update correctAnswer to match — breaking any letter-pattern in the data.
+ *
+ * Using the session ID as the seed means GET and POST always produce the
+ * same permutation, so the server can validate submitted answers correctly.
+ */
+function applySessionShuffle(questions: DbQuestion[], sessionId: number): DbQuestion[] {
+  const rng = mkRng(sessionId);
+  const ordered = interleaveByDok(questions, rng);
+
+  return ordered.map((q) => {
+    const origVals = [q.optionA, q.optionB, q.optionC, q.optionD];
+    const perm = seededShuffle([0, 1, 2, 3], rng);
+    const newVals = perm.map((i) => origVals[i]);
+    const origCorrectIdx = OPT_KEYS.indexOf(q.correctAnswer as (typeof OPT_KEYS)[number]);
+    const newCorrectIdx = perm.indexOf(origCorrectIdx);
+    return {
+      ...q,
+      optionA: newVals[0],
+      optionB: newVals[1],
+      optionC: newVals[2],
+      optionD: newVals[3],
+      correctAnswer: OPT_KEYS[newCorrectIdx],
+    };
+  });
+}
+
 const router = Router();
 
 function requireAuth(req: Request, res: Response, next: NextFunction): void {
@@ -143,7 +238,7 @@ router.get("/quiz/sessions/:sessionId", requireAuth, async (req, res) => {
     return res.status(404).json({ error: "Session not found" });
   }
 
-  const questions = await db
+  const rawQuestions = await db
     .select()
     .from(questionsTable)
     .where(
@@ -154,6 +249,9 @@ router.get("/quiz/sessions/:sessionId", requireAuth, async (req, res) => {
       ),
     )
     .orderBy(questionsTable.questionNumber);
+
+  // Apply deterministic DOK interleave + option rotation for this session
+  const questions = applySessionShuffle(rawQuestions, session.id);
 
   const answers = await db
     .select()
@@ -196,7 +294,7 @@ router.post("/quiz/sessions/:sessionId/submit", requireAuth, async (req, res) =>
     return res.status(400).json({ error: "Session already submitted" });
   }
 
-  const questions = await db
+  const rawQuestions = await db
     .select()
     .from(questionsTable)
     .where(
@@ -206,6 +304,9 @@ router.post("/quiz/sessions/:sessionId/submit", requireAuth, async (req, res) =>
         eq(questionsTable.week, session.week),
       ),
     );
+
+  // Apply the same deterministic shuffle used in GET so correct-answer letters match
+  const questions = applySessionShuffle(rawQuestions, session.id);
 
   const questionMap = new Map(questions.map((q) => [q.id, q]));
   const validQuestionIds = new Set(questions.map((q) => q.id));
