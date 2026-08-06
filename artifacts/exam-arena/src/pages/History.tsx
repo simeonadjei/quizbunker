@@ -10,8 +10,8 @@ export default function History() {
 
   return (
     <Layout>
-      <div className="flex-1 flex items-start justify-center px-4 py-6">
-      <div className="w-full max-w-sm">
+      <div className="w-full px-4 py-6">
+      <div className="max-w-sm mx-auto">
 
         {/* Header */}
         <div className="mb-5">
