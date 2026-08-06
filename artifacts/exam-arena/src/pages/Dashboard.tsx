@@ -410,8 +410,8 @@ export default function Dashboard() {
       {/* Subscribe gate modal */}
       {showSubscribeGate && <SubscribeGate onClose={() => setShowSubscribeGate(false)} />}
 
-      <div className="flex-1 w-full px-4 py-6">
-      <div className="w-full max-w-sm mx-auto space-y-3">
+      <div className="flex-1 w-full flex flex-col items-center px-4 py-6">
+      <div className="w-full max-w-sm space-y-3">
 
         {/* Offline banner */}
         {!isOnline && (
@@ -618,9 +618,9 @@ export default function Dashboard() {
 
         {/* Prompt to pick subject */}
         {!loadingFilters && !selectedSubject && years.length > 0 && (
-          <div className="card-game py-16 px-6 flex flex-col items-center justify-center text-center">
-            <BookOpen className="w-20 h-20 text-primary mx-auto mb-6" />
-            <p className="text-white/80 font-bold leading-tight text-center w-full" style={{ fontSize: '4.5rem', lineHeight: '1.15' }}>Select a subject above to see available weeks</p>
+          <div className="card-game py-10 px-6 flex flex-col items-center justify-center text-center">
+            <BookOpen className="w-12 h-12 text-primary mx-auto mb-4" />
+            <p className="text-white/80 font-bold text-lg leading-snug text-center w-full">Select a subject above to see available weeks</p>
           </div>
         )}
 
