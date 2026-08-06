@@ -1139,7 +1139,7 @@ function SongManager() {
         <Button
           onClick={handleUpload}
           disabled={files.length === 0 || isUploading}
-          className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-none border border-zinc-600"
+          className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-none border border-gray-300"
         >
           {isUploading ? (
             <span className="flex items-center gap-2">
