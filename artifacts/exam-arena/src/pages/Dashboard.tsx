@@ -369,6 +369,10 @@ export default function Dashboard() {
           const status = (err as { status?: number })?.status;
           if (status === 403) {
             setShowSubscribeGate(true);
+          } else {
+            const msg = (err as { data?: { error?: string } })?.data?.error
+              || 'Could not start quiz. Please try again.';
+            toast({ title: 'Error', description: msg, variant: 'destructive' });
           }
         },
       });

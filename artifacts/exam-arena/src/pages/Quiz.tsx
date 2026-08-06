@@ -285,6 +285,10 @@ export default function Quiz() {
 
   if (session.completedAt) { setLocation(`/results/${sessionId}`); return null; }
 
+  // Guard: session loaded but questions array is empty (should not happen, but handle gracefully)
+  if (session.questions.length === 0) return <ErrorScreen />;
+
+
   return (
     /*
      * Full-viewport flex column:
