@@ -57,7 +57,7 @@ export default function Landing() {
           100% { transform: translateX(-100%); }
         }
         .marquee-track {
-          animation: marquee 120s linear infinite;
+          animation: marquee 160s linear infinite;
           white-space: nowrap;
           will-change: transform;
         }
