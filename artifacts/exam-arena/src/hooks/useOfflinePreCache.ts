@@ -5,19 +5,13 @@
  * file so the entire app is playable offline without the user needing to
  * visit each week individually first.
  *
- * Strategy:
- *  1. Fetch question filters → enumerate all year/subject/week combos
- *  2. For each combo, create a quiz session (or reuse existing one from the
- *     session index) and store it in localStorage — identical to what the
- *     Quiz page does on first load.
- *  3. Fetch all songs, then pull each audio file into the 'audio-cache'
- *     Cache API bucket so the service worker serves it offline.
- *
- * A fingerprint stored in localStorage prevents redundant re-runs when the
- * question/song set hasn't changed.
+ * Also exposes:
+ *  - `needsDownload` — true when content has never been fully cached, or the
+ *    last attempt failed. Use this to show the manual download button.
+ *  - `triggerManual()` — call to kick off a cache run on demand.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getQuestionFilters,
   createQuizSession,
@@ -29,7 +23,7 @@ import {
   registerSession,
 } from '@/lib/offlineSessions';
 
-const CACHE_PREFIX   = 'qb_session_';
+const CACHE_PREFIX    = 'qb_session_';
 const FINGERPRINT_KEY = 'qb_offline_fp_v1';
 const AUDIO_CACHE_NAME = 'audio-cache';
 
@@ -60,116 +54,136 @@ export interface PreCacheState {
   progress: number;
   /** Human-readable current step */
   label: string;
+  /**
+   * True when content has never been fully cached (or the last run failed).
+   * Show the manual download button when this is true.
+   */
+  needsDownload: boolean;
+  /** Manually trigger a cache run. Safe to call even while running. */
+  triggerManual: () => void;
 }
 
 /**
  * @param enabled Pass `true` only when the user is authenticated.
  */
 export function useOfflinePreCache(enabled: boolean): PreCacheState {
-  const [state, setState] = useState<PreCacheState>({
-    status: 'idle',
-    progress: 0,
-    label: '',
-  });
+  const hasCached = localStorage.getItem(FINGERPRINT_KEY) !== null;
+
+  const [status, setStatus] = useState<PreCacheStatus>('idle');
+  const [progress, setProgress] = useState(0);
+  const [label, setLabel] = useState('');
+  const [needsDownload, setNeedsDownload] = useState(!hasCached);
+
   const runningRef = useRef(false);
 
-  useEffect(() => {
-    if (!enabled || runningRef.current) return;
-
-    // Only run in browsers that support the Cache API (service worker env)
-    if (typeof caches === 'undefined') return;
+  const runCache = useCallback(async () => {
+    if (runningRef.current) return; // already in progress
+    if (typeof caches === 'undefined') return; // no Cache API
 
     runningRef.current = true;
+    setStatus('running');
+    setProgress(2);
+    setLabel('Checking content…');
 
-    (async () => {
-      try {
-        setState({ status: 'running', progress: 2, label: 'Checking content…' });
+    try {
+      // ── Step 1: fetch filters & songs list ──────────────────────────────
+      const [filters, songs] = await Promise.all([
+        getQuestionFilters(),
+        listSongs(),
+      ]);
 
-        // ── Step 1: fetch filters & songs list ──────────────────────────────
-        const [filters, songs] = await Promise.all([
-          getQuestionFilters(),
-          listSongs(),
-        ]);
-
-        const allCombos: Array<{ year: string; subject: string; week: number }> = [];
-        for (const year of filters.years) {
-          for (const subject of filters.subjects) {
-            for (const week of filters.weeks) {
-              allCombos.push({ year, subject, week });
-            }
+      const allCombos: Array<{ year: string; subject: string; week: number }> = [];
+      for (const year of filters.years) {
+        for (const subject of filters.subjects) {
+          for (const week of filters.weeks) {
+            allCombos.push({ year, subject, week });
           }
         }
-
-        const songIds = songs.map((s) => s.id);
-        const fp = makeFingerprint(filters, songIds);
-
-        // Skip if nothing has changed since last run
-        if (localStorage.getItem(FINGERPRINT_KEY) === fp) {
-          setState({ status: 'done', progress: 100, label: 'Offline ready' });
-          runningRef.current = false;
-          return;
-        }
-
-        const total = allCombos.length + songs.length;
-        let done = 0;
-
-        const tick = (label: string) => {
-          done++;
-          setState({
-            status: 'running',
-            progress: Math.round((done / total) * 95) + 2,
-            label,
-          });
-        };
-
-        // ── Step 2: pre-cache quiz sessions ────────────────────────────────
-        for (const { year, subject, week } of allCombos) {
-          try {
-            let sessionId = getCachedSessionId(year, subject, week);
-
-            if (!sessionId) {
-              // Create a new session server-side
-              const session = await createQuizSession({ year, subject, week });
-              sessionId = session.id;
-              registerSession(year, subject, week, sessionId);
-            }
-
-            // Fetch full session detail (questions + answers) and store locally
-            const detail = await getQuizSession(sessionId);
-            storeSession(sessionId, detail);
-          } catch {
-            // Non-fatal: skip this combo silently
-          }
-          tick(`Caching ${subject} week ${week}…`);
-        }
-
-        // ── Step 3: pre-cache song audio files ─────────────────────────────
-        const audioCache = await caches.open(AUDIO_CACHE_NAME);
-
-        for (const song of songs) {
-          try {
-            const audioUrl = song.url; // /api/songs/:id/audio
-            // Only fetch if not already cached
-            const existing = await audioCache.match(audioUrl);
-            if (!existing) {
-              await audioCache.add(audioUrl);
-            }
-          } catch {
-            // Non-fatal: offline audio just won't work for this song
-          }
-          tick(`Caching song: ${song.title}…`);
-        }
-
-        // ── Done ────────────────────────────────────────────────────────────
-        localStorage.setItem(FINGERPRINT_KEY, fp);
-        setState({ status: 'done', progress: 100, label: 'Offline ready ✓' });
-      } catch {
-        setState({ status: 'error', progress: 0, label: 'Offline cache failed' });
-      } finally {
-        runningRef.current = false;
       }
-    })();
-  }, [enabled]);
 
-  return state;
+      const songIds = songs.map((s) => s.id);
+      const fp = makeFingerprint(filters, songIds);
+
+      // Skip if nothing has changed since last successful run
+      if (localStorage.getItem(FINGERPRINT_KEY) === fp) {
+        setStatus('done');
+        setProgress(100);
+        setLabel('Offline ready');
+        setNeedsDownload(false);
+        runningRef.current = false;
+        return;
+      }
+
+      const total = allCombos.length + songs.length;
+      let done = 0;
+
+      const tick = (lbl: string) => {
+        done++;
+        setProgress(Math.round((done / total) * 95) + 2);
+        setLabel(lbl);
+      };
+
+      // ── Step 2: pre-cache quiz sessions ────────────────────────────────
+      for (const { year, subject, week } of allCombos) {
+        try {
+          let sessionId = getCachedSessionId(year, subject, week);
+          if (!sessionId) {
+            const session = await createQuizSession({ year, subject, week });
+            sessionId = session.id;
+            registerSession(year, subject, week, sessionId);
+          }
+          const detail = await getQuizSession(sessionId);
+          storeSession(sessionId, detail);
+        } catch {
+          // Non-fatal: skip this combo silently
+        }
+        tick(`Caching ${subject} week ${week}…`);
+      }
+
+      // ── Step 3: pre-cache song audio files ─────────────────────────────
+      const audioCache = await caches.open(AUDIO_CACHE_NAME);
+      for (const song of songs) {
+        try {
+          const audioUrl = song.url;
+          const existing = await audioCache.match(audioUrl);
+          if (!existing) {
+            await audioCache.add(audioUrl);
+          }
+        } catch {
+          // Non-fatal
+        }
+        tick(`Caching song: ${song.title}…`);
+      }
+
+      // ── Done ────────────────────────────────────────────────────────────
+      localStorage.setItem(FINGERPRINT_KEY, fp);
+      setStatus('done');
+      setProgress(100);
+      setLabel('Offline ready ✓');
+      setNeedsDownload(false);
+    } catch {
+      setStatus('error');
+      setProgress(0);
+      setLabel('Download failed — tap to retry');
+      setNeedsDownload(true);
+    } finally {
+      runningRef.current = false;
+    }
+  }, []);
+
+  // Auto-run once on mount when user is authenticated
+  useEffect(() => {
+    if (!enabled) return;
+    // Only auto-run if not yet cached
+    if (localStorage.getItem(FINGERPRINT_KEY) === null) {
+      runCache();
+    } else {
+      // Already cached — mark done quietly
+      setStatus('done');
+      setProgress(100);
+      setNeedsDownload(false);
+    }
+  }, [enabled, runCache]);
+
+  return { status, progress, label, needsDownload, triggerManual: runCache };
 }

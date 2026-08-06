@@ -552,6 +552,18 @@ export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
 
 
 /**
+ * @summary Permanently delete a user and all their data
+ */
+export const DeleteAdminUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAdminUserResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
  * @summary Get admin dashboard stats
  */
 export const GetAdminStatsResponse = zod.object({

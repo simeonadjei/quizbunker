@@ -6,7 +6,8 @@ import {
 } from '@workspace/api-client-react';
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check } from 'lucide-react';
+import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check, Download } from 'lucide-react';
+import { useOfflinePreCache } from '@/hooks/useOfflinePreCache';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -389,6 +390,9 @@ export default function Dashboard() {
 
   const isSubscribed = subStatus?.isActive;
 
+  // Offline pre-cache — runs automatically; exposes manual trigger + needsDownload
+  const { needsDownload, status: cacheStatus, progress: cacheProgress, label: cacheLabel, triggerManual } = useOfflinePreCache(true);
+
   const handleStartLevel = (week: number) => {
     // Online: server always re-checks; just use server truth
     if (isOnline) {
@@ -471,6 +475,73 @@ export default function Dashboard() {
           <div className="card-game border-l-4 border-yellow-500 px-3 py-2.5 flex items-center gap-2">
             <WifiOff className="w-4 h-4 text-yellow-400 shrink-0" />
             <p className="text-yellow-300 font-bold text-sm">Offline — payments need internet.</p>
+          </div>
+        )}
+
+        {/* ── Offline Download Button ─────────────────────────────────────── */}
+        {isOnline && (needsDownload || cacheStatus === 'running') && (
+          <div className="w-full">
+            {cacheStatus === 'running' ? (
+              /* Progress state — shown while actively caching */
+              <div
+                className="w-full rounded-2xl px-4 py-3 flex flex-col gap-2"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(195 100% 6%), hsl(220 40% 10%))',
+                  border: '2px solid hsl(195 100% 35%)',
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Download className="w-4 h-4 text-cyan-400 animate-pulse shrink-0" />
+                  <span className="text-cyan-300 font-bold text-sm flex-1 truncate">{cacheLabel || 'Saving for offline…'}</span>
+                  <span className="text-cyan-400 font-mono font-bold text-sm shrink-0">{cacheProgress}%</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${cacheProgress}%`,
+                      background: 'linear-gradient(90deg, hsl(195 100% 45%), hsl(220 90% 60%))',
+                      boxShadow: '0 0 8px hsl(195 100% 45%)',
+                    }}
+                  />
+                </div>
+                <p className="text-white/40 text-[10px] font-bold">Stay connected until download finishes</p>
+              </div>
+            ) : (
+              /* Idle / error state — glowing button that demands attention */
+              <button
+                onClick={triggerManual}
+                className="animate-glow-pulse w-full rounded-2xl px-4 py-3.5 flex items-center gap-3 transition-transform active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(195 100% 8%), hsl(220 60% 12%))',
+                  border: '2px solid hsl(195 100% 45%)',
+                  color: 'hsl(195 100% 72%)',
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'hsl(195 100% 12%)', border: '1.5px solid hsl(195 100% 40%)' }}
+                >
+                  <Download className="w-5 h-5 animate-bounce" style={{ color: 'hsl(195 100% 65%)' }} />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="animate-glow-text font-display font-bold text-base leading-tight" style={{ color: 'hsl(195 100% 72%)' }}>
+                    {cacheStatus === 'error' ? 'Retry Download' : 'Download for Offline'}
+                  </p>
+                  <p className="text-[11px] font-bold mt-0.5" style={{ color: 'hsl(195 100% 45%)' }}>
+                    {cacheStatus === 'error'
+                      ? 'Last attempt failed — tap to retry'
+                      : 'Tap to save all questions & songs for offline use'}
+                  </p>
+                </div>
+                <div
+                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: 'hsl(195 100% 15%)', border: '1.5px solid hsl(195 100% 40%)' }}
+                >
+                  <span className="text-lg">→</span>
+                </div>
+              </button>
+            )}
           </div>
         )}
 

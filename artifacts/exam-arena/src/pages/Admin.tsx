@@ -1389,11 +1389,42 @@ function ReferralEarningsPanel() {
 }
 
 function UsersPanel() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { data: users = [] } = useListAdminUsers({ query: { enabled: true, queryKey: getListAdminUsersQueryKey() } });
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const authHeaders = (): Record<string, string> =>
+    _adminToken ? { Authorization: `Bearer ${_adminToken}` } : {};
+
+  const handleDelete = async (userId: number, userName: string, userEmail: string) => {
+    if (!window.confirm(`Permanently delete ${userName} (${userEmail})?\n\nThis removes their account, quiz sessions, payments, and referral data. Their email will be free for re-registration.\n\nThis cannot be undone.`)) return;
+    setDeletingId(userId);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { ...authHeaders() },
+      });
+      let data: { message?: string; error?: string } = {};
+      try { data = await res.json(); } catch { /* ignore */ }
+      if (!res.ok) {
+        toast({ title: 'Delete failed', description: data.error || `HTTP ${res.status}`, variant: 'destructive' });
+      } else {
+        toast({ title: '🗑️ User deleted', description: data.message });
+        queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+      }
+    } catch (err: unknown) {
+      toast({ title: 'Network error', description: (err instanceof Error ? err.message : 'Could not reach server'), variant: 'destructive' });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="bg-white border border-gray-200 p-6">
-      <h3 className="text-xl font-bold mb-4">USER DATABASE</h3>
+      <h3 className="text-xl font-bold mb-4">USER DATABASE <span className="text-gray-400 font-normal text-sm ml-2">({users.length} users)</span></h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
           <thead className="text-xs text-gray-400 bg-gray-50">
@@ -1404,11 +1435,12 @@ function UsersPanel() {
               <th className="px-4 py-3 font-normal">PLAN</th>
               <th className="px-4 py-3 font-normal">EXPIRES</th>
               <th className="px-4 py-3 font-normal">CREATED</th>
+              <th className="px-4 py-3 font-normal">ACTION</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {users.map(u => (
-              <tr key={u.id} className="hover:bg-gray-100">
+              <tr key={u.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-gray-400">{u.id}</td>
                 <td className="px-4 py-3 text-gray-700">{u.name}</td>
                 <td className="px-4 py-3 text-gray-500">{u.email}</td>
@@ -1422,6 +1454,19 @@ function UsersPanel() {
                 </td>
                 <td className="px-4 py-3 text-gray-400">
                   {format(new Date(u.createdAt), 'yyyy-MM-dd')}
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => handleDelete(u.id, u.name, u.email)}
+                    disabled={deletingId === u.id}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-red-500 hover:text-white border border-red-300 hover:border-red-500 hover:bg-red-500 rounded transition-colors disabled:opacity-40"
+                    title={`Delete ${u.name}`}
+                  >
+                    {deletingId === u.id
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Trash2 className="w-3 h-3" />}
+                    DELETE
+                  </button>
                 </td>
               </tr>
             ))}

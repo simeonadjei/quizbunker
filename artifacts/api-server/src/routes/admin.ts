@@ -1133,6 +1133,36 @@ router.get("/admin/users", requireAdmin, async (_req, res) => {
   );
 });
 
+// DELETE /admin/users/:id — permanently remove a user and all their data
+router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid user ID" });
+
+  const [user] = await db
+    .select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
+    .from(usersTable)
+    .where(eq(usersTable.id, id))
+    .limit(1);
+
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  // Delete in FK-safe order:
+  // 1. referral earnings referencing this user (as referrer OR referee)
+  await db.delete(referralEarningsTable).where(eq(referralEarningsTable.referrerId, id));
+  await db.delete(referralEarningsTable).where(eq(referralEarningsTable.refereeId, id));
+  // 2. payments
+  await db.delete(paymentsTable).where(eq(paymentsTable.userId, id));
+  // 3. quiz sessions
+  await db.delete(quizSessionsTable).where(eq(quizSessionsTable.userId, id));
+  // 4. activity_logs have onDelete:"set null" so no manual delete needed
+  // 5. finally the user row
+  await db.delete(usersTable).where(eq(usersTable.id, id));
+
+  logger.info({ userId: id, userEmail: user.email }, "Admin deleted user");
+
+  return res.json({ message: `${user.name} (${user.email}) permanently deleted.` });
+});
+
 // GET /admin/stats
 router.get("/admin/stats", requireAdmin, async (_req, res) => {
   const now = new Date();
