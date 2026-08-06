@@ -6,13 +6,12 @@ import {
 } from '@workspace/api-client-react';
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check, Download, CheckCircle } from 'lucide-react';
+import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCachedSessionId, getCachedWeeksForSubject } from '@/lib/offlineSessions';
-import { useOfflinePreCache } from '@/hooks/useOfflinePreCache';
-import { cacheSubscriptionEnd, isSubscriptionActiveOffline } from '@/lib/offlineUser';
+import { isSubscriptionActiveOffline } from '@/lib/offlineUser';
 
 // ── Offline detection hook ─────────────────────────────────────────────────────
 function useOnlineStatus() {
@@ -390,17 +389,6 @@ export default function Dashboard() {
 
   const isSubscribed = subStatus?.isActive;
 
-  // Cache subscription end date whenever we get a fresh status from the server,
-  // so offline expiry checks work without a network call.
-  useEffect(() => {
-    if (subStatus !== undefined) {
-      cacheSubscriptionEnd(subStatus.isActive ? (subStatus.subscriptionEnd ?? null) : null);
-    }
-  }, [subStatus]);
-
-  // Pre-cache all sessions + song audio for offline use once the user is subscribed and online
-  const preCache = useOfflinePreCache(!!isSubscribed && isOnline);
-
   const handleStartLevel = (week: number) => {
     // Online: server always re-checks; just use server truth
     if (isOnline) {
@@ -486,27 +474,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Offline pre-cache progress bar */}
-        {preCache.status === 'running' && (
-          <div className="card-game border-l-4 border-cyan-500 px-3 py-2.5 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <Download className="w-4 h-4 text-cyan-400 shrink-0 animate-pulse" />
-              <p className="text-cyan-300 font-bold text-sm truncate">{preCache.label || 'Saving for offline…'}</p>
-            </div>
-            <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="h-full bg-cyan-400 rounded-full transition-all duration-300"
-                style={{ width: `${preCache.progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-        {preCache.status === 'done' && (
-          <div className="card-game border-l-4 border-green-500 px-3 py-2.5 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-            <p className="text-green-300 font-bold text-sm">All content saved for offline use ✓</p>
-          </div>
-        )}
 
         {/* Page title */}
         <div className="flex items-center justify-between">
