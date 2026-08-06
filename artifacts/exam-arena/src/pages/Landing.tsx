@@ -57,7 +57,7 @@ export default function Landing() {
           100% { transform: translateX(-100%); }
         }
         .marquee-track {
-          animation: marquee 26s linear infinite;
+          animation: marquee 120s linear infinite;
           white-space: nowrap;
           will-change: transform;
         }
@@ -70,94 +70,88 @@ export default function Landing() {
   );
 }
 
-/* ─── Scrolling Mandela ticker ─────────────────────────────────────────── */
-function MandelaTicker() {
+/* ─── Quotes data ────────────────────────────────────────────────────────── */
+const QUOTES = [
+  { text: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela" },
+  { text: "We face neither East nor West; we face forward.", author: "Kwame Nkrumah" },
+  { text: "Knowledge is power. Information is liberating. Education is the premise of progress.", author: "Kofi Annan" },
+  { text: "One child, one teacher, one book, one pen can change the world.", author: "Malala Yousafzai" },
+  { text: "An investment in knowledge pays the best interest.", author: "Benjamin Franklin" },
+  { text: "If you the men of Asante will not go forward, then we will. We will fight the white men.", author: "Yaa Asantewaa" },
+  { text: "Once you learn to read, you will be forever free.", author: "Frederick Douglass" },
+  { text: "The roots of education are bitter, but the fruit is sweet.", author: "Aristotle" },
+  { text: "Development means putting people first — always.", author: "Jerry John Rawlings" },
+  { text: "Imagination is more important than knowledge. Knowledge is limited; imagination encircles the world.", author: "Albert Einstein" },
+  { text: "Education is the key to unlocking the world — a passport to freedom.", author: "Oprah Winfrey" },
+  { text: "In learning you will teach, and in teaching you will learn.", author: "Phil Collins" },
+  { text: "My humanity is bound up in yours, for we can only be human together.", author: "Desmond Tutu" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "You can't use up creativity. The more you use, the more you have.", author: "Maya Angelou" },
+  { text: "Free quality education is the greatest equaliser a society can have.", author: "Nana Akufo-Addo" },
+  { text: "Change will not come if we wait for some other person or some other time.", author: "Barack Obama" },
+  { text: "Do not wait to strike till the iron is hot; but make it hot by striking.", author: "William B. Sprague" },
+  { text: "The function of education is to teach one to think intensively and to think critically.", author: "Martin Luther King Jr." },
+  { text: "Hard work beats talent when talent fails to work hard.", author: "Kevin Durant" },
+] as const;
+
+/* ─── Scrolling ticker ───────────────────────────────────────────────────── */
+function QuoteStrip({ gap, quoteFontSize, authorFontSize, dividerSize, py }: {
+  gap: number; quoteFontSize: string; authorFontSize: string; dividerSize: number; py: string;
+}) {
+  // Duplicate the full list once so the loop is perfectly seamless
+  const doubled = [...QUOTES, ...QUOTES];
   return (
-    <>
-      {/* ── MOBILE: multi-line card ── */}
-      <div
-        className="lg:hidden w-full overflow-hidden py-1.5 rounded-2xl"
-        style={{
-          background: 'rgba(10,6,30,0.65)',
-          border: '1px solid rgba(250,204,21,0.25)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-        }}
-      >
-        {/* Gold opening mark */}
-        <div className="text-center mb-0.5">
-          <span style={{ fontSize: 28, lineHeight: 1, color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif' }}>"</span>
-        </div>
-        {/* Centered static quote */}
-        <div className="px-4 text-center">
-          <p
-            style={{
+    <div style={{ overflow: 'hidden', padding: `${py} 0` }}>
+      <div className="marquee-track" style={{ display: 'inline-flex', alignItems: 'center', gap }}>
+        {doubled.map((q, idx) => (
+          <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: Math.round(gap * 0.28), whiteSpace: 'nowrap' }}>
+            <span style={{ color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif', fontSize: dividerSize * 1.2 }}>"</span>
+            <span style={{
               fontFamily: 'Georgia, serif',
-              fontSize: 'clamp(14px, 2.8vw, 22px)',
-              lineHeight: 1.5,
+              fontSize: quoteFontSize,
               color: 'rgba(255,255,255,0.95)',
               fontStyle: 'italic',
-              textShadow: '0 1px 8px rgba(0,0,0,0.85)',
-            }}
-          >
-            Education is the most powerful weapon which you can use to change the world.
-          </p>
-        </div>
-        {/* Attribution */}
-        <p
-          className="text-center mt-1"
-          style={{
-            fontFamily: "'Fredoka One', cursive",
-            fontSize: 'clamp(20px, 3.3vw, 32px)',
-            color: '#facc15',
-            letterSpacing: '0.08em',
-            textShadow: '0 0 12px rgba(250,204,21,0.55)',
-          }}
-        >
-          — Nelson Mandela
-        </p>
-      </div>
-
-      {/* ── DESKTOP: full-width scrolling marquee pill ── */}
-      <div
-        className="hidden lg:block overflow-hidden py-2"
-        style={{
-          background: 'rgba(10,6,30,0.70)',
-          border: '1px solid rgba(250,204,21,0.30)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-          width: '100%',
-        }}
-      >
-        <div className="marquee-track" style={{ display: 'inline-flex', alignItems: 'center', gap: 64 }}>
-          {/* Repeat twice so the loop is seamless */}
-          {[0, 1].map((i) => (
-            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 16, whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#facc15', opacity: 0.85, fontFamily: 'Georgia, serif', fontSize: 54 }}>"</span>
-              <span style={{
-                fontFamily: 'Georgia, serif',
-                fontSize: '45px',
-                color: 'rgba(255,255,255,0.95)',
-                fontStyle: 'italic',
-                textShadow: '0 1px 6px rgba(0,0,0,0.8)',
-              }}>
-                Education is the most powerful weapon which you can use to change the world.
-              </span>
-              <span style={{
-                fontFamily: "'Fredoka One', cursive",
-                fontSize: '51px',
-                color: '#facc15',
-                letterSpacing: '0.06em',
-                textShadow: '0 0 10px rgba(250,204,21,0.5)',
-              }}>
-                — Nelson Mandela
-              </span>
-              <span style={{ color: 'rgba(250,204,21,0.35)', fontSize: 60 }}>✦</span>
+              textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+            }}>
+              {q.text}
             </span>
-          ))}
-        </div>
+            <span style={{
+              fontFamily: "'Fredoka One', cursive",
+              fontSize: authorFontSize,
+              color: '#facc15',
+              letterSpacing: '0.06em',
+              textShadow: '0 0 10px rgba(250,204,21,0.5)',
+            }}>
+              — {q.author}
+            </span>
+            <span style={{ color: 'rgba(250,204,21,0.32)', fontSize: dividerSize, marginLeft: Math.round(gap * 0.18) }}>✦</span>
+          </span>
+        ))}
       </div>
-    </>
+    </div>
+  );
+}
+
+function MandelaTicker() {
+  return (
+    <div
+      className="w-full overflow-hidden"
+      style={{
+        background: 'rgba(10,6,30,0.68)',
+        border: '1px solid rgba(250,204,21,0.28)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+      }}
+    >
+      {/* Mobile — smaller text, same scroll */}
+      <div className="lg:hidden">
+        <QuoteStrip gap={48} quoteFontSize="15px" authorFontSize="17px" dividerSize={22} py="10px" />
+      </div>
+      {/* Desktop — large, cinematic text */}
+      <div className="hidden lg:block">
+        <QuoteStrip gap={80} quoteFontSize="44px" authorFontSize="50px" dividerSize={58} py="10px" />
+      </div>
+    </div>
   );
 }
 
