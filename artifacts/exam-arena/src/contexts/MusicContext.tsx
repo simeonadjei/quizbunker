@@ -29,8 +29,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
   const [volume, setVolumeState] = useState(0.25);
 
-  const audioRef     = useRef<HTMLAudioElement | null>(null);
-  const startedRef   = useRef(false);
+  const audioRef        = useRef<HTMLAudioElement | null>(null);
+  const startedRef      = useRef(false);
+  const autoPlayNextRef = useRef(false); // set true by onEnded so next track auto-starts
 
   // Blob URL cache: network URL → object URL (works offline after first load)
   const blobUrlsRef  = useRef<Map<string, string>>(new Map());
@@ -66,7 +67,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    const onEnded = () => setCurrentSongIndex(prev => (prev + 1) % (activeSongs.length || 1));
+    const onEnded = () => {
+      autoPlayNextRef.current = true; // signal that the next load should auto-play
+      setCurrentSongIndex(prev => (prev + 1) % (activeSongs.length || 1));
+    };
     audio.addEventListener('ended', onEnded);
     return () => audio.removeEventListener('ended', onEnded);
   }, [activeSongs.length]);
@@ -107,13 +111,14 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   // ── Track the URL we last loaded ────────────────────────────────────
   const loadedUrlRef = useRef<string>('');
 
-  // ── When the track changes while already playing, swap src + resume ─
+  // ── When the track changes: swap src and play if was playing or auto-advancing ─
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
     const networkUrl = resolveUrl(currentSong.url);
     if (loadedUrlRef.current === networkUrl) return;
-    if (!audio.paused) {
+    if (!audio.paused || autoPlayNextRef.current) {
+      autoPlayNextRef.current = false;
       loadedUrlRef.current = networkUrl;
       audio.src = resolvePlaybackUrl(networkUrl);
       audio.play().catch(() => {});

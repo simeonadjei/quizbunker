@@ -410,7 +410,7 @@ export default function Dashboard() {
       {/* Subscribe gate modal */}
       {showSubscribeGate && <SubscribeGate onClose={() => setShowSubscribeGate(false)} />}
 
-      <div className="flex-1 flex items-center justify-center px-4 py-6">
+      <div className="flex-1 flex flex-col items-center px-4 py-6 w-full">
       <div className="w-full max-w-sm space-y-3">
 
         {/* Offline banner */}
@@ -618,9 +618,9 @@ export default function Dashboard() {
 
         {/* Prompt to pick subject */}
         {!loadingFilters && !selectedSubject && years.length > 0 && (
-          <div className="card-game p-12 flex flex-col items-center justify-center min-h-[40vh] text-center">
-            <BookOpen className="w-16 h-16 text-primary mx-auto mb-6" />
-            <p className="text-white/70 font-bold text-4xl">Select a subject above to see available weeks</p>
+          <div className="card-game py-16 px-6 flex flex-col items-center justify-center text-center">
+            <BookOpen className="w-20 h-20 text-primary mx-auto mb-6" />
+            <p className="text-white/80 font-bold leading-tight" style={{ fontSize: '2.25rem' }}>Select a subject above to see available weeks</p>
           </div>
         )}
 
