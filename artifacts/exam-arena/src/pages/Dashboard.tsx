@@ -410,8 +410,8 @@ export default function Dashboard() {
       {/* Subscribe gate modal */}
       {showSubscribeGate && <SubscribeGate onClose={() => setShowSubscribeGate(false)} />}
 
-      <div className="flex-1 flex flex-col items-center px-4 py-6 w-full">
-      <div className="w-full max-w-sm space-y-3">
+      <div className="flex-1 w-full px-4 py-6">
+      <div className="w-full max-w-sm mx-auto space-y-3">
 
         {/* Offline banner */}
         {!isOnline && (
@@ -620,7 +620,7 @@ export default function Dashboard() {
         {!loadingFilters && !selectedSubject && years.length > 0 && (
           <div className="card-game py-16 px-6 flex flex-col items-center justify-center text-center">
             <BookOpen className="w-20 h-20 text-primary mx-auto mb-6" />
-            <p className="text-white/80 font-bold leading-tight" style={{ fontSize: '2.25rem' }}>Select a subject above to see available weeks</p>
+            <p className="text-white/80 font-bold leading-tight text-center w-full" style={{ fontSize: '4.5rem', lineHeight: '1.15' }}>Select a subject above to see available weeks</p>
           </div>
         )}
 
