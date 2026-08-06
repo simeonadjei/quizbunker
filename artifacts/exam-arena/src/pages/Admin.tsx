@@ -240,7 +240,13 @@ function ManualSubscribePanel() {
           setGenPassword(false);
           toast({ title: '✅ Subscribed', description: res.message });
         },
-        onError: () => toast({ title: 'Error', description: 'Could not subscribe user.', variant: 'destructive' }),
+        onError: (err: unknown) => {
+          const msg =
+            (err as { data?: { error?: string } })?.data?.error ||
+            (err as Error)?.message ||
+            'Could not subscribe user.';
+          toast({ title: 'Subscribe failed', description: msg, variant: 'destructive' });
+        },
       },
     );
   };
