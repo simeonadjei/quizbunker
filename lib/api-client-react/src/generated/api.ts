@@ -34,6 +34,7 @@ import type {
   ForgotPasswordInput,
   GetQuestionFiltersParams,
   HealthStatus,
+  LeaderboardEntry,
   ListAdminActivityParams,
   ListQuestionsParams,
   LoginInput,
@@ -1116,6 +1117,84 @@ export function useGetQuizHistory<TData = Awaited<ReturnType<typeof getQuizHisto
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetQuizHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetLeaderboardUrl = () => {
+
+
+
+
+  return `/api/leaderboard`
+}
+
+/**
+ * Returns up to 20 subscribed users ranked by their average score percentage across all completed quiz sessions. Only users who have completed at least 3 quizzes are eligible. Scoring = AVG(score / totalQuestions × 100).
+ * @summary Get top 20 subscribed users by average quiz score
+ */
+export const getLeaderboard = async ( options?: RequestInit): Promise<LeaderboardEntry[]> => {
+
+  return customFetch<LeaderboardEntry[]>(getGetLeaderboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLeaderboardQueryKey = () => {
+    return [
+    `/api/leaderboard`
+    ] as const;
+    }
+
+
+export const getGetLeaderboardQueryOptions = <TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLeaderboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeaderboard>>> = ({ signal }) => getLeaderboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLeaderboardQueryResult = NonNullable<Awaited<ReturnType<typeof getLeaderboard>>>
+export type GetLeaderboardQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get top 20 subscribed users by average quiz score
+ */
+
+export function useGetLeaderboard<TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLeaderboardQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

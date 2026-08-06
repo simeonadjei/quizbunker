@@ -1,12 +1,12 @@
 import { Layout } from '@/components/Layout';
 import {
   useGetQuestionFilters, useCreateQuizSession, useGetPaymentStatus,
-  useGetReferralInfo, useSaveMomoDetails,
+  useGetReferralInfo, useSaveMomoDetails, useGetLeaderboard,
   getGetPaymentStatusQueryKey, getGetQuestionFiltersQueryKey, getGetReferralInfoQueryKey
 } from '@workspace/api-client-react';
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check, Download } from 'lucide-react';
+import { Loader2, Play, Lock, BookOpen, Sparkles, ChevronDown, Zap, X, WifiOff, ChevronUp, Gift, Copy, CheckCircle2, AlertTriangle, Check, Download, Trophy } from 'lucide-react';
 import { useOfflinePreCache } from '@/hooks/useOfflinePreCache';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -393,6 +393,9 @@ export default function Dashboard() {
   // Offline pre-cache — runs automatically; exposes manual trigger + needsDownload
   const { needsDownload, status: cacheStatus, progress: cacheProgress, label: cacheLabel, triggerManual } = useOfflinePreCache(true);
 
+  // Leaderboard preview — top 5
+  const { data: leaderboard } = useGetLeaderboard();
+
   const handleStartLevel = (week: number) => {
     // Online: server always re-checks; just use server truth
     if (isOnline) {
@@ -545,6 +548,41 @@ export default function Dashboard() {
           </div>
         )}
 
+
+        {/* ── Leaderboard Preview ─────────────────────────────────────────── */}
+        {leaderboard && leaderboard.length > 0 && (
+          <div
+            className="rounded-2xl px-4 py-3 space-y-2"
+            style={{ background: 'hsl(220 30% 8%)', border: '1.5px solid hsl(38 90% 30%)' }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-yellow-400" />
+                <span className="font-display text-sm tracking-wide text-yellow-300">LEADERBOARD</span>
+              </div>
+              <Link href="/leaderboard">
+                <button className="text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors">
+                  View all →
+                </button>
+              </Link>
+            </div>
+            <div className="space-y-1.5">
+              {leaderboard.slice(0, 5).map((entry) => (
+                <div key={entry.userId} className="flex items-center gap-2">
+                  <span className="font-display text-xs w-5 text-right shrink-0"
+                    style={{ color: entry.rank === 1 ? '#fbbf24' : entry.rank === 2 ? '#9ca3af' : entry.rank === 3 ? '#f97316' : 'hsl(220 20% 50%)' }}>
+                    #{entry.rank}
+                  </span>
+                  <span className="text-white/70 font-bold text-xs flex-1 truncate">{entry.name}</span>
+                  <span className="font-display text-xs shrink-0"
+                    style={{ color: entry.avgScore >= 80 ? '#22d3ee' : entry.avgScore >= 60 ? '#a78bfa' : '#f97316' }}>
+                    {entry.avgScore}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Page title */}
         <div className="flex items-center justify-between">

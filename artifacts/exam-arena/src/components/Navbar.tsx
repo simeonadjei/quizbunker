@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import { useLogoutUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, History, Sparkles, User as UserIcon, Gamepad2, WifiOff } from 'lucide-react';
+import { LogOut, History, Sparkles, User as UserIcon, Gamepad2, WifiOff, Trophy } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { clearCachedUser } from '@/lib/offlineUser';
 
@@ -56,6 +56,10 @@ export function Navbar() {
               <Link href="/history" className="hud-badge hover:scale-105 transition-transform hidden sm:flex">
                 <History className="w-3.5 h-3.5 text-secondary" />
                 <span>LOG</span>
+              </Link>
+              <Link href="/leaderboard" className="hud-badge hover:scale-105 transition-transform hidden sm:flex">
+                <Trophy className="w-3.5 h-3.5 text-yellow-400" />
+                <span>TOP</span>
               </Link>
               <Link href="/subscribe" className="hud-badge-gold hover:scale-105 transition-transform flex !px-2.5 sm:!px-3 !text-xs sm:!text-sm">
                 <Sparkles className="w-3.5 h-3.5" />

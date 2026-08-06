@@ -13,6 +13,7 @@ import Dashboard from '@/pages/Dashboard';
 import Quiz from '@/pages/Quiz';
 import Results from '@/pages/Results';
 import History from '@/pages/History';
+import Leaderboard from '@/pages/Leaderboard';
 import Subscribe from '@/pages/Subscribe';
 import SubscribeVerify from '@/pages/SubscribeVerify';
 import Admin from '@/pages/Admin';
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/quiz/:sessionId" component={Quiz} />
       <Route path="/results/:sessionId" component={Results} />
       <Route path="/history" component={History} />
+      <Route path="/leaderboard" component={Leaderboard} />
       <Route path="/subscribe" component={Subscribe} />
       <Route path="/subscribe/verify" component={SubscribeVerify} />
       <Route path="/verify-email" component={VerifyEmail} />

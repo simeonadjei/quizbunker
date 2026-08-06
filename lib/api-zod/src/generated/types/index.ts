@@ -22,6 +22,7 @@ export * from './errorResponse';
 export * from './forgotPasswordInput';
 export * from './getQuestionFiltersParams';
 export * from './healthStatus';
+export * from './leaderboardEntry';
 export * from './listAdminActivityParams';
 export * from './listQuestionsParams';
 export * from './loginInput';

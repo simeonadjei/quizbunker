@@ -369,6 +369,16 @@ export interface AdminSubscribeResponse {
   generatedPassword?: string | null;
 }
 
+export interface LeaderboardEntry {
+  rank: number;
+  userId: number;
+  name: string;
+  /** Average score percentage (0–100, rounded to 1 decimal) */
+  avgScore: number;
+  /** Number of completed quiz sessions counted */
+  quizzesCompleted: number;
+}
+
 export type UserSubscriptionPlan = typeof UserSubscriptionPlan[keyof typeof UserSubscriptionPlan];
 
 

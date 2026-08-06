@@ -306,6 +306,20 @@ export const GetQuizHistoryResponse = zod.array(GetQuizHistoryResponseItem)
 
 
 /**
+ * Returns up to 20 subscribed users ranked by their average score percentage across all completed quiz sessions. Only users who have completed at least 3 quizzes are eligible. Scoring = AVG(score / totalQuestions × 100).
+ * @summary Get top 20 subscribed users by average quiz score
+ */
+export const GetLeaderboardResponseItem = zod.object({
+  "rank": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "avgScore": zod.number().describe('Average score percentage (0–100, rounded to 1 decimal)'),
+  "quizzesCompleted": zod.number().describe('Number of completed quiz sessions counted')
+})
+export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem)
+
+
+/**
  * @summary List all active songs
  */
 export const ListSongsResponseItem = zod.object({

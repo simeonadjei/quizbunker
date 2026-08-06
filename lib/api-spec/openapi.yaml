@@ -16,6 +16,8 @@ tags:
     description: Question bank
   - name: quiz
     description: Quiz sessions
+  - name: leaderboard
+    description: Leaderboard
   - name: songs
     description: Background music
   - name: payments
@@ -324,6 +326,26 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/QuizSession"
+
+  # ── Leaderboard ───────────────────────────────────────────────────────────
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get top 20 subscribed users by average quiz score
+      description: >
+        Returns up to 20 subscribed users ranked by their average score percentage
+        across all completed quiz sessions. Only users who have completed at least
+        3 quizzes are eligible. Scoring = AVG(score / totalQuestions × 100).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
 
   # ── Songs ─────────────────────────────────────────────────────────────────
   /songs:
@@ -1381,6 +1403,23 @@ components:
           type: string
         generatedPassword:
           type: ["string", "null"]
+
+    LeaderboardEntry:
+      type: object
+      required: [rank, userId, name, avgScore, quizzesCompleted]
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        avgScore:
+          type: number
+          description: Average score percentage (0–100, rounded to 1 decimal)
+        quizzesCompleted:
+          type: integer
+          description: Number of completed quiz sessions counted
 
     UserSubscriptionPlan:
       type: string
