@@ -207,89 +207,126 @@ function PendingPaymentsPanel() {
   );
 }
 
-// ── Manual Subscribe ───────────────────────────────────────────────────────────
+// ── Manual Subscribe / Create & Subscribe ──────────────────────────────────────
 
 function ManualSubscribePanel() {
   const { toast } = useToast();
+  const [mode, setMode] = useState<'existing' | 'new'>('existing');
+
+  // Shared fields
   const [email, setEmail] = useState('');
   const [plan, setPlan] = useState<AdminSubscribeInputPlan>('monthly');
   const [months, setMonths] = useState('');
+
+  // Existing-user-only fields
   const [genPassword, setGenPassword] = useState(false);
+
+  // New-user-only fields
+  const [name, setName] = useState('');
+
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{ message: string; generatedPassword?: string | null } | null>(null);
+
+  const authHeaders = (): Record<string, string> =>
+    _adminToken ? { Authorization: `Bearer ${_adminToken}` } : {};
+
+  const resetForm = () => {
+    setEmail(''); setName(''); setMonths(''); setGenPassword(false);
+  };
 
   const handleSubmit = async () => {
     if (!email.trim()) {
       toast({ title: 'Email required', variant: 'destructive' });
       return;
     }
+    if (mode === 'new' && !name.trim()) {
+      toast({ title: 'Name required', variant: 'destructive' });
+      return;
+    }
     setPending(true);
     try {
-      // Use the same direct-fetch pattern as other admin operations so
-      // auth headers are always explicit — avoids issues with the hook's
-      // global token getter not being set in some environments.
-      const authHeaders: Record<string, string> = _adminToken
-        ? { Authorization: `Bearer ${_adminToken}` }
-        : {};
-      const res = await fetch(`${API_BASE}/api/admin/subscribe`, {
+      const endpoint = mode === 'new'
+        ? `${API_BASE}/api/admin/create-and-subscribe`
+        : `${API_BASE}/api/admin/subscribe`;
+
+      const body = mode === 'new'
+        ? { email: email.trim().toLowerCase(), name: name.trim(), plan, months: months ? parseInt(months, 10) : undefined }
+        : { email: email.trim().toLowerCase(), plan, months: months ? parseInt(months, 10) : undefined, generatePassword: genPassword };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          plan,
-          months: months ? parseInt(months, 10) : undefined,
-          generatePassword: genPassword,
-        }),
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body),
       });
       let data: { message?: string; generatedPassword?: string | null; error?: string } = {};
-      try { data = await res.json(); } catch { /* ignore parse error */ }
+      try { data = await res.json(); } catch { /* ignore */ }
       if (!res.ok) {
-        const msg = data.error || `Server error (HTTP ${res.status})`;
-        toast({ title: 'Subscribe failed', description: msg, variant: 'destructive' });
+        toast({ title: mode === 'new' ? 'Create failed' : 'Subscribe failed', description: data.error || `Server error (HTTP ${res.status})`, variant: 'destructive' });
         return;
       }
-      setResult({ message: data.message ?? 'Subscribed.', generatedPassword: data.generatedPassword ?? null });
-      setEmail('');
-      setMonths('');
-      setGenPassword(false);
-      toast({ title: '✅ Subscribed', description: data.message });
+      setResult({ message: data.message ?? 'Done.', generatedPassword: data.generatedPassword ?? null });
+      resetForm();
+      toast({ title: mode === 'new' ? '✅ Account Created' : '✅ Subscribed', description: data.message });
     } catch (err: unknown) {
       const msg = (err instanceof Error ? err.message : null) || 'Network error — could not reach the server.';
-      toast({ title: 'Subscribe failed', description: msg, variant: 'destructive' });
+      toast({ title: 'Failed', description: msg, variant: 'destructive' });
     } finally {
       setPending(false);
     }
   };
+
+  const inputCls = "w-full bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-green-500";
+  const labelCls = "text-xs text-zinc-500 uppercase tracking-wider block mb-1";
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 p-6">
       <h2 className="text-xl font-bold text-green-400 flex items-center gap-2 mb-4">
         <UserPlus className="w-5 h-5" /> MANUAL SUBSCRIBE
       </h2>
+
+      {/* Mode tabs */}
+      <div className="flex gap-1 mb-5 bg-black border border-zinc-800 rounded p-1 w-fit">
+        <button
+          onClick={() => { setMode('existing'); setResult(null); }}
+          className={`px-4 py-1.5 text-xs font-bold rounded transition-colors ${mode === 'existing' ? 'bg-green-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+        >
+          Existing User
+        </button>
+        <button
+          onClick={() => { setMode('new'); setResult(null); }}
+          className={`px-4 py-1.5 text-xs font-bold rounded transition-colors ${mode === 'new' ? 'bg-cyan-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+        >
+          New User
+        </button>
+      </div>
+
       <p className="text-zinc-500 text-xs mb-4">
-        Subscribe any user directly. Optionally generate a new password (useful for accounts you're creating on behalf of someone).
+        {mode === 'existing'
+          ? 'Subscribe an existing registered user to a plan.'
+          : 'Create a brand-new account and subscribe it in one step. A password is auto-generated and emailed to the user.'}
       </p>
 
       <div className="grid md:grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="text-xs text-zinc-500 uppercase tracking-wider block mb-1">User Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
+          <label className={labelCls}>Email</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            placeholder="user@example.com"
-            className="w-full bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-green-500"
-          />
+            placeholder="user@example.com" className={inputCls} />
         </div>
+
+        {mode === 'new' && (
+          <div>
+            <label className={labelCls}>Full Name</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+              placeholder="Kwame Mensah" className={inputCls} />
+          </div>
+        )}
+
         <div>
-          <label className="text-xs text-zinc-500 uppercase tracking-wider block mb-1">Plan</label>
-          <select
-            value={plan}
-            onChange={e => setPlan(e.target.value as AdminSubscribeInputPlan)}
-            className="w-full bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 focus:outline-none focus:border-green-500"
-          >
+          <label className={labelCls}>Plan</label>
+          <select value={plan} onChange={e => setPlan(e.target.value as AdminSubscribeInputPlan)} className={inputCls}>
             <option value="trial">Trial (2 days)</option>
             <option value="monthly">Monthly (1 month)</option>
             <option value="semester">Semester (4 months)</option>
@@ -297,31 +334,37 @@ function ManualSubscribePanel() {
             <option value="lifetime">Lifetime (unlimited)</option>
           </select>
         </div>
+
         <div>
-          <label className="text-xs text-zinc-500 uppercase tracking-wider block mb-1">Custom Duration (months) — optional</label>
-          <input
-            type="number"
-            min="1"
-            max="120"
-            value={months}
-            onChange={e => setMonths(e.target.value)}
-            placeholder="Leave blank to use plan default"
-            className="w-full bg-black border border-zinc-700 text-zinc-300 text-sm rounded px-3 py-2 placeholder:text-zinc-600 focus:outline-none focus:border-green-500"
-          />
+          <label className={labelCls}>Custom Duration (months) — optional</label>
+          <input type="number" min="1" max="120" value={months} onChange={e => setMonths(e.target.value)}
+            placeholder="Leave blank for plan default" className={inputCls} />
         </div>
-        <div className="flex items-center gap-3 mt-5">
-          <Switch checked={genPassword} onCheckedChange={setGenPassword} />
-          <span className="text-zinc-400 text-sm">Generate &amp; email new password</span>
-        </div>
+
+        {mode === 'existing' && (
+          <div className="flex items-center gap-3 mt-2">
+            <Switch checked={genPassword} onCheckedChange={setGenPassword} />
+            <span className="text-zinc-400 text-sm">Generate &amp; email new password</span>
+          </div>
+        )}
+
+        {mode === 'new' && (
+          <div className="flex items-center gap-2 mt-2 text-cyan-400 text-xs">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Password auto-generated &amp; emailed to user
+          </div>
+        )}
       </div>
 
       <button
         onClick={handleSubmit}
         disabled={pending}
-        className="px-5 py-2 bg-green-800 hover:bg-green-700 text-white text-sm font-bold rounded flex items-center gap-2 disabled:opacity-50"
+        className={`px-5 py-2 text-white text-sm font-bold rounded flex items-center gap-2 disabled:opacity-50 ${
+          mode === 'new' ? 'bg-cyan-800 hover:bg-cyan-700' : 'bg-green-800 hover:bg-green-700'
+        }`}
       >
         {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-        Subscribe User
+        {mode === 'new' ? 'Create Account & Subscribe' : 'Subscribe User'}
       </button>
 
       {result && (
@@ -330,8 +373,8 @@ function ManualSubscribePanel() {
           <div>{result.message}</div>
           {result.generatedPassword && (
             <div className="mt-2 text-cyan-400">
-              GENERATED PASSWORD: <span className="font-mono font-bold text-lg">{result.generatedPassword}</span>
-              <span className="text-zinc-500 text-xs ml-2">(sent to user via email)</span>
+              PASSWORD: <span className="font-mono font-bold text-lg">{result.generatedPassword}</span>
+              <span className="text-zinc-500 text-xs ml-2">(emailed to user)</span>
             </div>
           )}
         </div>

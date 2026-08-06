@@ -497,6 +497,124 @@ router.post("/admin/subscribe", requireAdmin, async (req, res) => {
   });
 });
 
+// POST /admin/create-and-subscribe
+// Creates a brand-new user account AND subscribes them in one step.
+// Always generates a password and emails the credentials.
+router.post("/admin/create-and-subscribe", requireAdmin, async (req, res) => {
+  const { email, name, plan, months: customMonths } = req.body as {
+    email?: string;
+    name?: string;
+    plan?: string;
+    months?: number;
+  };
+
+  if (!email?.trim() || !name?.trim() || !plan?.trim()) {
+    return res.status(400).json({ error: "email, name and plan are required" });
+  }
+
+  const emailLower = email.trim().toLowerCase();
+
+  // Reject if account already exists
+  const [existing] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, emailLower))
+    .limit(1);
+  if (existing) {
+    return res.status(409).json({ error: `An account already exists for ${emailLower}. Use the Subscribe panel to update their subscription.` });
+  }
+
+  // Generate a readable password
+  const words = ["Quiz", "Bunker", "Ghana", "Learn", "Smart", "Ace", "Study", "Pass"];
+  const word = words[Math.floor(Math.random() * words.length)];
+  const digits = Math.floor(1000 + Math.random() * 9000).toString();
+  const newPassword = `${word}${digits}`;
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  // Generate unique referral code
+  let referralCode: string | null = null;
+  for (let attempts = 0; attempts < 5; attempts++) {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const candidate = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    const [taken] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.referralCode, candidate)).limit(1);
+    if (!taken) { referralCode = candidate; break; }
+  }
+
+  // Calculate subscription end date
+  const months = customMonths && customMonths > 0
+    ? customMonths
+    : (PLAN_MONTHS[plan] ?? 1);
+  const now = new Date();
+  let endDate: Date;
+  if (plan === "lifetime") {
+    endDate = new Date("2099-12-31T23:59:59Z");
+  } else if (plan === "trial") {
+    endDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+  } else {
+    endDate = new Date(now);
+    endDate.setMonth(endDate.getMonth() + months);
+  }
+
+  // Create the user — email pre-verified since admin is setting it up
+  const [user] = await db
+    .insert(usersTable)
+    .values({
+      email: emailLower,
+      name: name.trim(),
+      passwordHash,
+      emailVerified: true,
+      verificationToken: null,
+      subscriptionPlan: plan,
+      subscriptionEnd: endDate,
+      referralCode,
+    })
+    .returning();
+
+  // Payment record for tracking
+  const reference = `ADMIN_NEW_${Date.now()}_${user.id}`;
+  await db.insert(paymentsTable).values({
+    userId: user.id,
+    plan,
+    amount: PLAN_AMOUNTS[plan] ?? 0,
+    reference,
+    status: "success",
+    startDate: now,
+    endDate,
+  });
+
+  // Email credentials to the user
+  sendEmail({
+    to: emailLower,
+    subject: "🎮 Your Quiz Bunker account is ready!",
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#ff6b00,#e03000);padding:24px 32px;">
+          <h1 style="margin:0;font-size:24px;letter-spacing:1px;">🎮 QUIZ BUNKER</h1>
+        </div>
+        <div style="padding:32px;">
+          <h2 style="margin:0 0 12px;color:#ffaa00;">Your Account is Ready!</h2>
+          <p style="color:#ccc;line-height:1.6;">Hi ${user.name},</p>
+          <p style="color:#ccc;line-height:1.6;">Your Quiz Bunker account has been created with a <strong style="color:#ffaa00;text-transform:uppercase;">${plan}</strong> subscription.</p>
+          <div style="background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:16px;margin:20px 0;">
+            <p style="margin:0 0 8px;color:#888;font-size:13px;">YOUR LOGIN DETAILS</p>
+            <p style="margin:0 0 6px;color:#ccc;"><strong style="color:#fff;">Email:</strong> ${emailLower}</p>
+            <p style="margin:0;color:#ccc;"><strong style="color:#fff;">Password:</strong> <span style="color:#00ffcc;font-weight:bold;font-size:18px;">${newPassword}</span></p>
+          </div>
+          <p style="color:#aaa;font-size:13px;">You can change your password after logging in.</p>
+          <a href="https://quizbunker.com/login" style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
+            LOG IN NOW
+          </a>
+        </div>
+      </div>
+    `,
+  }).catch(() => {});
+
+  return res.json({
+    message: `Account created for ${user.name} (${emailLower}) with ${plan} plan until ${endDate.toLocaleDateString()}.`,
+    generatedPassword: newPassword,
+  });
+});
+
 // POST /admin/questions/upload-text
 // Accepts pre-extracted plain text so the browser can parse the .docx
 // locally (mammoth browser build) and only send small JSON — zero file
