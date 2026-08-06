@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import { useGetCurrentUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { MessageCircle } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
@@ -50,22 +51,7 @@ export default function Landing() {
         <Footer />
       </div>
 
-      {/* Keyframes */}
-      <style>{`
-        @keyframes marquee {
-          0%   { transform: translateX(100vw); }
-          100% { transform: translateX(-100%); }
-        }
-        .marquee-track {
-          animation: marquee 852s linear infinite;
-          white-space: nowrap;
-          will-change: transform;
-        }
-        .marquee-track:hover {
-          animation-play-state: paused;
-        }
-
-      `}</style>
+      <style>{``}</style>
     </div>
   );
 }
@@ -94,15 +80,128 @@ const QUOTES = [
   { text: "Hard work beats talent when talent fails to work hard.", author: "Kevin Durant" },
 ] as const;
 
-/* ─── Scrolling ticker ───────────────────────────────────────────────────── */
+/* ─── Scrolling ticker (JS-driven, draggable/swipeable) ─────────────────── */
 function QuoteStrip({ gap, quoteFontSize, authorFontSize, dividerSize, py }: {
   gap: number; quoteFontSize: string; authorFontSize: string; dividerSize: number; py: string;
 }) {
-  // Duplicate the full list once so the loop is perfectly seamless
   const doubled = [...QUOTES, ...QUOTES];
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  // All mutable scroll state in a single ref — avoids re-renders
+  const s = useRef({
+    offset: 0,
+    dragging: false,
+    dragStartX: 0,
+    dragStartOffset: 0,
+    lastX: 0,
+    lastTime: 0,
+    velocity: 0,       // px/ms — used for momentum after release
+    rafId: 0,
+  });
+
+  // px per ms auto-scroll speed (≈ 60 px/s — matches previous 852 s feel)
+  const SPEED = 0.06;
+
+  useEffect(() => {
+    const state = s.current;
+    let lastTs = 0;
+
+    function loop(ts: number) {
+      const dt = lastTs ? ts - lastTs : 0;
+      lastTs = ts;
+
+      const track = trackRef.current;
+      if (track) {
+        const halfWidth = track.scrollWidth / 2;
+        if (halfWidth > 0) {
+          if (!state.dragging) {
+            // Apply momentum from last drag, decaying quickly
+            if (Math.abs(state.velocity) > 0.01) {
+              state.offset -= state.velocity * dt;
+              state.velocity *= 0.92; // friction
+            } else {
+              state.velocity = 0;
+              state.offset += SPEED * dt;
+            }
+          }
+          // Seamless wrap
+          state.offset = ((state.offset % halfWidth) + halfWidth) % halfWidth;
+          track.style.transform = `translateX(${-state.offset}px)`;
+        }
+      }
+      state.rafId = requestAnimationFrame(loop);
+    }
+
+    state.rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(state.rafId);
+  }, []);
+
+  // ── Pointer (mouse) events ─────────────────────────────────────────────────
+  const onMouseDown = (e: React.MouseEvent) => {
+    const state = s.current;
+    state.dragging = true;
+    state.dragStartX = e.clientX;
+    state.dragStartOffset = state.offset;
+    state.lastX = e.clientX;
+    state.lastTime = performance.now();
+    state.velocity = 0;
+    e.preventDefault();
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    const state = s.current;
+    if (!state.dragging) return;
+    const dx = e.clientX - state.dragStartX;
+    state.offset = state.dragStartOffset - dx;
+    const now = performance.now();
+    const dt = now - state.lastTime;
+    if (dt > 0) state.velocity = -(e.clientX - state.lastX) / dt;
+    state.lastX = e.clientX;
+    state.lastTime = now;
+  };
+
+  const onMouseUp = () => { s.current.dragging = false; };
+
+  // ── Touch events ───────────────────────────────────────────────────────────
+  const onTouchStart = (e: React.TouchEvent) => {
+    const state = s.current;
+    state.dragging = true;
+    state.dragStartX = e.touches[0].clientX;
+    state.dragStartOffset = state.offset;
+    state.lastX = e.touches[0].clientX;
+    state.lastTime = performance.now();
+    state.velocity = 0;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const state = s.current;
+    if (!state.dragging) return;
+    const dx = e.touches[0].clientX - state.dragStartX;
+    state.offset = state.dragStartOffset - dx;
+    const now = performance.now();
+    const dt = now - state.lastTime;
+    if (dt > 0) state.velocity = -(e.touches[0].clientX - state.lastX) / dt;
+    state.lastX = e.touches[0].clientX;
+    state.lastTime = now;
+  };
+
+  const onTouchEnd = () => { s.current.dragging = false; };
+
   return (
-    <div style={{ overflow: 'hidden', padding: `${py} 0` }}>
-      <div className="marquee-track" style={{ display: 'inline-flex', alignItems: 'center', gap }}>
+    <div
+      style={{ overflow: 'hidden', padding: `${py} 0`, cursor: 'grab', userSelect: 'none', WebkitUserSelect: 'none' }}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      <div
+        ref={trackRef}
+        style={{ display: 'inline-flex', alignItems: 'center', gap, whiteSpace: 'nowrap', willChange: 'transform' }}
+      >
         {doubled.map((q, idx) => (
           <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: Math.round(gap * 0.28), whiteSpace: 'nowrap' }}>
             <span style={{ color: '#facc15', opacity: 0.8, fontFamily: 'Georgia, serif', fontSize: dividerSize * 1.2 }}>"</span>
