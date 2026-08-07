@@ -50,6 +50,7 @@ export async function ensureAllTables(): Promise<void> {
           feedback           TEXT,
           uploaded_at        TIMESTAMP NOT NULL DEFAULT NOW()
         )`,
+        `ALTER TABLE questions ADD COLUMN IF NOT EXISTS question_images TEXT`,
 
         // 3. songs — no foreign key deps
         `CREATE TABLE IF NOT EXISTS songs (

@@ -95,6 +95,8 @@ export interface Question {
   optionC: string;
   optionD: string;
   correctAnswer: string;
+  /** Images or diagrams positioned with this question in the uploaded document */
+  questionImages: string[];
   /** @nullable */
   dok?: string | null;
   /** @nullable */

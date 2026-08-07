@@ -4,6 +4,16 @@ import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
+function questionImages(q: typeof questionsTable.$inferSelect): string[] {
+  if (!q.questionImages) return [];
+  try {
+    const parsed = JSON.parse(q.questionImages);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 function formatQuestion(q: typeof questionsTable.$inferSelect) {
   return {
     id: q.id,
@@ -18,6 +28,7 @@ function formatQuestion(q: typeof questionsTable.$inferSelect) {
     optionC: q.optionC,
     optionD: q.optionD,
     correctAnswer: q.correctAnswer,
+    questionImages: questionImages(q),
     dok: q.dok ?? null,
     learningIndicator: q.learningIndicator ?? null,
     feedback: q.feedback ?? null,

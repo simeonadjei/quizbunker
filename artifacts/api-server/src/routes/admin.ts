@@ -650,7 +650,10 @@ router.post("/admin/questions/upload-text", requireAdmin, async (req, res) => {
     try {
       const rows = await db
         .insert(questionsTable)
-        .values(chunk)
+        .values(chunk.map((question) => ({
+          ...question,
+          questionImages: question.questionImages?.length ? JSON.stringify(question.questionImages) : null,
+        })))
         .onConflictDoNothing()
         .returning({ id: questionsTable.id });
       inserted += rows.length;
@@ -747,7 +750,10 @@ router.post(
         try {
           const rows = await db
             .insert(questionsTable)
-            .values(chunk)
+            .values(chunk.map((question) => ({
+              ...question,
+              questionImages: question.questionImages?.length ? JSON.stringify(question.questionImages) : null,
+            })))
             .onConflictDoNothing()
             .returning({ id: questionsTable.id });
           inserted += rows.length;
@@ -1135,7 +1141,7 @@ router.get("/admin/users", requireAdmin, async (_req, res) => {
 
 // DELETE /admin/users/:id — permanently remove a user and all their data
 router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid user ID" });
 
   const [user] = await db

@@ -15,6 +15,7 @@ export const questionsTable = pgTable("questions", {
   optionC: text("option_c").notNull(),
   optionD: text("option_d").notNull(),
   correctAnswer: text("correct_answer").notNull(),
+  questionImages: text("question_images"),
   dok: text("dok"),
   learningIndicator: text("learning_indicator"),
   feedback: text("feedback"),

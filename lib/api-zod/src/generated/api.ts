@@ -157,6 +157,7 @@ export const ListQuestionsResponseItem = zod.object({
   "optionC": zod.string(),
   "optionD": zod.string(),
   "correctAnswer": zod.string(),
+  "questionImages": zod.array(zod.string()).describe('Images or diagrams positioned with this question in the uploaded document'),
   "dok": zod.string().nullish(),
   "learningIndicator": zod.string().nullish(),
   "feedback": zod.string().nullish()
@@ -229,6 +230,7 @@ export const GetQuizSessionResponse = zod.object({
   "optionC": zod.string(),
   "optionD": zod.string(),
   "correctAnswer": zod.string(),
+  "questionImages": zod.array(zod.string()).describe('Images or diagrams positioned with this question in the uploaded document'),
   "dok": zod.string().nullish(),
   "learningIndicator": zod.string().nullish(),
   "feedback": zod.string().nullish()
@@ -277,6 +279,7 @@ export const SubmitQuizSessionResponse = zod.object({
   "optionC": zod.string(),
   "optionD": zod.string(),
   "correctAnswer": zod.string(),
+  "questionImages": zod.array(zod.string()).describe('Images or diagrams positioned with this question in the uploaded document'),
   "dok": zod.string().nullish(),
   "learningIndicator": zod.string().nullish(),
   "feedback": zod.string().nullish()
@@ -449,6 +452,7 @@ export const UploadQuestionsResponse = zod.object({
   "optionC": zod.string(),
   "optionD": zod.string(),
   "correctAnswer": zod.string(),
+  "questionImages": zod.array(zod.string()).describe('Images or diagrams positioned with this question in the uploaded document'),
   "dok": zod.string().nullish(),
   "learningIndicator": zod.string().nullish(),
   "feedback": zod.string().nullish()

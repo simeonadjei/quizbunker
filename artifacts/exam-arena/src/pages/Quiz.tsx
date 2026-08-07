@@ -437,6 +437,27 @@ export default function Quiz() {
       <div ref={optionsRef} className="flex-1 overflow-y-auto relative z-10">
         <div className="max-w-lg mx-auto px-4 py-4 flex flex-col gap-3 pb-4">
 
+          {/* Embedded pictures/diagrams belong between the prompt and its choices.
+              The fixed-height frame lets both tiny and oversized source images
+              remain visible without overflowing any viewport. */}
+          {currentQuestion && currentQuestion.questionImages?.length > 0 && (
+            <div
+              className="w-full h-[clamp(140px,36vw,420px)] rounded-2xl border-2 border-white/15 bg-black/35 p-2 flex flex-col gap-2"
+              aria-label="Question diagram"
+            >
+              {currentQuestion.questionImages.map((src, index) => (
+                <div key={`${src.slice(0, 32)}-${index}`} className="min-h-0 flex-1 flex items-center justify-center overflow-hidden rounded-xl">
+                  <img
+                    src={src}
+                    alt={`Diagram for question ${currentQIndex + 1}${currentQuestion.questionImages!.length > 1 ? `, image ${index + 1}` : ''}`}
+                    className="w-full h-full object-contain select-none"
+                    draggable={false}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           {currentQuestion && (['A', 'B', 'C', 'D'] as const).map((key) => {
             const text = currentQuestion[`option${key}` as `option${'A'|'B'|'C'|'D'}`];
             const isSelected = answers[currentQuestion.id] === key;

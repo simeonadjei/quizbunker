@@ -10,6 +10,7 @@ export interface ParsedQuestion {
   optionC: string;
   optionD: string;
   correctAnswer: string;
+  questionImages?: string[];
   dok?: string;
   learningIndicator?: string;
   feedback?: string;
@@ -127,6 +128,18 @@ export function parseQuestionText(
       else if (letter === "B") current.optionB = text;
       else if (letter === "C") current.optionC = text;
       else if (letter === "D") current.optionD = text;
+      continue;
+    }
+
+    // Images extracted from a Word document are represented as one or more
+    // data URLs on their own line so they stay attached to the current
+    // question while the existing text parser remains backwards compatible.
+    const imageMatch = line.match(/^Image\s*:\s*(.+)$/i);
+    if (imageMatch) {
+      const image = imageMatch[1].trim();
+      if (image.startsWith("data:image/")) {
+        current.questionImages = [...(current.questionImages ?? []), image];
+      }
       continue;
     }
 

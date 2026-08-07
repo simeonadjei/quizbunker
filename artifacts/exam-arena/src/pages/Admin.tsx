@@ -54,6 +54,38 @@ import { useQueryClient } from '@tanstack/react-query';
 // Prepend the API base URL for direct fetch calls (cross-origin on Render)
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 
+/**
+ * Convert Mammoth's HTML output into the line-oriented question format used
+ * by the server parser, keeping embedded images at their original document
+ * position. The data URLs are sent only for this upload and become the
+ * question's persisted image list on the server.
+ */
+function documentHtmlToQuestionText(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const blockTags = new Set(['P', 'DIV', 'LI', 'TABLE', 'TR', 'TD', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+
+  const renderNode = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent?.replace(/\u00a0/g, ' ') ?? '';
+    }
+
+    if (!(node instanceof HTMLElement)) return '';
+    if (node.tagName === 'IMG') {
+      const src = node.getAttribute('src');
+      return src?.startsWith('data:image/') ? `\nImage: ${src}\n` : '';
+    }
+
+    const content = Array.from(node.childNodes).map(renderNode).join('');
+    return blockTags.has(node.tagName) ? `\n${content}\n` : content;
+  };
+
+  return renderNode(doc.body)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
 export default function AdminPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -725,8 +757,8 @@ function QuestionUploader() {
       let raw = '';
       if (ext === 'docx' || ext === 'doc') {
         const ab = await f.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer: ab });
-        raw = result.value ?? '';
+        const result = await mammoth.convertToHtml({ arrayBuffer: ab });
+        raw = documentHtmlToQuestionText(result.value ?? '');
       } else {
         raw = await f.text();
       }
@@ -758,13 +790,22 @@ function QuestionUploader() {
         if (ext === 'docx' || ext === 'doc') {
           // mammoth browser build: accepts an ArrayBuffer
           const arrayBuffer = await f.arrayBuffer();
-          const result = await mammoth.extractRawText({ arrayBuffer });
-          if (!result.value?.trim()) {
+          const result = await mammoth.convertToHtml(
+            { arrayBuffer },
+            {
+              convertImage: mammoth.images.imgElement((image: { read: (encoding: string) => Promise<string>; contentType: string }) =>
+                image.read('base64').then((base64) => ({
+                  src: `data:${image.contentType};base64,${base64}`,
+                })),
+              ),
+            },
+          );
+          rawText = documentHtmlToQuestionText(result.value ?? '');
+          if (!rawText.trim()) {
             failed.push(`${f.name}: Could not extract text — try saving as .docx in Word first`);
             setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
             continue;
           }
-          rawText = result.value;
         } else {
           // .txt — read as UTF-8 text directly
           rawText = await f.text();

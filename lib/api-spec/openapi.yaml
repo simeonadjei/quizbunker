@@ -945,7 +945,7 @@ components:
     # ── Questions ────────────────────────────────────────────────────────────
     Question:
       type: object
-      required: [id, year, subject, week, weekTopic, questionNumber, questionText, optionA, optionB, optionC, optionD, correctAnswer]
+      required: [id, year, subject, week, weekTopic, questionNumber, questionText, optionA, optionB, optionC, optionD, correctAnswer, questionImages]
       properties:
         id:
           type: integer
@@ -971,6 +971,11 @@ components:
           type: string
         correctAnswer:
           type: string
+        questionImages:
+          type: array
+          description: Images or diagrams positioned with this question in the uploaded document
+          items:
+            type: string
         dok:
           type: ["string", "null"]
         learningIndicator:

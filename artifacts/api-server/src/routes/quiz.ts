@@ -28,6 +28,16 @@ function seededShuffle<T>(arr: T[], rng: () => number): T[] {
 
 type DbQuestion = typeof questionsTable.$inferSelect;
 
+function questionImages(q: typeof questionsTable.$inferSelect): string[] {
+  if (!q.questionImages) return [];
+  try {
+    const parsed = JSON.parse(q.questionImages);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Interleave questions so no DOK level repeats more than twice in a row.
  * Within each DOK group, order is already shuffled.
@@ -136,6 +146,7 @@ function formatQuestion(q: typeof questionsTable.$inferSelect) {
     optionC: q.optionC,
     optionD: q.optionD,
     correctAnswer: q.correctAnswer,
+    questionImages: questionImages(q),
     dok: q.dok ?? null,
     learningIndicator: q.learningIndicator ?? null,
     feedback: q.feedback ?? null,
@@ -157,6 +168,7 @@ function formatQuestionSafe(q: typeof questionsTable.$inferSelect) {
     optionC: q.optionC,
     optionD: q.optionD,
     correctAnswer: q.correctAnswer,
+    questionImages: questionImages(q),
     dok: q.dok ?? null,
     learningIndicator: q.learningIndicator ?? null,
     feedback: q.feedback ?? null,
