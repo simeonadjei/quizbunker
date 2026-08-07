@@ -292,13 +292,13 @@ export default function Quiz() {
   return (
     /*
      * Full-viewport flex column:
-     *   row 1 — HUD bar        (shrink-0, never scrolls)
-     *   row 2 — Question card  (shrink-0, never scrolls)
-     *   row 3 — Options pane   (flex-1, overflow-y-auto — ONLY this scrolls)
-     *   row 4 — Bottom nav     (shrink-0, never scrolls)
+     *   row 1 — HUD bar              (shrink-0, never scrolls)
+     *   row 2 — Quiz content         (flex-1, one readable scroll flow)
+     *   row 3 — Bottom nav           (shrink-0, never scrolls)
      *
-     * This guarantees Option A is always the first visible item in the
-     * scrollable pane and can never be hidden behind the question card.
+     * The question and its choices live in the same scroll flow. This keeps
+     * long prompts from taking over the viewport and hiding the first choices,
+     * feedback, or coach message behind a separate fixed panel.
      */
     <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden relative">
       <BackgroundParticles />
@@ -394,9 +394,10 @@ export default function Quiz() {
         </div>
       </header>
 
-      {/* ── Row 2: Question card (never scrolls) ── */}
+      {/* ── Row 2: One scrollable quiz content flow ── */}
+      <div ref={optionsRef} className="flex-1 overflow-y-auto relative z-10 scroll-smooth">
       {currentQuestion && (
-        <div className="relative z-30 shrink-0 border-b-2 border-primary/30"
+        <div className="relative z-30 border-b-2 border-primary/30"
           style={{
             background: 'linear-gradient(135deg, rgb(28,14,6), rgb(38,20,8))',
             boxShadow: '0 2px 0 hsl(22 90% 25%)',
@@ -405,10 +406,10 @@ export default function Quiz() {
           {/* Week topic banner */}
           {(currentQuestion as any).weekTopic && (
             <div
-              className="max-w-lg mx-auto px-4 pt-3 pb-0 flex items-center gap-2"
+              className="max-w-lg mx-auto px-3 sm:px-4 pt-2.5 sm:pt-3 pb-0 flex items-center gap-2"
             >
               <div
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border"
+                className="inline-flex max-w-full items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border"
                 style={{
                   background: 'hsl(175 100% 40% / 0.12)',
                   borderColor: 'hsl(175 100% 50% / 0.4)',
@@ -424,18 +425,16 @@ export default function Quiz() {
             </div>
           )}
 
-          <div className="max-w-lg mx-auto px-4 py-4 flex items-start gap-3">
-            <div className="bg-primary/30 text-primary border-2 border-primary/60 px-3 py-1.5 rounded-xl font-display text-base shrink-0 mt-0.5 min-w-[3rem] text-center">
+           <div className="max-w-lg mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-start gap-2 sm:gap-3">
+             <div className="bg-primary/30 text-primary border-2 border-primary/60 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-display text-sm sm:text-base shrink-0 mt-0.5 min-w-[2.75rem] sm:min-w-[3rem] text-center">
               Q{currentQIndex + 1}
             </div>
-            <p className="text-white font-bold text-xl leading-snug">{currentQuestion.questionText}</p>
+             <p className="text-white font-bold text-base sm:text-xl leading-snug break-words">{currentQuestion.questionText}</p>
           </div>
         </div>
       )}
 
-      {/* ── Row 3: Options — the ONLY scrollable area ── */}
-      <div ref={optionsRef} className="flex-1 overflow-y-auto relative z-10">
-        <div className="max-w-lg mx-auto px-4 py-4 flex flex-col gap-3 pb-4">
+        <div className="max-w-lg mx-auto px-3 sm:px-4 py-3 sm:py-4 flex flex-col gap-2.5 sm:gap-3 pb-6">
 
           {/* Embedded pictures/diagrams belong between the prompt and its choices.
               The fixed-height frame lets both tiny and oversized source images
@@ -474,7 +473,7 @@ export default function Quiz() {
                 onClick={() => handleSelect(key)}
                 disabled={isCurrentRevealed}
                 className={cn(
-                  'relative flex flex-row items-center gap-4 rounded-2xl border-2 transition-all duration-200 py-4 px-4 text-left w-full',
+                   'relative flex flex-row items-center gap-3 sm:gap-4 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 py-3 sm:py-4 px-3 sm:px-4 text-left w-full',
                   !isCurrentRevealed && !isSelected && 'border-white/15 bg-black/40 hover:border-white/30 hover:bg-white/5 active:scale-[0.98]',
                   !isCurrentRevealed && isSelected && `${optionStyle.selectedBg} ${optionStyle.border} ${optionStyle.shadow}`,
                   isCorrect && 'border-emerald-400 bg-emerald-500/20 shadow-[0_0_20px_hsl(152_76%_50%/0.5)]',
@@ -484,7 +483,7 @@ export default function Quiz() {
               >
                 {/* Letter badge */}
                 <div className={cn(
-                  'w-11 h-11 rounded-xl flex items-center justify-center font-display text-xl border-2 shrink-0',
+                   'w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center font-display text-lg sm:text-xl border-2 shrink-0',
                   isCorrect ? 'bg-emerald-500 text-white border-white/40' :
                   isWrong   ? 'bg-rose-500 text-white border-white/40' :
                   isSelected && !isCurrentRevealed ? `${optionStyle.badgeBg} text-white border-white/40` :
@@ -495,7 +494,7 @@ export default function Quiz() {
 
                 {/* Answer text */}
                 <span className={cn(
-                  'text-xl font-bold leading-snug flex-1',
+                   'text-base sm:text-xl font-bold leading-snug flex-1 break-words',
                   isCorrect ? 'text-emerald-200' :
                   isWrong   ? 'text-rose-200' :
                   isSelected && !isCurrentRevealed ? 'text-white' : 'text-white/80'
@@ -523,7 +522,7 @@ export default function Quiz() {
 
             return (
               <div ref={feedbackRef} className={cn(
-                'rounded-2xl p-5 border-l-4 animate-in slide-in-from-bottom-3 duration-300',
+                 'rounded-2xl p-4 sm:p-5 border-l-4 animate-in slide-in-from-bottom-3 duration-300',
                 isRight ? 'bg-emerald-500/10 border-emerald-400' : 'bg-rose-500/10 border-rose-400'
               )}>
                 <div className="flex items-center flex-wrap gap-2 mb-3">
@@ -543,7 +542,7 @@ export default function Quiz() {
                 {feedbackText && (
                   <div className="flex items-start gap-2 mt-1">
                     <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-base text-white font-semibold leading-relaxed whitespace-pre-wrap break-words">
+                     <p className="text-sm sm:text-base text-white font-semibold leading-relaxed whitespace-pre-wrap break-words">
                       {feedbackText}
                     </p>
                   </div>
@@ -554,8 +553,8 @@ export default function Quiz() {
 
           {/* ── Motivational scrolling ticker ── */}
           {motivationalMsg && (
-            <div
-              className="overflow-hidden rounded-xl px-0 py-2.5 border animate-in fade-in duration-500"
+             <div
+               className="rounded-xl px-3 py-3 border animate-in fade-in duration-500"
               style={{
                 background: 'linear-gradient(135deg, rgba(255,160,0,0.08), rgba(0,200,160,0.08))',
                 borderColor: 'rgba(255,160,0,0.25)',
@@ -572,22 +571,9 @@ export default function Quiz() {
                   aria-label="Dismiss"
                 >✕</button>
               </div>
-              <div className="relative overflow-hidden">
-                <p
-                  className="text-sm font-bold whitespace-nowrap"
-                  style={{
-                    color: 'hsl(45 100% 82%)',
-                    animationName: 'motivationalScroll',
-                    animationDuration: '18s',
-                    animationTimingFunction: 'linear',
-                    animationIterationCount: 'infinite',
-                    display: 'inline-block',
-                    paddingLeft: '100%',
-                  }}
-                >
-                  {motivationalMsg}&nbsp;&nbsp;&nbsp;&nbsp;{motivationalMsg}
-                </p>
-              </div>
+               <p className="text-sm font-bold leading-snug break-words" style={{ color: 'hsl(45 100% 82%)' }}>
+                 {motivationalMsg}
+               </p>
             </div>
           )}
 
