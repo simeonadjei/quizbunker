@@ -985,7 +985,7 @@ components:
 
     QuestionFilters:
       type: object
-      required: [years, subjects, weeks]
+      required: [years, subjects, weeks, weekTopics]
       properties:
         years:
           type: array
@@ -999,6 +999,11 @@ components:
           type: array
           items:
             type: integer
+        weekTopics:
+          type: object
+          additionalProperties:
+            type: string
+          description: Topic text keyed by week number
 
     # ── Quiz ─────────────────────────────────────────────────────────────────
     QuizSessionInput:

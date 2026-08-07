@@ -51,8 +51,8 @@ export function Layout({ children, wide = false }: LayoutProps) {
       {!isAdmin && <BackgroundParticles />}
       {!isAdmin && <Navbar />}
       {!isAdmin && <OfflineCacheBanner state={preCache} />}
-      {/* pt-14 clears the fixed 56px navbar (lg:pt-24 clears the taller desktop navbar); pb-24 clears the music player */}
-      <main className={`flex-1 relative z-10 w-full flex flex-col items-center ${!isAdmin ? 'pt-14 lg:pt-24 pb-24' : ''}`}>
+       {/* Portrait navbar uses two compact rows; sm screens use 56px and desktop uses 96px. */}
+       <main className={`flex-1 relative z-10 w-full flex flex-col items-center ${!isAdmin ? 'pt-24 sm:pt-14 lg:pt-24 pb-24' : ''}`}>
         <div className={
           isAdmin
             ? 'w-full flex flex-col flex-1'

@@ -35,6 +35,7 @@ export * from './momoVerifyInput';
 export * from './momoVerifyResponse';
 export * from './question';
 export * from './questionFilters';
+export * from './questionFiltersWeekTopics';
 export * from './questionUploadInput';
 export * from './quizAnswer';
 export * from './quizSession';

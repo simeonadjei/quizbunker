@@ -5,9 +5,12 @@
  * Exam Arena API
  * OpenAPI spec version: 0.1.0
  */
+import type { QuestionFiltersWeekTopics } from './questionFiltersWeekTopics';
 
 export interface QuestionFilters {
   years: string[];
   subjects: string[];
   weeks: number[];
+  /** Topic text keyed by week number */
+  weekTopics: QuestionFiltersWeekTopics;
 }

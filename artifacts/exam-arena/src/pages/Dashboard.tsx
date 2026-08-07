@@ -376,6 +376,7 @@ export default function Dashboard() {
   const years = yearData?.years ?? [];
   const subjects = subjectData?.subjects ?? [];
   const weeks = weekData?.weeks ?? [];
+  const weekTopics = weekData?.weekTopics ?? {};
   const loadingFilters = loadingYears || (!!selectedYear && loadingSubjects) || (!!selectedYear && !!selectedSubject && loadingWeeks);
 
   // Auto-select first year on load
@@ -698,43 +699,51 @@ export default function Dashboard() {
                 {weeks.length} weeks
               </span>
             </div>
-            <div className="grid grid-cols-5 gap-2.5 sm:grid-cols-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {weeks.map((w, idx) => {
                 const unlocked = !!isSubscribed;
                 const isCachedOffline = cachedWeeks.has(w);
                 const col = WEEK_COLORS[idx % WEEK_COLORS.length];
                 return (
-                  <button
-                    key={w}
-                    onClick={() => handleStartLevel(w)}
-                    disabled={createSession.isPending}
-                    className="relative aspect-square rounded-2xl flex flex-col items-center justify-center select-none transition-all duration-150 active:scale-90 active:translate-y-0.5"
-                    style={unlocked ? {
-                      background: col.bg,
-                      border: `2px solid ${col.border}`,
-                      boxShadow: `0 4px 0 ${col.shadow}66, 0 0 12px ${col.border}33`,
-                    } : {
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '2px solid rgba(255,255,255,0.1)',
-                      boxShadow: 'none',
-                    }}
-                  >
-                    {createSession.isPending ? (
-                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: col.text }} />
-                    ) : unlocked ? (
-                      <>
-                        {isCachedOffline
-                          ? <WifiOff className="w-3 h-3 mb-0.5 opacity-70" style={{ color: col.text }} strokeWidth={2} />
-                          : <Play className="w-3 h-3 mb-0.5 opacity-60" style={{ color: col.text }} fill="currentColor" strokeWidth={0} />}
-                        <span className="font-display text-xl leading-none font-black" style={{ color: col.text }}>{w}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-3.5 h-3.5 mb-0.5 opacity-30 text-white" strokeWidth={2} />
-                        <span className="font-display text-xl leading-none text-white/25 font-black">{w}</span>
-                      </>
-                    )}
-                  </button>
+                  <div key={w} className="min-w-0 flex flex-col gap-1.5">
+                     <div
+                       className="min-h-[3.5rem] sm:min-h-[3.25rem] px-0.5 text-center text-sm sm:text-base font-black leading-tight flex items-center justify-center"
+                       style={{ color: 'hsl(45 100% 88%)', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}
+                     >
+                      {weekTopics[String(w)] || `Week ${w}`}
+                    </div>
+                    <button
+                      onClick={() => handleStartLevel(w)}
+                      disabled={createSession.isPending}
+                      aria-label={`Week ${w}: ${weekTopics[String(w)] || 'Start quiz'}`}
+                      className="relative h-24 sm:h-28 rounded-2xl flex flex-col items-center justify-center select-none transition-all duration-150 active:scale-95 active:translate-y-0.5"
+                      style={unlocked ? {
+                        background: col.bg,
+                        border: `2px solid ${col.border}`,
+                        boxShadow: `0 4px 0 ${col.shadow}66, 0 0 12px ${col.border}33`,
+                      } : {
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '2px solid rgba(255,255,255,0.1)',
+                        boxShadow: 'none',
+                      }}
+                    >
+                      {createSession.isPending ? (
+                        <Loader2 className="w-5 h-5 animate-spin" style={{ color: col.text }} />
+                      ) : unlocked ? (
+                        <>
+                          {isCachedOffline
+                            ? <WifiOff className="w-3 h-3 mb-0.5 opacity-70" style={{ color: col.text }} strokeWidth={2} />
+                            : <Play className="w-3 h-3 mb-0.5 opacity-60" style={{ color: col.text }} fill="currentColor" strokeWidth={0} />}
+                          <span className="font-display text-xl leading-none font-black" style={{ color: col.text }}>{w}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3.5 h-3.5 mb-0.5 opacity-30 text-white" strokeWidth={2} />
+                          <span className="font-display text-xl leading-none text-white/25 font-black">{w}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 );
               })}
             </div>

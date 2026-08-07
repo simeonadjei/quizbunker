@@ -27,18 +27,18 @@ export function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-white/10 shadow-lg">
-      <div className="max-w-screen-lg mx-auto px-2.5 sm:px-4 h-14 lg:h-24 flex items-center justify-between gap-1.5 sm:gap-3">
+        <div className="max-w-screen-lg mx-auto w-full px-1.5 sm:px-4 min-h-24 sm:h-14 lg:h-24 py-1 sm:py-0 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-1 sm:gap-3">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 shrink min-w-0 lg:shrink-0 group">
+          <Link href="/" className="w-full sm:w-auto flex items-center gap-1 sm:gap-2 lg:gap-4 shrink min-w-0 lg:shrink-0 group">
           <img
             src="/logo.png"
             alt="Quiz Bunker Logo"
-            className="h-8 w-8 sm:h-9 sm:w-9 lg:h-20 lg:w-20 rounded-xl lg:rounded-2xl object-cover group-active:translate-y-0.5 transition-transform shrink-0"
+            className="h-7 w-7 sm:h-9 sm:w-9 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl lg:rounded-2xl object-cover group-active:translate-y-0.5 transition-transform shrink-0"
             style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.4)' }}
           />
           <div className="flex flex-col leading-none min-w-0 lg:min-w-max">
-            <span className="font-display text-xs sm:text-sm lg:text-3xl leading-tight text-white tracking-wide whitespace-nowrap truncate lg:overflow-visible">
+            <span className="font-display text-[10px] sm:text-sm lg:text-3xl leading-tight text-white tracking-wide whitespace-nowrap truncate lg:overflow-visible">
               QUIZ <span className="text-game-title-orange" style={{ WebkitTextStroke: '1px rgba(0,0,0,0.5)' }}>BUNKER</span>
             </span>
             <span className="font-display text-[7px] sm:text-[8px] lg:text-sm text-secondary tracking-widest leading-none whitespace-nowrap hidden xl:block">Quiz for Ghana students</span>
@@ -46,41 +46,42 @@ export function Navbar() {
         </Link>
 
         {/* Nav actions */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-0.5 sm:gap-2 shrink-0">
           {user ? (
             <>
-              <Link href="/dashboard" className="hud-badge hover:scale-105 transition-transform hidden sm:flex">
+              <Link href="/dashboard" aria-label="Play" title="Play" className="hud-badge hover:scale-105 transition-transform !px-1.5 sm:!px-3">
                 <Gamepad2 className="w-3.5 h-3.5 text-primary" />
-                <span>PLAY</span>
+                <span className="inline text-[9px] sm:text-sm">PLAY</span>
               </Link>
-              <Link href="/history" className="hud-badge hover:scale-105 transition-transform hidden sm:flex">
+              <Link href="/history" aria-label="History" title="History" className="hud-badge hover:scale-105 transition-transform !px-1.5 sm:!px-3">
                 <History className="w-3.5 h-3.5 text-secondary" />
-                <span>LOG</span>
+                <span className="inline text-[9px] sm:text-sm">LOG</span>
               </Link>
-              <Link href="/leaderboard" className="hud-badge hover:scale-105 transition-transform hidden sm:flex">
+              <Link href="/leaderboard" aria-label="Leaderboard" title="Leaderboard" className="hud-badge hover:scale-105 transition-transform !px-1.5 sm:!px-3">
                 <Trophy className="w-3.5 h-3.5 text-yellow-400" />
-                <span>TOP</span>
+                <span className="inline text-[9px] sm:text-sm">TOP</span>
               </Link>
-              <Link href="/subscribe" className="hud-badge-gold hover:scale-105 transition-transform flex !px-2.5 sm:!px-3 !text-xs sm:!text-sm">
+              <Link href="/subscribe" aria-label="Subscribe" title="Subscribe" className="hud-badge-gold hover:scale-105 transition-transform flex !px-1.5 sm:!px-3 !text-xs sm:!text-sm">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>PRO</span>
+                <span className="inline text-[9px] sm:text-sm">PRO</span>
               </Link>
-              <div className="hud-badge pl-1 pr-2 sm:pr-3 hidden sm:flex">
+              <div className="hud-badge pl-1 pr-1.5 sm:pr-3 min-w-0 max-w-[76px] sm:max-w-[120px]" title={user.name}>
                 <div className="bg-primary/30 p-1 rounded-full border border-primary/50">
                   {isOfflineFallback
                     ? <WifiOff className="w-3.5 h-3.5 text-yellow-400" />
                     : <UserIcon className="w-3.5 h-3.5 text-primary" />}
                 </div>
-                <span className="ml-1 truncate max-w-[80px] text-xs">{user.name.split(' ')[0].toUpperCase()}</span>
+                <span className="ml-1 truncate max-w-[47px] sm:max-w-[80px] text-[9px] sm:text-xs">{user.name.split(' ')[0].toUpperCase()}</span>
               </div>
               <button
                 onClick={handleLogout}
                 disabled={logout.isPending}
-                className="hud-badge hover:scale-105 active:translate-y-0.5 transition-transform shrink-0 !border-red-500/40 !text-red-400 hover:!bg-red-500/15 disabled:opacity-60"
+                aria-label="Log out"
+                className="hud-badge hover:scale-105 active:translate-y-0.5 transition-transform shrink-0 !px-1.5 sm:!px-3 !border-red-500/40 !text-red-400 hover:!bg-red-500/15 disabled:opacity-60"
                 title="Log out"
               >
                 <LogOut className="w-3.5 h-3.5" strokeWidth={2.5} />
-                <span>OUT</span>
+                 <span className="inline text-[9px] sm:text-sm">OUT</span>
               </button>
             </>
           ) : (

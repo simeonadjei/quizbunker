@@ -89,27 +89,32 @@ router.get("/questions/filters", async (req, res) => {
   let weekRows;
   if (year && subject) {
     weekRows = await db
-      .selectDistinct({ week: questionsTable.week })
+      .selectDistinct({ week: questionsTable.week, weekTopic: questionsTable.weekTopic })
       .from(questionsTable)
       .where(and(eq(questionsTable.year, year), eq(questionsTable.subject, subject)))
       .orderBy(questionsTable.week);
   } else if (year) {
     weekRows = await db
-      .selectDistinct({ week: questionsTable.week })
+      .selectDistinct({ week: questionsTable.week, weekTopic: questionsTable.weekTopic })
       .from(questionsTable)
       .where(eq(questionsTable.year, year))
       .orderBy(questionsTable.week);
   } else {
     weekRows = await db
-      .selectDistinct({ week: questionsTable.week })
+      .selectDistinct({ week: questionsTable.week, weekTopic: questionsTable.weekTopic })
       .from(questionsTable)
       .orderBy(questionsTable.week);
   }
+
+  const weekTopics = Object.fromEntries(
+    weekRows.map((row) => [String(row.week), row.weekTopic]),
+  );
 
   return res.json({
     years: yearRows.map((r) => r.year),
     subjects: subjectRows.map((r) => r.subject),
     weeks: weekRows.map((r) => r.week),
+    weekTopics,
   });
 });
 

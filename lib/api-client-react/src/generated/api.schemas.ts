@@ -105,10 +105,17 @@ export interface Question {
   feedback?: string | null;
 }
 
+/**
+ * Topic text keyed by week number
+ */
+export type QuestionFiltersWeekTopics = {[key: string]: string};
+
 export interface QuestionFilters {
   years: string[];
   subjects: string[];
   weeks: number[];
+  /** Topic text keyed by week number */
+  weekTopics: QuestionFiltersWeekTopics;
 }
 
 export interface QuizSessionInput {

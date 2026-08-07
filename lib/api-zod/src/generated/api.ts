@@ -176,7 +176,8 @@ export const GetQuestionFiltersQueryParams = zod.object({
 export const GetQuestionFiltersResponse = zod.object({
   "years": zod.array(zod.string()),
   "subjects": zod.array(zod.string()),
-  "weeks": zod.array(zod.number())
+  "weeks": zod.array(zod.number()),
+  "weekTopics": zod.record(zod.string(), zod.string()).describe('Topic text keyed by week number')
 })
 
 
