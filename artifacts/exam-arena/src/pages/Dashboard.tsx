@@ -699,25 +699,25 @@ export default function Dashboard() {
                 {weeks.length} weeks
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+            <div className="grid grid-cols-3 gap-x-2 sm:gap-x-3 gap-y-5 sm:gap-y-6">
               {weeks.map((w, idx) => {
                 const unlocked = !!isSubscribed;
                 const isCachedOffline = cachedWeeks.has(w);
                 const col = WEEK_COLORS[idx % WEEK_COLORS.length];
                 return (
-                  <div key={w} className="min-w-0 flex flex-col gap-2.5 items-stretch">
+                  <div key={w} className="min-w-0 flex flex-col gap-2 items-stretch">
                     <div
-                      className="min-h-[5.5rem] px-2 py-2 text-center flex flex-col items-center justify-center rounded-xl bg-black/20 border border-white/10"
+                      className="min-h-[4.75rem] sm:min-h-[5rem] px-1 py-1.5 text-center flex flex-col items-center justify-center rounded-xl bg-black/20 border border-white/10"
                       aria-label={`Week ${w} topic`}
                     >
                       <span
-                        className="font-display text-[11px] sm:text-xs uppercase tracking-wider font-black leading-none mb-1"
+                        className="font-display text-[9px] sm:text-xs uppercase tracking-wider font-black leading-none mb-1"
                         style={{ color: 'hsl(195 100% 72%)', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}
                       >
                         WEEK {w}
                       </span>
                       <span
-                        className="text-sm font-black leading-tight max-w-full"
+                        className="text-[11px] sm:text-sm font-black leading-tight max-w-full"
                         style={{
                           color: 'hsl(45 100% 88%)',
                           textShadow: '0 1px 8px rgba(0,0,0,0.9)',
@@ -732,7 +732,7 @@ export default function Dashboard() {
                       onClick={() => handleStartLevel(w)}
                       disabled={createSession.isPending}
                       aria-label={`Week ${w}: ${weekTopics[String(w)] || 'Start quiz'}`}
-                      className="relative h-24 sm:h-28 rounded-2xl flex flex-col items-center justify-center select-none transition-all duration-150 active:scale-95 active:translate-y-0.5"
+                      className="relative h-20 sm:h-24 rounded-xl flex flex-col items-center justify-center select-none transition-all duration-150 active:scale-95 active:translate-y-0.5"
                       style={unlocked ? {
                         background: col.bg,
                         border: `2px solid ${col.border}`,
