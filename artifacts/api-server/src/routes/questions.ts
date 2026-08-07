@@ -106,14 +106,24 @@ router.get("/questions/filters", async (req, res) => {
       .orderBy(questionsTable.week);
   }
 
+  // Keep one stable, non-empty topic per week. Some older uploads contain
+  // duplicate rows for a week or a blank topic on the first row.
+  const topicByWeek = new Map<number, string>();
+  for (const row of weekRows) {
+    const topic = row.weekTopic?.trim() ?? "";
+    if (!topicByWeek.has(row.week) || (!topicByWeek.get(row.week) && topic)) {
+      topicByWeek.set(row.week, topic);
+    }
+  }
+  const weeks = [...topicByWeek.keys()].sort((a, b) => a - b);
   const weekTopics = Object.fromEntries(
-    weekRows.map((row) => [String(row.week), row.weekTopic]),
+    weeks.map((week) => [String(week), topicByWeek.get(week) ?? ""]),
   );
 
   return res.json({
     years: yearRows.map((r) => r.year),
     subjects: subjectRows.map((r) => r.subject),
-    weeks: weekRows.map((r) => r.week),
+    weeks,
     weekTopics,
   });
 });

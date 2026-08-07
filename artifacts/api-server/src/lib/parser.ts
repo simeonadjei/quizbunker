@@ -87,8 +87,10 @@ export function parseQuestionText(
       }
     }
 
-    // Parse week header: "WEEK 14: DESIGNING AND INSTALLING..."
-    const weekMatch = line.match(/^WEEK\s+(\d+)\s*:\s*(.+)$/i);
+    // Parse week headers with the common colon, dash, or plain-space forms:
+    // "WEEK 14: TOPIC", "WEEK 14 - TOPIC", and "WEEK 14 TOPIC".
+    const weekMatch = line.match(/^WEEK\s+(\d+)\s*(?::|[-–—])\s*(.+)$/i)
+      || line.match(/^WEEK\s+(\d+)\s+(.+)$/i);
     if (weekMatch) {
       saveCurrentQuestion();
       week = parseInt(weekMatch[1], 10);

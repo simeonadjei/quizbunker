@@ -598,47 +598,50 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Filters row */}
-        <div className="flex gap-3">
-          {/* Year */}
-          <div className="flex-1">
-            <label htmlFor="select-year" className="text-white/70 text-sm font-bold uppercase tracking-wider block mb-1.5">Year</label>
-            <div className="relative">
-              <select
-                id="select-year"
-                value={selectedYear}
-                onChange={e => setSelectedYear(e.target.value)}
-                disabled={loadingYears || !years.length}
-                className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-8 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ colorScheme: 'dark', height: '3rem' }}
-              >
-                <option value="" disabled>Year</option>
-                {years.map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+        {/* Sticky filters — remain available while the week list is scrolled. */}
+        <div className="sticky top-24 sm:top-14 lg:top-24 z-30 -mx-2 px-2 py-2.5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md"
+          style={{ background: 'rgba(16, 18, 38, 0.94)' }}>
+          <div className="flex gap-2.5">
+            {/* Year */}
+            <div className="flex-1 min-w-0">
+              <label htmlFor="select-year" className="text-white/70 text-xs font-bold uppercase tracking-wider block mb-1">Year</label>
+              <div className="relative">
+                <select
+                  id="select-year"
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(e.target.value)}
+                  disabled={loadingYears || !years.length}
+                  className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-2.5 pr-7 text-white font-bold text-sm appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ colorScheme: 'dark', height: '2.75rem' }}
+                >
+                  <option value="" disabled>Year</option>
+                  {years.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              </div>
             </div>
-          </div>
 
-          {/* Subject */}
-          <div className="flex-[2]">
-            <label htmlFor="select-subject" className="text-white/70 text-sm font-bold uppercase tracking-wider block mb-1.5">Subject</label>
-            <div className="relative">
-              <select
-                id="select-subject"
-                value={selectedSubject}
-                onChange={e => setSelectedSubject(e.target.value)}
-                disabled={loadingSubjects || !subjects.length}
-                className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-3 pr-8 text-white font-bold text-base appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ colorScheme: 'dark', height: '3rem' }}
-              >
-                <option value="" disabled>Subject</option>
-                {subjects.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+            {/* Subject */}
+            <div className="flex-[2] min-w-0">
+              <label htmlFor="select-subject" className="text-white/70 text-xs font-bold uppercase tracking-wider block mb-1">Subject</label>
+              <div className="relative">
+                <select
+                  id="select-subject"
+                  value={selectedSubject}
+                  onChange={e => setSelectedSubject(e.target.value)}
+                  disabled={loadingSubjects || !subjects.length}
+                  className="w-full rounded-xl border-2 border-white/20 bg-black/40 pl-2.5 pr-7 text-white font-bold text-sm appearance-none focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ colorScheme: 'dark', height: '2.75rem' }}
+                >
+                  <option value="" disabled>Subject</option>
+                  {subjects.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+              </div>
             </div>
           </div>
         </div>
