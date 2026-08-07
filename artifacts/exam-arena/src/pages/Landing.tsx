@@ -63,7 +63,7 @@ const QUOTES = [
   { text: "Knowledge is power. Information is liberating. Education is the premise of progress.", author: "Kofi Annan" },
   { text: "One child, one teacher, one book, one pen can change the world.", author: "Malala Yousafzai" },
   { text: "An investment in knowledge pays the best interest.", author: "Benjamin Franklin" },
-  { text: "If you the men of Asante will not go forward, then we will. We will fight the white men.", author: "Yaa Asantewaa" },
+  { text: "Education is not preparation for life; education is life itself.", author: "John Dewey" },
   { text: "Once you learn to read, you will be forever free.", author: "Frederick Douglass" },
   { text: "The roots of education are bitter, but the fruit is sweet.", author: "Aristotle" },
   { text: "Development means putting people first — always.", author: "Jerry John Rawlings" },

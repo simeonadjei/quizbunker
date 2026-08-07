@@ -699,15 +699,15 @@ export default function Dashboard() {
                 {weeks.length} weeks
               </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6">
               {weeks.map((w, idx) => {
                 const unlocked = !!isSubscribed;
                 const isCachedOffline = cachedWeeks.has(w);
                 const col = WEEK_COLORS[idx % WEEK_COLORS.length];
                 return (
-                  <div key={w} className="min-w-0 flex flex-col gap-2">
+                  <div key={w} className="min-w-0 flex flex-col gap-2.5 items-stretch">
                     <div
-                      className="min-h-[4.25rem] sm:min-h-[4rem] px-1 text-center flex flex-col items-center justify-center"
+                      className="min-h-[5.5rem] px-2 py-2 text-center flex flex-col items-center justify-center rounded-xl bg-black/20 border border-white/10"
                       aria-label={`Week ${w} topic`}
                     >
                       <span
@@ -717,8 +717,13 @@ export default function Dashboard() {
                         WEEK {w}
                       </span>
                       <span
-                        className="text-sm sm:text-base font-black leading-tight"
-                        style={{ color: 'hsl(45 100% 88%)', textShadow: '0 1px 8px rgba(0,0,0,0.9)' }}
+                        className="text-sm font-black leading-tight max-w-full"
+                        style={{
+                          color: 'hsl(45 100% 88%)',
+                          textShadow: '0 1px 8px rgba(0,0,0,0.9)',
+                          overflowWrap: 'anywhere',
+                        }}
+                        title={weekTopics[String(w)] || 'Topic not available'}
                       >
                         {weekTopics[String(w)] || 'Topic not available'}
                       </span>
