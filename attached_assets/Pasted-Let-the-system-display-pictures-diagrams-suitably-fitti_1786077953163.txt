@@ -1,0 +1,69 @@
+Let the system display pictures, diagrams suitably fitting all screens, phone, tablets, laptops. No matter how large or small the picture in the uploaded documents is let it be picked and displayed to suit all screens, let it come in between the question and answer options
+
+I’ll update the quiz view so diagrams and pictures from uploaded documents appear between each question and its answer choices, scale cleanly on phones, tablets, and laptops, and stay readable without being distorted. I’ll trace how document images are stored and rendered, then implement the responsive display and verify the quiz flow.
+
+I found the quiz rendering entry point. Next I’m checking the question data shape and upload parser so the fix supports the actual image/diagram fields from documents, not just a visual placeholder.
+
+The current upload flow strips images out of .docx files before questions are saved, so responsive CSS alone would not make the pictures appear. I’m going to preserve each embedded document image during upload, attach it to the correct question, and render it in the quiz between the question text and options with safe responsive sizing.
+
+I’m implementing this as a complete upload-to-quiz path: images will be extracted from Word documents, stored separately from the question text, linked to the right question, and delivered as image URLs. That keeps quiz loading lighter than embedding large base64 images in every question while still preserving the original diagram regardless of its size in the document.
+
+The storage and API plumbing is in place. I’m now wiring the document extractor and the quiz presentation: Word images will be converted into question-linked image data during upload, and the quiz will place them in a bounded responsive frame before the answer choices.
+
+The main implementation is complete. I’m refreshing the generated API types now, then I’ll run the frontend and backend checks and restart both services so the new question image field is active end to end.
+
+The frontend check is clean. The backend build is running, but its strict check surfaced two pre-existing maintenance errors plus one route parameter typing issue; I’m fixing those now so this change leaves the project in a clean, verifiable state rather than ignoring the warnings.
+
+The remaining strict-check fixes are applied. I’m rerunning the checks and restarting the managed services so the database column migration and new upload behavior are loaded by the running app.
+
+All type checks are now clean. I’m restarting the quiz and API services so the new image column migration and responsive image rendering are active, then I’ll inspect the live preview for layout issues.
+
+I caught one compatibility edge before finalizing: rich-text formatting in Word can split a question across multiple HTML nodes, which could confuse the existing line parser. I’m tightening the conversion so bold/italic text stays on the same line while images still become their own question-linked entries.
+
+The document conversion is now robust to Word formatting while preserving image placement. I’m doing the final clean check, restarting both services once more, and then I’ll save the completed change so the live app uses the finalized version.
+
+Everything is clean now: frontend, backend, generated API types, and database schema checks all pass. I’m restarting the services with the finalized version and pushing the completed update so the image/diagram behavior is available consistently.
+
+The finalized services are running cleanly. I’m doing the last repository save now and checking the service logs once more so I can hand this back with the exact saved version.
+
+The feature is complete and both services are running cleanly. I’m saving the finished update to the project repository now, including the generated API types and the database migration needed for existing installations.
+
+Implemented and pushed as 9af15ad.
+
+What changed:
+
+Embedded pictures and diagrams from uploaded Word documents are preserved.
+Each image stays attached to the correct question.
+Images appear between the question text and answer options.
+Images automatically scale across phones, tablets, and laptops.
+Original aspect ratios are preserved, so diagrams are not stretched or distorted.
+Large images are contained within the quiz view without overflowing the screen.
+Existing installations automatically receive the required database column migration.
+API types and OpenAPI definitions were regenerated.
+Important: documents uploaded before this update will need to be uploaded again for their embedded images to be captured.
+
+All frontend, backend, generated-type, and library checks pass. The services are running cleanly, and the project is ready to publish.
+
+quiz-bunker-1--based2
+Earlier documents do not have pictures diagrams
+
+Understood. Since the earlier documents contain no pictures or diagrams, they do not need to be uploaded again.
+
+The update applies to new Word documents that include embedded images:
+
+Pictures appear between the question and answer options.
+Images scale automatically for phones, tablets, and laptops.
+Questions without images display normally without an empty image area.
+On phone the out button and profile name are not unless phone screen is horizontal, make all buttons be seen on phones and all screens, when subject is clicked let All weeks have their topics on top of the boxes bold and legible
+
+I’ll fix the mobile header so the profile name and logout control stay accessible in portrait mode, then improve the subject/week picker so every week’s topic is shown prominently above its selection box. I’ll check the existing Dashboard and Navbar layout, update the responsive behavior and labels, then verify it on phone and desktop widths.
+
+I found the issue: the mobile navbar intentionally hides the profile block below tablet width, and the week picker only receives week numbers, not their topics. I’ll make the profile and logout controls compact but always visible, then add topic text to the week-filter response and show each topic above its week button in a responsive grid.
+
+I’m making the navigation compact rather than hiding it: on narrow phones, PLAY, LOG, TOP, PRO, the profile name, and OUT will all remain visible as touch-friendly controls, with labels retained on wider screens. I’ll also return each week’s topic from the API and place a bold topic label above every week button.
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+QuizBunker
+Website
