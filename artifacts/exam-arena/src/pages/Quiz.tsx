@@ -429,7 +429,7 @@ export default function Quiz() {
              <div className="bg-primary/30 text-primary border-2 border-primary/60 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-display text-sm sm:text-base shrink-0 mt-0.5 min-w-[2.75rem] sm:min-w-[3rem] text-center">
               Q{currentQIndex + 1}
             </div>
-             <p className="text-white font-bold text-sm sm:text-lg leading-snug break-words">{currentQuestion.questionText}</p>
+             <p className="text-white font-bold text-[24px] sm:text-[31px] leading-snug break-words">{currentQuestion.questionText}</p>
           </div>
         </div>
       )}
@@ -494,7 +494,7 @@ export default function Quiz() {
 
                 {/* Answer text */}
                 <span className={cn(
-                   'text-sm sm:text-lg font-bold leading-snug flex-1 break-words',
+                    'text-[24px] sm:text-[31px] font-bold leading-snug flex-1 break-words',
                   isCorrect ? 'text-emerald-200' :
                   isWrong   ? 'text-rose-200' :
                   isSelected && !isCurrentRevealed ? 'text-white' : 'text-white/80'
@@ -530,11 +530,11 @@ export default function Quiz() {
                     ? <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
                     : <XCircle      className="w-6 h-6 text-rose-400 shrink-0" />
                   }
-                  <span className={cn('font-display text-lg', isRight ? 'text-emerald-300' : 'text-rose-300')}>
+                  <span className={cn('font-display text-[31px] sm:text-[32px]', isRight ? 'text-emerald-300' : 'text-rose-300')}>
                     {isRight ? 'Correct!' : 'Wrong!'}
                   </span>
                   {!isRight && correctAnswer && (
-                    <span className="text-base font-bold text-white/70">
+                    <span className="text-[28px] sm:text-[30px] font-bold text-white/70 leading-snug">
                       Answer: <span className="text-emerald-300">{correctAnswer}. {correctOptionText}</span>
                     </span>
                   )}
@@ -542,7 +542,7 @@ export default function Quiz() {
                 {feedbackText && (
                   <div className="flex items-start gap-2 mt-1">
                     <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                     <p className="text-xs sm:text-sm text-white font-semibold leading-relaxed whitespace-pre-wrap break-words">
+                     <p className="text-[21px] sm:text-[24px] text-white font-semibold leading-relaxed whitespace-pre-wrap break-words">
                       {feedbackText}
                     </p>
                   </div>
@@ -554,7 +554,7 @@ export default function Quiz() {
           {/* ── Motivational scrolling ticker ── */}
           {motivationalMsg && (
              <div
-               className="rounded-xl px-3 py-2.5 border animate-in fade-in duration-500"
+               className="sticky bottom-0 z-20 rounded-xl px-3 py-2.5 pr-14 sm:pr-16 border animate-in fade-in duration-500"
               style={{
                 background: 'linear-gradient(135deg, rgba(255,160,0,0.08), rgba(0,200,160,0.08))',
                 borderColor: 'rgba(255,160,0,0.25)',
@@ -571,7 +571,7 @@ export default function Quiz() {
                   aria-label="Dismiss"
                 >✕</button>
               </div>
-               <p className="text-xs sm:text-sm font-bold leading-snug break-words" style={{ color: 'hsl(45 100% 82%)' }}>
+               <p className="text-lg sm:text-[21px] font-bold leading-snug break-words" style={{ color: 'hsl(45 100% 82%)' }}>
                  {motivationalMsg}
                </p>
             </div>
@@ -582,7 +582,9 @@ export default function Quiz() {
 
       {/* Keep the floating music control out of the way while answer feedback
           is being read; it returns as soon as the next question is active. */}
-      {!isCurrentRevealed && <MusicPlayer bottomClass="bottom-[80px]" />}
+       {!isCurrentRevealed && (
+         <MusicPlayer bottomClass={motivationalMsg ? 'bottom-[170px] sm:bottom-[150px]' : 'bottom-[80px]'} />
+       )}
 
       {/* ── Row 4: Bottom navigation (never scrolls) ── */}
       <div
