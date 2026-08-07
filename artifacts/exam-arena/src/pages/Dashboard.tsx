@@ -705,12 +705,23 @@ export default function Dashboard() {
                 const isCachedOffline = cachedWeeks.has(w);
                 const col = WEEK_COLORS[idx % WEEK_COLORS.length];
                 return (
-                  <div key={w} className="min-w-0 flex flex-col gap-1.5">
-                     <div
-                       className="min-h-[3.5rem] sm:min-h-[3.25rem] px-0.5 text-center text-sm sm:text-base font-black leading-tight flex items-center justify-center"
-                       style={{ color: 'hsl(45 100% 88%)', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}
-                     >
-                      {weekTopics[String(w)] || `Week ${w}`}
+                  <div key={w} className="min-w-0 flex flex-col gap-2">
+                    <div
+                      className="min-h-[4.25rem] sm:min-h-[4rem] px-1 text-center flex flex-col items-center justify-center"
+                      aria-label={`Week ${w} topic`}
+                    >
+                      <span
+                        className="font-display text-[11px] sm:text-xs uppercase tracking-wider font-black leading-none mb-1"
+                        style={{ color: 'hsl(195 100% 72%)', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}
+                      >
+                        WEEK {w}
+                      </span>
+                      <span
+                        className="text-sm sm:text-base font-black leading-tight"
+                        style={{ color: 'hsl(45 100% 88%)', textShadow: '0 1px 8px rgba(0,0,0,0.9)' }}
+                      >
+                        {weekTopics[String(w)] || 'Topic not available'}
+                      </span>
                     </div>
                     <button
                       onClick={() => handleStartLevel(w)}
