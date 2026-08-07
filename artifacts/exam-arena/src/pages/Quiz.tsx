@@ -594,8 +594,9 @@ export default function Quiz() {
         </div>
       </div>
 
-      {/* Music player floats just above the bottom nav */}
-      <MusicPlayer bottomClass="bottom-[80px]" />
+      {/* Keep the floating music control out of the way while answer feedback
+          is being read; it returns as soon as the next question is active. */}
+      {!isCurrentRevealed && <MusicPlayer bottomClass="bottom-[80px]" />}
 
       {/* ── Row 4: Bottom navigation (never scrolls) ── */}
       <div
