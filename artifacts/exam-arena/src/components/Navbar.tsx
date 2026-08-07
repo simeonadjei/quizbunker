@@ -27,7 +27,10 @@ export function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-white/10 shadow-lg">
-        <div className="max-w-screen-lg mx-auto w-full px-1.5 sm:px-4 min-h-24 sm:h-14 lg:h-24 py-1 sm:py-0 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-1 sm:gap-3">
+        {/* Keep one explicit height per breakpoint. Layout and sticky page
+            controls use the same values so they cannot slide underneath this
+            fixed bar. Portrait phones need room for the logo and actions rows. */}
+        <div className="max-w-screen-lg mx-auto w-full px-1.5 sm:px-4 h-[7.5rem] sm:h-14 lg:h-24 py-1 sm:py-0 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-1 sm:gap-3">
 
         {/* Logo */}
           <Link href="/" className="w-full sm:w-auto flex items-center gap-1 sm:gap-2 lg:gap-4 shrink min-w-0 lg:shrink-0 group">

@@ -471,8 +471,8 @@ export default function Dashboard() {
       {/* Referral modal */}
       {showReferral && <ReferralModal onClose={() => setShowReferral(false)} />}
 
-      <div className="flex-1 w-full flex flex-col items-center justify-center px-4 py-6">
-      <div className="w-full max-w-sm space-y-4">
+      <div className="flex-1 w-full flex flex-col items-center justify-center px-3 sm:px-4 py-5 sm:py-6">
+      <div className="w-full max-w-3xl space-y-4">
 
         {/* Offline banner */}
         {!isOnline && (
@@ -599,7 +599,7 @@ export default function Dashboard() {
         </div>
 
         {/* Sticky filters — remain available while the week list is scrolled. */}
-        <div className="sticky top-24 sm:top-14 lg:top-24 z-30 -mx-2 px-2 py-2.5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md"
+        <div className="sticky top-[7.5rem] sm:top-14 lg:top-24 z-30 -mx-1 sm:-mx-2 px-1 sm:px-2 py-2.5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md"
           style={{ background: 'rgba(16, 18, 38, 0.94)' }}>
           <div className="flex gap-2.5">
             {/* Year */}
@@ -702,25 +702,25 @@ export default function Dashboard() {
                 {weeks.length} weeks
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-x-2 sm:gap-x-3 gap-y-5 sm:gap-y-6">
+            <div className="mt-2 grid grid-cols-3 gap-x-2 sm:gap-x-3 gap-y-5 sm:gap-y-6">
               {weeks.map((w, idx) => {
                 const unlocked = !!isSubscribed;
                 const isCachedOffline = cachedWeeks.has(w);
                 const col = WEEK_COLORS[idx % WEEK_COLORS.length];
                 return (
                   <div key={w} className="min-w-0 flex flex-col gap-2 items-stretch">
-                    <div
-                      className="min-h-[4.75rem] sm:min-h-[5rem] px-1 py-1.5 text-center flex flex-col items-center justify-center rounded-xl bg-black/20 border border-white/10"
+                     <div
+                       className="min-h-[6rem] sm:min-h-[5.75rem] px-1.5 py-2 text-center flex flex-col items-center justify-center rounded-xl bg-black/20 border border-white/10"
                       aria-label={`Week ${w} topic`}
                     >
                       <span
-                        className="font-display text-[9px] sm:text-xs uppercase tracking-wider font-black leading-none mb-1"
+                         className="shrink-0 font-display text-[10px] sm:text-xs uppercase tracking-wider font-black leading-none mb-1"
                         style={{ color: 'hsl(195 100% 72%)', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}
                       >
                         WEEK {w}
                       </span>
                       <span
-                        className="text-[11px] sm:text-sm font-black leading-tight max-w-full"
+                         className="min-w-0 max-w-full overflow-hidden text-[11px] sm:text-sm font-black leading-tight break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:4]"
                         style={{
                           color: 'hsl(45 100% 88%)',
                           textShadow: '0 1px 8px rgba(0,0,0,0.9)',
