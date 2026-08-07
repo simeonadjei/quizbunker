@@ -1,0 +1,78 @@
+Arrange them horizontally reduce the boxes size, but enough to get click easily
+
+I’ll match the new reference: three week columns across each row, smaller but still comfortably tappable boxes, and compact topic labels that stay aligned above their corresponding week.
+
+The current grid is still two columns, which is why the boxes appear oversized. I’m switching it to three horizontal columns at every screen width, tightening the gaps and topic panels, and setting the boxes to about 80–96px tall so they remain easy to tap.
+
+The grid is now three-across, with reduced boxes that are still 80px high on phones and 96px on larger screens—large enough for reliable tapping. I’m checking the build and refreshing the running app before saving it.
+
+The three-column layout passes its check, and the preview is only showing the app’s loading/auth screen rather than the signed-in dashboard. I’m restarting the quiz service so the horizontal grid change is active, then I’ll save the source update.
+
+The horizontal layout is active and the quiz service restarted successfully. I’m saving this final three-column sizing adjustment now.
+
+Done. The week boxes are now arranged horizontally in three columns per row.
+
+Smaller boxes: 80px on phones and 96px on larger screens
+Still large enough for comfortable tapping
+Week numbers and topics remain aligned
+Long topics wrap within their own column
+Spacing prevents overlap between weeks
+The app was restarted and the change was pushed to GitHub.
+
+Commit: 380e99e
+
+Year 1 English topics are not showing, let the year and subject buttons be always seen when the weeks appear
+
+I’ll use the screenshot as the reference and inspect the current filter/grid behavior. I’ll keep the Year and Subject controls visible while scrolling through weeks, and verify why Year 1 English is receiving the same or missing topic text.
+
+I found the likely cause: the direct Year 1 English filter request returns no matching records for the exact subject name “English Language,” so I’m checking the actual stored Year 1 subject names and topic data before changing the filter. I’ll also make the Year and Subject controls sticky so they remain visible while the week list is scrolled.
+
+The filter controls are currently above the week list, so they disappear as the user scrolls—matching the screenshot. I’m checking the stored subject names and Year 1 English records first; then I’ll make the Year/Subject selector bar sticky above the week grid and correct the topic lookup if the data uses a different English subject label.
+
+I found two fixes to make this reliable: the selector row needs to be sticky so it stays visible while scrolling, and the upload parser/filter response should accept and preserve more week-heading formats instead of collapsing English topics to a generic label. I’m applying both without changing the existing week selection behavior.
+
+The sticky Year/Subject bar and the more tolerant week-heading parser are now in place. I’m checking the upload path and running the full type/build checks next, because the English topic issue can also come from how uploaded headings are converted before they reach the filter API.
+
+The code checks are clean so far. The API/filter fix now keeps one valid topic per week, and the parser accepts colon, dash, and plain-space week headings—covering the formats that can cause English topics to disappear. I’m restarting both services and doing the final verification now.
+
+Both services restarted cleanly. I’m doing one final live check of the filter endpoint and app logs, then I’ll commit the Year 1 English/topic and sticky-selector fixes.
+
+The UI and parser fixes are complete and the services are healthy. The current local filter endpoint has no stored question rows to inspect, so I can’t validate the exact Year 1 English records here; the code now preserves valid week topics from uploads and keeps Year/Subject visible while scrolling. I’m committing and pushing the completed fix.
+
+Completed and pushed the update.
+
+Changes:
+
+Year and Subject selectors now remain visible while scrolling through the weeks.
+Week topics are preserved more reliably for uploaded files.
+The parser now supports week headings formatted with:
+WEEK 1: TOPIC
+WEEK 1 - TOPIC
+WEEK 1 TOPIC
+Duplicate or blank topic records are handled more safely.
+The existing three-column week layout remains intact.
+All type checks passed and both services restarted successfully.
+
+Commit: 903f4a0
+
+Note: The local database currently has no question records to verify the exact Year 1 English data. If those English questions were uploaded with missing topics, upload that file again using the updated parser.
+
+Look at the top, on laptop, the year, and subject are behind the top horizontal bar for play log pro,but on phone week 1, 2, 3 labels are not well shown
+
+I’ll compare the uploaded laptop and phone references with the current navbar/filter layout, then adjust the sticky offset and mobile week-label sizing so the controls and topic labels no longer overlap or get clipped.
+
+The references show two separate layout problems: the fixed navbar height is not shared with the dashboard’s sticky offset, so the filter row can slide underneath it on laptop widths; and the dashboard is still constrained to a narrow max-w-sm, which squeezes the three phone topic columns. I’ll make the navbar height explicit, use that same value for page spacing/sticky positioning, and let the dashboard use the available width while keeping three columns.
+
+I’m making the navbar height and the content/sticky offsets identical at each breakpoint, then giving the dashboard the full available width and a little more vertical room for each phone topic label. This keeps the three-column layout but prevents the first row from being covered.
+
+The layout adjustments are applied. I’m restarting the web workflow and checking both a phone-sized and laptop-sized preview to confirm the filter row clears the navbar and the Week 1–3 labels have enough room.
+
+The updated web build passes typechecking and is running. I’m taking the two responsive previews now; if the signed-out preview only shows the auth screen, I’ll still verify the CSS offsets in the rendered route and finish with the code checks.
+
+The responsive fixes are in place and the web workflow is running. The preview is currently stopping at the sign-in/loading screen, so the authenticated dashboard itself cannot be captured here, but the breakpoint values now match the fixed navbar exactly. I’m doing the final check and pushing only the code changes; the uploaded screenshots will remain untracked reference files.
+
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+QuizBunker
+QuizBunker
+Website
