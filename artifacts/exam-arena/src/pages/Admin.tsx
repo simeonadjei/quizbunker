@@ -857,20 +857,27 @@ function QuestionUploader() {
     let totalSkipped = 0;
     const failed: string[] = [];
 
-    let uploadFiles: File[] = [];
-    try {
-      for (const file of files) {
+    const uploadFiles: File[] = [];
+    for (const file of files) {
+      try {
         uploadFiles.push(...await expandQuestionFiles(file));
+      } catch (error) {
+        failed.push(`${file.name}: ${error instanceof Error ? error.message : 'The ZIP file is invalid.'}`);
       }
-    } catch (error) {
+    }
+
+    if (uploadFiles.length === 0) {
       setProgress(null);
+      setSummary({ inserted: 0, skipped: 0, failed });
       toast({
-        title: 'ZIP could not be opened',
-        description: error instanceof Error ? error.message : 'The ZIP file is invalid.',
+        title: 'No question files found',
+        description: failed.slice(0, 3).join('\n') || 'Select .docx, .doc, .txt, or ZIP files containing question files.',
         variant: 'destructive',
       });
       return;
     }
+
+    setProgress({ done: 0, total: uploadFiles.length, current: uploadFiles[0].name });
 
     for (let i = 0; i < uploadFiles.length; i++) {
       const f = uploadFiles[i];
@@ -927,7 +934,7 @@ function QuestionUploader() {
         if (!res.ok) {
           const detail = data.error || `HTTP ${res.status}`;
           failed.push(`${f.name}: ${detail}`);
-          setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
+          setProgress({ done: i + 1, total: uploadFiles.length, current: uploadFiles[i + 1]?.name ?? '' });
           continue;
         }
         totalInserted += data.inserted ?? 0;
@@ -976,7 +983,7 @@ function QuestionUploader() {
 
       <div className="space-y-4">
         <div>
-          <label className="text-xs text-gray-400">FILES (.docx, .doc, .txt, .zip) — SELECT ONE OR MANY</label>
+          <label className="text-xs text-gray-400">FILES (.docx, .doc, .txt, .zip) — SELECT ONE OR MANY (ZIP ARCHIVES CAN BE MULTIPLE)</label>
           <Input
             type="file"
             accept=".docx,.doc,.txt,.zip"
