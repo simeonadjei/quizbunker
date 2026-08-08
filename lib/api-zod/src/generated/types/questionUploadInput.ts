@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Upload a question document or ZIP archive containing .docx, .doc, or .txt question files.
+ */
 export interface QuestionUploadInput {
   year?: string;
   subject?: string;

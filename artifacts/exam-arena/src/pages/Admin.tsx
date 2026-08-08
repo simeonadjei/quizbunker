@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — mammoth/mammoth.browser has no bundled TS types
 import mammoth from 'mammoth/mammoth.browser';
+import JSZip from 'jszip';
 import {
   useAdminLogin,
   useGetAdminStats,
@@ -85,6 +86,34 @@ function documentHtmlToQuestionText(html: string): string {
     .map((line) => line.trim())
     .filter(Boolean)
     .join('\n');
+}
+
+const QUESTION_FILE_EXTENSIONS = new Set(['.docx', '.doc', '.txt']);
+
+function fileExtension(name: string): string {
+  const dot = name.lastIndexOf('.');
+  return dot >= 0 ? name.slice(dot).toLowerCase() : '';
+}
+
+async function expandQuestionFiles(file: File): Promise<File[]> {
+  if (fileExtension(file.name) !== '.zip') return [file];
+
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const entries = Object.values(zip.files).filter((entry) => {
+    if (entry.dir) return false;
+    return QUESTION_FILE_EXTENSIONS.has(fileExtension(entry.name));
+  });
+
+  if (entries.length === 0) {
+    throw new Error('ZIP contains no .docx, .doc, or .txt question files.');
+  }
+
+  return Promise.all(entries.map(async (entry) => {
+    const blob = await entry.async('blob');
+    return new File([blob], entry.name.split('/').pop() || entry.name, {
+      type: blob.type || 'application/octet-stream',
+    });
+  }));
 }
 
 export default function AdminPortal() {
@@ -794,6 +823,16 @@ function QuestionUploader() {
     const f = selected[0];
     const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
     try {
+      if (ext === 'zip') {
+        const expanded = await expandQuestionFiles(f);
+        const previewFile = expanded[0];
+        const previewExt = fileExtension(previewFile.name);
+        const raw = previewExt === '.docx' || previewExt === '.doc'
+          ? documentHtmlToQuestionText((await mammoth.convertToHtml({ arrayBuffer: await previewFile.arrayBuffer() })).value ?? '')
+          : await previewFile.text();
+        setTextPreview(`ZIP: ${expanded.length} supported file${expanded.length === 1 ? '' : 's'} found\n\n${raw.slice(0, 400).trim() || '(first file is empty)'}`);
+        return;
+      }
       let raw = '';
       if (ext === 'docx' || ext === 'doc') {
         const ab = await f.arrayBuffer();
@@ -804,8 +843,8 @@ function QuestionUploader() {
       }
       // Show first 400 chars so the user can verify the format
       setTextPreview(raw.slice(0, 400).trim() || '(empty — file may be corrupted or image-based)');
-    } catch {
-      setTextPreview('(could not preview — file may need to be re-saved as .docx)');
+    } catch (error) {
+      setTextPreview(error instanceof Error ? error.message : '(could not preview the selected file)');
     }
   };
 
@@ -818,9 +857,24 @@ function QuestionUploader() {
     let totalSkipped = 0;
     const failed: string[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      setProgress({ done: i, total: files.length, current: f.name });
+    let uploadFiles: File[] = [];
+    try {
+      for (const file of files) {
+        uploadFiles.push(...await expandQuestionFiles(file));
+      }
+    } catch (error) {
+      setProgress(null);
+      toast({
+        title: 'ZIP could not be opened',
+        description: error instanceof Error ? error.message : 'The ZIP file is invalid.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    for (let i = 0; i < uploadFiles.length; i++) {
+      const f = uploadFiles[i];
+      setProgress({ done: i, total: uploadFiles.length, current: f.name });
 
       try {
         // ── Step 1: extract text in the browser (zero server bandwidth) ──
@@ -843,7 +897,7 @@ function QuestionUploader() {
           rawText = documentHtmlToQuestionText(result.value ?? '');
           if (!rawText.trim()) {
             failed.push(`${f.name}: Could not extract text — try saving as .docx in Word first`);
-            setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
+            setProgress({ done: i + 1, total: uploadFiles.length, current: uploadFiles[i + 1]?.name ?? '' });
             continue;
           }
         } else {
@@ -865,7 +919,7 @@ function QuestionUploader() {
           });
         } catch (networkErr: unknown) {
           failed.push(`${f.name}: Network error — ${(networkErr as Error).message}`);
-          setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
+          setProgress({ done: i + 1, total: uploadFiles.length, current: uploadFiles[i + 1]?.name ?? '' });
           continue;
         }
         let data: { inserted?: number; skipped?: number; error?: string; errors?: string[] } = {};
@@ -886,7 +940,7 @@ function QuestionUploader() {
         failed.push(`${f.name}: ${(e as Error).message}`);
       }
 
-      setProgress({ done: i + 1, total: files.length, current: files[i + 1]?.name ?? '' });
+      setProgress({ done: i + 1, total: uploadFiles.length, current: uploadFiles[i + 1]?.name ?? '' });
     }
 
     setProgress(null);
@@ -894,10 +948,10 @@ function QuestionUploader() {
     setFiles([]);
 
     if (failed.length === 0) {
-      toast({ title: `${files.length} file${files.length > 1 ? 's' : ''} ingested successfully — ${totalInserted} questions added` });
+      toast({ title: `${uploadFiles.length} file${uploadFiles.length > 1 ? 's' : ''} ingested successfully — ${totalInserted} questions added` });
     } else {
       toast({
-        title: `${files.length - failed.length}/${files.length} files succeeded`,
+        title: `${uploadFiles.length - failed.length}/${uploadFiles.length} files succeeded`,
         description: failed.slice(0, 3).join('\n'),
         variant: "destructive",
       });
@@ -922,10 +976,10 @@ function QuestionUploader() {
 
       <div className="space-y-4">
         <div>
-          <label className="text-xs text-gray-400">FILES (.docx, .txt) — SELECT ONE OR MANY</label>
+          <label className="text-xs text-gray-400">FILES (.docx, .doc, .txt, .zip) — SELECT ONE OR MANY</label>
           <Input
             type="file"
-            accept=".docx,.txt"
+            accept=".docx,.doc,.txt,.zip"
             multiple
             onChange={(e) => handleFilesChange(Array.from(e.target.files || []))}
             className="bg-gray-50 border-gray-300 mt-1"

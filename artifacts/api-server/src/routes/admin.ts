@@ -11,6 +11,7 @@ import { eq, desc, count, gt, and } from "drizzle-orm";
 import { ensureSongsColumns } from "../lib/db-migrations";
 import { parseQuestionText } from "../lib/parser";
 import mammoth from "mammoth";
+import JSZip from "jszip";
 import type { Request, Response, NextFunction } from "express";
 import { sendEmail, isEmailConfigured } from "../lib/email";
 import { sendTextBeeSms } from "../lib/textbee";
@@ -76,10 +77,10 @@ for (const dir of [uploadsBase, songsDir, questionsDir]) {
 const questionUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter: (_req, file, cb) => {
-    const allowed = [".docx", ".doc", ".txt"];
+    const allowed = [".docx", ".doc", ".txt", ".zip"];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error("Only .docx and .txt files are supported"));
+    else cb(new Error("Only .docx, .doc, .txt, and .zip files are supported"));
   },
   limits: { fileSize: 10 * 1024 * 1024 },
 });
@@ -782,7 +783,7 @@ router.post(
   },
   async (req, res) => {
     if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded. Send a .docx or .txt file in the 'file' field." });
+      return res.status(400).json({ error: "No file uploaded. Send a .docx, .doc, .txt, or .zip file in the 'file' field." });
     }
 
     const { year: overrideYear, subject: overrideSubject } = req.body as {
@@ -795,7 +796,30 @@ router.post(
       const ext = path.extname(req.file.originalname).toLowerCase();
 
       try {
-        if (ext === ".docx" || ext === ".doc") {
+        if (ext === ".zip") {
+          const zip = await JSZip.loadAsync(req.file.buffer);
+          const entries = Object.values(zip.files).filter((entry) => {
+            if (entry.dir) return false;
+            const entryExt = path.extname(entry.name).toLowerCase();
+            return [".docx", ".doc", ".txt"].includes(entryExt);
+          });
+          if (entries.length === 0) {
+            return res.status(400).json({
+              error: "The ZIP file contains no supported question files. Add .docx, .doc, or .txt files and try again.",
+            });
+          }
+          const textParts: string[] = [];
+          for (const entry of entries) {
+            const entryExt = path.extname(entry.name).toLowerCase();
+            if (entryExt === ".docx" || entryExt === ".doc") {
+              const result = await mammoth.extractRawText({ buffer: await entry.async("nodebuffer") });
+              textParts.push(result.value);
+            } else {
+              textParts.push(await entry.async("string"));
+            }
+          }
+          rawText = textParts.join("\n");
+        } else if (ext === ".docx" || ext === ".doc") {
           try {
             const result = await mammoth.extractRawText({ buffer: req.file.buffer });
             rawText = result.value;

@@ -495,7 +495,7 @@ paths:
     post:
       operationId: uploadQuestions
       tags: [admin]
-      summary: Bulk upload questions from file
+      summary: Bulk upload questions from file or ZIP archive
       requestBody:
         required: true
         content:
@@ -1290,6 +1290,7 @@ components:
 
     QuestionUploadInput:
       type: object
+      description: Upload a question document or ZIP archive containing .docx, .doc, or .txt question files.
       properties:
         year:
           type: string

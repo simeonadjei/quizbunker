@@ -278,6 +278,9 @@ export interface AdminLoginInput {
   password: string;
 }
 
+/**
+ * Upload a question document or ZIP archive containing .docx, .doc, or .txt question files.
+ */
 export interface QuestionUploadInput {
   year?: string;
   subject?: string;

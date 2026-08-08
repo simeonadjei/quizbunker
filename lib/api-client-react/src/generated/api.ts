@@ -1727,7 +1727,7 @@ export const getUploadQuestionsUrl = () => {
 }
 
 /**
- * @summary Bulk upload questions from file
+ * @summary Bulk upload questions from file or ZIP archive
  */
 export const uploadQuestions = async (questionUploadInput: QuestionUploadInput, options?: RequestInit): Promise<UploadResult> => {
     const formData = new FormData();
@@ -1782,7 +1782,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UploadQuestionsMutationError = ErrorType<unknown>
 
     /**
- * @summary Bulk upload questions from file
+ * @summary Bulk upload questions from file or ZIP archive
  */
 export const useUploadQuestions = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadQuestions>>, TError,{data: BodyType<QuestionUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}

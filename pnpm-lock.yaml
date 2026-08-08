@@ -208,6 +208,9 @@ importers:
       express-session:
         specifier: ^1.19.0
         version: 1.19.0
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       mammoth:
         specifier: ^1.12.0
         version: 1.12.0
@@ -260,6 +263,9 @@ importers:
 
   artifacts/exam-arena:
     dependencies:
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       mammoth:
         specifier: ^1.12.0
         version: 1.12.0

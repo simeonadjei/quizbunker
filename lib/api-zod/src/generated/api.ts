@@ -429,12 +429,12 @@ export const AdminTestEmailResponse = zod.object({
 
 
 /**
- * @summary Bulk upload questions from file
+ * @summary Bulk upload questions from file or ZIP archive
  */
 export const UploadQuestionsBody = zod.object({
   "year": zod.string().optional(),
   "subject": zod.string().optional()
-})
+}).describe('Upload a question document or ZIP archive containing .docx, .doc, or .txt question files.')
 
 export const UploadQuestionsResponse = zod.object({
   "inserted": zod.number(),
