@@ -13,6 +13,7 @@ import { parseQuestionText } from "../lib/parser";
 import mammoth from "mammoth";
 import type { Request, Response, NextFunction } from "express";
 import { sendEmail, isEmailConfigured } from "../lib/email";
+import { sendTextBeeSms } from "../lib/textbee";
 import { logger } from "../lib/logger";
 import { isSupabaseConfigured, uploadBufferToSupabase, uploadFileToSupabase, deleteFromSupabase, createSupabaseUploadUrl } from "../lib/supabaseStorage";
 import { isR2Configured, uploadFileToR2, deleteFromR2 } from "../lib/r2Storage";
@@ -262,6 +263,7 @@ router.post("/admin/payments/:id/verify", requireAdmin, async (req, res) => {
       semesterStart: paymentsTable.semesterStart,
       userEmail: usersTable.email,
       userName: usersTable.name,
+      userPhone: usersTable.momoNumber,
       referredBy: usersTable.referredBy,
     })
     .from(paymentsTable)
@@ -338,6 +340,13 @@ router.post("/admin/payments/:id/verify", requireAdmin, async (req, res) => {
       }).catch(() => {});
     }
 
+    if (payment.userPhone) {
+      sendTextBeeSms({
+        to: payment.userPhone,
+        message: `Quiz Bunker: Your ${plan} subscription is active. Payment verified. Access ends ${endDate.toLocaleDateString("en-GH", { day: "numeric", month: "long", year: "numeric" })}.`,
+      }).catch(() => {});
+    }
+
     return res.json({ match: true, message: `Payment verified. ${payment.userName ?? payment.userEmail} subscribed to ${plan} until ${endDate.toLocaleDateString()}.` });
   } else {
     // Mark as mismatch in payment record, email the user to resubmit
@@ -370,6 +379,13 @@ router.post("/admin/payments/:id/verify", requireAdmin, async (req, res) => {
       }).catch(() => {});
     }
 
+    if (payment.userPhone) {
+      sendTextBeeSms({
+        to: payment.userPhone,
+        message: `Quiz Bunker: Your submitted transaction ID did not match our MoMo record. Please check your MoMo history and resubmit the correct ID at ${publicAppUrl(req)}/subscribe`,
+      }).catch(() => {});
+    }
+
     return res.json({ match: false, message: `Transaction ID mismatch. User has been emailed to resubmit the correct ID.` });
   }
 });
@@ -386,6 +402,7 @@ router.post("/admin/payments/:id/not-received", requireAdmin, async (req, res) =
       userTxId: paymentsTable.userTxId,
       userEmail: usersTable.email,
       userName: usersTable.name,
+      userPhone: usersTable.momoNumber,
       plan: paymentsTable.plan,
     })
     .from(paymentsTable)
@@ -437,6 +454,13 @@ router.post("/admin/payments/:id/not-received", requireAdmin, async (req, res) =
       </div>
     `,
   }).catch(() => {});
+
+  if (payment.userPhone) {
+    sendTextBeeSms({
+      to: payment.userPhone,
+      message: `Quiz Bunker: We could not find your ${payment.plan} MoMo transaction. Check your confirmation SMS and resubmit the correct transaction ID at ${publicAppUrl(req)}/subscribe`,
+    }).catch(() => {});
+  }
 
   return res.json({ message: "The subscriber has been emailed to check and resend the correct transaction ID." });
 });

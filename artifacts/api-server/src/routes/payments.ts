@@ -4,6 +4,7 @@ import { eq, and, gt } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
 import { logActivity } from "../lib/activity";
 import { sendEmail } from "../lib/email";
+import { sendTextBeeSms } from "../lib/textbee";
 import { publicAppUrl } from "../lib/publicUrl";
 
 const router = Router();
@@ -99,6 +100,15 @@ router.post("/payments/submit", requireAuth, async (req, res) => {
           </div>
         </div>
       `,
+    }).catch(() => {});
+  }
+
+  const adminPhone = process.env.TEXTBEE_ADMIN_PHONE?.trim();
+  if (adminPhone) {
+    const planInfo = PLANS[plan as PlanKey];
+    sendTextBeeSms({
+      to: adminPhone,
+      message: `Quiz Bunker: New ${planInfo.label} MoMo payment from ${user.name}. Tx ID: ${txIdClean}. Verify in Admin: ${publicAppUrl(req)}/xk9admin2024?payment=${payment.id}`,
     }).catch(() => {});
   }
 

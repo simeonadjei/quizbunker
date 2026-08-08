@@ -1,6 +1,7 @@
 import app, { ensureSessionTable, backfillTrials, ensureSongsColumns } from "./app";
 import { ensureUsersColumns, ensureAllTables } from "./lib/db-migrations";
 import { logEmailConfigStatus } from "./lib/email";
+import { logTextBeeConfigStatus } from "./lib/textbee";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
 
@@ -47,6 +48,7 @@ ensureAllTables()
   )
   .then(() => {
   logEmailConfigStatus();
+  logTextBeeConfigStatus();
 
   app.listen(port, (err) => {
     if (err) {
