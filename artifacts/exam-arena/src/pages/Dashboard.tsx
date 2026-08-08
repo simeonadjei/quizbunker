@@ -590,7 +590,7 @@ export default function Dashboard() {
           <h1 className="text-game-title text-3xl leading-tight tracking-wide">LEVEL SELECT</h1>
           <button
             onClick={() => setShowReferral(true)}
-            className="flex items-center gap-1.5 font-bold text-sm transition-all px-3 py-1.5 rounded-xl"
+            className="refer-earn-glow flex items-center gap-1.5 font-bold text-sm transition-all px-3 py-1.5 rounded-xl"
             style={{ background: 'hsl(38 90% 10%)', border: '1.5px solid hsl(38 90% 35%)', color: 'hsl(38 95% 65%)' }}
           >
             <Gift className="w-4 h-4" />
