@@ -2751,6 +2751,76 @@ export const useVerifyMomoPayment = <TError = ErrorType<ErrorResponse>,
       return useMutation(getVerifyMomoPaymentMutationOptions(options));
     }
 
+export const getMarkPaymentNotReceivedUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/payments/${id}/not-received`
+}
+
+/**
+ * @summary Tell a subscriber to resend a transaction ID the admin could not find
+ */
+export const markPaymentNotReceived = async (id: number, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getMarkPaymentNotReceivedUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkPaymentNotReceivedMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markPaymentNotReceived>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markPaymentNotReceived>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['markPaymentNotReceived'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markPaymentNotReceived>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  markPaymentNotReceived(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkPaymentNotReceivedMutationResult = NonNullable<Awaited<ReturnType<typeof markPaymentNotReceived>>>
+
+    export type MarkPaymentNotReceivedMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Tell a subscriber to resend a transaction ID the admin could not find
+ */
+export const useMarkPaymentNotReceived = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markPaymentNotReceived>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markPaymentNotReceived>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getMarkPaymentNotReceivedMutationOptions(options));
+    }
+
 export const getAdminSubscribeUserUrl = () => {
 
 

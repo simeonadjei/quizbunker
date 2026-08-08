@@ -769,6 +769,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/payments/{id}/not-received:
+    post:
+      operationId: markPaymentNotReceived
+      tags: [admin]
+      summary: Tell a subscriber to resend a transaction ID the admin could not find
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subscriber notified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/subscribe:
     post:
       operationId: adminSubscribeUser

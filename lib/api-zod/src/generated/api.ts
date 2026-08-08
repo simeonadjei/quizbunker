@@ -654,6 +654,18 @@ export const VerifyMomoPaymentResponse = zod.object({
 
 
 /**
+ * @summary Tell a subscriber to resend a transaction ID the admin could not find
+ */
+export const MarkPaymentNotReceivedParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const MarkPaymentNotReceivedResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
  * @summary Manually subscribe a user to any plan and optionally generate a password
  */
 export const AdminSubscribeUserBody = zod.object({

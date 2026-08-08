@@ -4,6 +4,7 @@ import { eq, and, gt } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
 import { logActivity } from "../lib/activity";
 import { sendEmail } from "../lib/email";
+import { publicAppUrl } from "../lib/publicUrl";
 
 const router = Router();
 
@@ -55,7 +56,7 @@ router.post("/payments/submit", requireAuth, async (req, res) => {
   const reference = `MOMO_${Date.now()}_${user.id}_${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
   const { amount } = PLANS[plan as PlanKey];
 
-  await db.insert(paymentsTable).values({
+  const [payment] = await db.insert(paymentsTable).values({
     userId: user.id,
     plan,
     amount,
@@ -63,7 +64,7 @@ router.post("/payments/submit", requireAuth, async (req, res) => {
     status: "pending",
     userTxId: txIdClean,
     semesterStart: semesterStart ? new Date(semesterStart) : null,
-  });
+  }).returning({ id: paymentsTable.id });
 
   // Notify admin by email
   const adminEmail = (process.env.GMAIL_USER || process.env.ADMIN_EMAIL || "").trim();
@@ -91,6 +92,10 @@ router.post("/payments/submit", requireAuth, async (req, res) => {
                 <strong style="color:#ff6b00;">Action required:</strong> Log into the Admin page, find this pending payment, and enter the transaction ID you received on your MoMo to verify it.
               </p>
             </div>
+             <a href="${publicAppUrl(req)}/xk9admin2024?payment=${payment.id}"
+                style="display:inline-block;margin-top:4px;padding:14px 24px;background:#00b894;color:#07130f;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;">
+               OPEN ADMIN &amp; VERIFY PAYMENT
+             </a>
           </div>
         </div>
       `,

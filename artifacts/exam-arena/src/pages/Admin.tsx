@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 // mammoth browser build — parses .docx files client-side so zero file bytes
 // travel through Render (avoids free-tier bandwidth quota exhaustion).
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -14,6 +14,7 @@ import {
   useListAdminActivity,
   useListAdminPayments,
   useVerifyMomoPayment,
+  useMarkPaymentNotReceived,
 
   useListAdminReferrals,
   useNotifyReferralPaid,
@@ -138,11 +139,21 @@ function PendingPaymentsPanel() {
     query: { queryKey: getListAdminPaymentsQueryKey() }
   });
   const verify = useVerifyMomoPayment();
+  const notReceived = useMarkPaymentNotReceived();
   const { toast } = useToast();
   const [txInputs, setTxInputs] = useState<Record<number, string>>({});
   const [verifying, setVerifying] = useState<Record<number, boolean>>({});
+  const [notifying, setNotifying] = useState<Record<number, boolean>>({});
 
   const pending = payments.filter(p => p.status === 'pending' || p.status === 'mismatch');
+  const linkedPaymentId = Number(new URLSearchParams(window.location.search).get('payment')) || null;
+
+  useEffect(() => {
+    if (!linkedPaymentId || payments.length === 0) return;
+    const target = document.getElementById(`admin-payment-${linkedPaymentId}`);
+    if (!target) return;
+    requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  }, [linkedPaymentId, payments.length]);
 
   const handleVerify = async (paymentId: number) => {
     const txId = (txInputs[paymentId] ?? '').trim();
@@ -166,6 +177,21 @@ function PendingPaymentsPanel() {
         onError: () => toast({ title: 'Error', description: 'Verification failed.', variant: 'destructive' }),
         onSettled: () => setVerifying(v => ({ ...v, [paymentId]: false })),
       }
+    );
+  };
+
+  const handleNotReceived = (paymentId: number) => {
+    setNotifying(v => ({ ...v, [paymentId]: true }));
+    notReceived.mutate(
+      { id: paymentId },
+      {
+        onSuccess: (result) => {
+          toast({ title: 'Subscriber notified', description: result.message });
+          queryClient.invalidateQueries({ queryKey: getListAdminPaymentsQueryKey() });
+        },
+        onError: () => toast({ title: 'Could not notify subscriber', description: 'The payment was not updated.', variant: 'destructive' }),
+        onSettled: () => setNotifying(v => ({ ...v, [paymentId]: false })),
+      },
     );
   };
 
@@ -197,7 +223,11 @@ function PendingPaymentsPanel() {
       ) : (
         <div className="space-y-3">
           {pending.map(p => (
-            <div key={p.id} className="rounded border border-yellow-500/20 bg-white p-4">
+             <div
+               key={p.id}
+               id={`admin-payment-${p.id}`}
+               className={`rounded border bg-white p-4 ${linkedPaymentId === p.id ? 'border-emerald-500 ring-2 ring-emerald-400/40' : 'border-yellow-500/20'}`}
+             >
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs mb-3">
                 <span className="text-gray-500"><span className="text-gray-400">USER:</span> {p.userName ?? '—'} ({p.userEmail ?? '—'})</span>
                 <span className="text-gray-500"><span className="text-gray-400">PLAN:</span> <span className="text-yellow-400 uppercase">{p.plan}</span></span>
@@ -212,7 +242,7 @@ function PendingPaymentsPanel() {
                 <span className="font-mono font-bold text-cyan-400 text-sm">{p.userTxId ?? '(not provided)'}</span>
               </div>
               <p className="text-gray-400 text-xs mb-3">Check your MoMo and enter the transaction ID you received below:</p>
-              <div className="flex gap-2">
+               <div className="flex flex-wrap gap-2">
                 <input
                   type="text"
                   placeholder="Your MoMo transaction ID"
@@ -230,6 +260,16 @@ function PendingPaymentsPanel() {
                     : <CheckCircle2 className="w-4 h-4" />}
                   Verify
                 </button>
+                 <button
+                   onClick={() => handleNotReceived(p.id)}
+                   disabled={notifying[p.id]}
+                   className="px-3 py-2 bg-gray-100 hover:bg-red-50 border border-gray-300 hover:border-red-300 text-gray-600 hover:text-red-600 text-sm font-bold rounded flex items-center gap-2 disabled:opacity-50 shrink-0"
+                 >
+                   {notifying[p.id]
+                     ? <Loader2 className="w-4 h-4 animate-spin" />
+                     : <Mail className="w-4 h-4" />}
+                   Not received
+                 </button>
               </div>
             </div>
           ))}

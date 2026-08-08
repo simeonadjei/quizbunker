@@ -16,6 +16,7 @@ import { sendEmail, isEmailConfigured } from "../lib/email";
 import { logger } from "../lib/logger";
 import { isSupabaseConfigured, uploadBufferToSupabase, uploadFileToSupabase, deleteFromSupabase, createSupabaseUploadUrl } from "../lib/supabaseStorage";
 import { isR2Configured, uploadFileToR2, deleteFromR2 } from "../lib/r2Storage";
+import { publicAppUrl } from "../lib/publicUrl";
 
 const router = Router();
 
@@ -371,6 +372,73 @@ router.post("/admin/payments/:id/verify", requireAdmin, async (req, res) => {
 
     return res.json({ match: false, message: `Transaction ID mismatch. User has been emailed to resubmit the correct ID.` });
   }
+});
+
+// POST /admin/payments/:id/not-received — tell the subscriber to check and resend
+// the transaction ID when the admin cannot find the payment on MoMo.
+router.post("/admin/payments/:id/not-received", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+
+  const [payment] = await db
+    .select({
+      id: paymentsTable.id,
+      status: paymentsTable.status,
+      userTxId: paymentsTable.userTxId,
+      userEmail: usersTable.email,
+      userName: usersTable.name,
+      plan: paymentsTable.plan,
+    })
+    .from(paymentsTable)
+    .leftJoin(usersTable, eq(paymentsTable.userId, usersTable.id))
+    .where(eq(paymentsTable.id, id))
+    .limit(1);
+
+  if (!payment) return res.status(404).json({ error: "Payment record not found" });
+  if (payment.status === "success") {
+    return res.status(400).json({ error: "This payment is already verified" });
+  }
+  if (!payment.userEmail) {
+    return res.status(400).json({ error: "This subscriber does not have an email address" });
+  }
+
+  await db
+    .update(paymentsTable)
+    .set({ status: "mismatch" })
+    .where(eq(paymentsTable.id, id));
+
+  sendEmail({
+    to: payment.userEmail,
+    subject: "⚠️ Quiz Bunker — Please resend your transaction ID",
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#0f0f1a;color:#fff;border-radius:12px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#cc6600,#994400);padding:24px 32px;">
+          <h1 style="margin:0;font-size:24px;letter-spacing:1px;">🎮 QUIZ BUNKER</h1>
+        </div>
+        <div style="padding:32px;">
+          <h2 style="margin:0 0 12px;color:#ffaa00;">Please Check Your Transaction ID</h2>
+          <p style="color:#ccc;line-height:1.6;">Hi ${payment.userName ?? "there"},</p>
+          <p style="color:#ccc;line-height:1.6;">
+            We could not find or confirm the transaction ID submitted for your
+            <strong style="color:#ffaa00;text-transform:uppercase;">${payment.plan}</strong>
+            subscription.
+          </p>
+          <p style="color:#ccc;line-height:1.6;">
+            Please check the confirmation SMS or your MoMo transaction history,
+            then submit the correct transaction ID again.
+          </p>
+          <a href="${publicAppUrl(req)}/subscribe"
+             style="display:inline-block;margin:20px 0;padding:14px 32px;background:#ff6b00;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">
+            RESEND CORRECT TRANSACTION ID
+          </a>
+          <p style="color:#666;font-size:12px;margin-top:20px;">
+            Your original submission (${payment.userTxId ?? "—"}) was not verified. If you believe this is an error, reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  }).catch(() => {});
+
+  return res.json({ message: "The subscriber has been emailed to check and resend the correct transaction ID." });
 });
 
 // POST /admin/subscribe — manually subscribe any user by email, optionally generate new password
